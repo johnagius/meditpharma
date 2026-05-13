@@ -1,0 +1,22 @@
+{
+  "name": "pharmaconsulta-batch-upload",
+  "version": "1.0.0",
+  "description": "Browser-only tool: drop PDF shipping orders, get a FedEx batch xlsx.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bundle": "node scripts/bundle.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "serve": "http-server -p 5173 -c-1 --silent .",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "http-server": "^14.1.1",
+    "pdfjs-dist": "^3.11.174",
+    "vitest": "^2.1.8",
+    "xlsx": "0.18.5"
+  }
+}
