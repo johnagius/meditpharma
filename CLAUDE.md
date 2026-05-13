@@ -1,5 +1,14 @@
 # CLAUDE.md
 
+## Download link
+
+The shipped artefact lives at the repo root as `index.html`. From a logged‑in
+GitHub session, open it via the file view and use the download/Raw button:
+
+> **<https://github.com/johnagius/pharmaconsulta/blob/main/index.html>**
+
+(The bare `raw.githubusercontent.com` URL 404s for private repos.)
+
 ## What this repo is
 
 A browser‑only tool that turns PDF shipping orders into a FedEx batch‑import

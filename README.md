@@ -6,9 +6,10 @@ Secil layouts) into a FedEx batch‑import xlsx that matches the user's
 
 ## Download / run
 
-Grab the single self‑contained file:
+Grab the single self‑contained file (logged‑in GitHub session, then click the
+Raw / download button):
 
-> **<https://raw.githubusercontent.com/johnagius/pharmaconsulta/main/index.html>**
+> **<https://github.com/johnagius/pharmaconsulta/blob/main/index.html>**
 
 Save it anywhere and open it in any modern browser (Chrome, Edge, Firefox,
 Safari). Everything runs locally — no server, no upload.
