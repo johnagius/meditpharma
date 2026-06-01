@@ -43,6 +43,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // Default Cloudflare Worker (D1) endpoint. Used unless the user overrides it
   // via the Sync API URL box (saving an explicit value — including blank).
   const DEFAULT_API_BASE = 'https://pharmaconsulta-tracking.labrint.workers.dev';
+  // Proportional column widths (%) aligned with TRACKING_HEADERS + Actions.
+  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 6];
 
   const headers = HEADER_ROW();
   let orders = [];
@@ -50,7 +52,6 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
   renderHeader();
   renderRows();
-  initTracking();
 
   dropZone.addEventListener('click', () => filePicker.click());
   dropZone.addEventListener('dragover', (e) => {
@@ -315,9 +316,6 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     renderTracking();
   }
 
-  // Proportional column widths (%) aligned with TRACKING_HEADERS + Actions.
-  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 6];
-
   function renderTrackingHeader() {
     const table = trackingHead.parentElement;
     const oldCols = table.querySelector('colgroup');
@@ -567,6 +565,15 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       }
       await Promise.all(all.map((e) => walkEntry(e, out)));
     }
+  }
+
+  // Initialise the tracking section last and defensively: a failure here must
+  // never prevent the upload listeners above from being wired up.
+  try {
+    initTracking();
+  } catch (err) {
+    setTrackStatus(`Tracking section failed to initialise: ${err.message}`, 'err');
+    if (window.console) window.console.error(err);
   }
 
   return {

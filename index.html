@@ -300,7 +300,7 @@ footer {
   </div>
 </main>
 <footer>
-  PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-01 08:49 UTC
+  PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-01 08:55 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -1478,6 +1478,8 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   // Default Cloudflare Worker (D1) endpoint. Used unless the user overrides it
   // via the Sync API URL box (saving an explicit value — including blank).
   const DEFAULT_API_BASE = 'https://pharmaconsulta-tracking.labrint.workers.dev';
+  // Proportional column widths (%) aligned with TRACKING_HEADERS + Actions.
+  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 6];
 
   const headers = HEADER_ROW();
   let orders = [];
@@ -1485,7 +1487,6 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
 
   renderHeader();
   renderRows();
-  initTracking();
 
   dropZone.addEventListener('click', () => filePicker.click());
   dropZone.addEventListener('dragover', (e) => {
@@ -1750,9 +1751,6 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     renderTracking();
   }
 
-  // Proportional column widths (%) aligned with TRACKING_HEADERS + Actions.
-  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 6];
-
   function renderTrackingHeader() {
     const table = trackingHead.parentElement;
     const oldCols = table.querySelector('colgroup');
@@ -2002,6 +2000,15 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       }
       await Promise.all(all.map((e) => walkEntry(e, out)));
     }
+  }
+
+  // Initialise the tracking section last and defensively: a failure here must
+  // never prevent the upload listeners above from being wired up.
+  try {
+    initTracking();
+  } catch (err) {
+    setTrackStatus(`Tracking section failed to initialise: ${err.message}`, 'err');
+    if (window.console) window.console.error(err);
   }
 
   return {
