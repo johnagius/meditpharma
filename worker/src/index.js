@@ -93,6 +93,15 @@ const RESOURCES = {
       ['dedupKey', 'dedup_key'],
     ],
   },
+  settings: {
+    table: 'settings',
+    dedup: true,
+    fields: [
+      ['key', 'skey'],
+      ['value', 'svalue'],
+      ['dedupKey', 'dedup_key'],
+    ],
+  },
 };
 
 const CORS = {

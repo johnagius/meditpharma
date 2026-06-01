@@ -295,6 +295,8 @@ ${css}
       </label>
       <button id="btn-stock-refresh" class="primary" type="button">Refresh</button>
       <button id="btn-stock-from-orders" type="button">Pull loaded orders &rarr; pending</button>
+      <button id="btn-stock-from-fedex" type="button">Pull from Saved FedEx &rarr; pending</button>
+      <button id="btn-stock-add-manual" type="button">+ Manual movement</button>
       <button id="btn-stock-copy-moves" type="button">Copy confirmed movements</button>
     </div>
     <div id="stock-status" aria-live="polite"></div>

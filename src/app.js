@@ -18,7 +18,7 @@ import {
   fromISODate,
 } from './trackingRow.js';
 import { createStore } from './trackingStore.js';
-import { DEFAULT_MERCHANTS, detectMerchant, learnExample } from './data/merchants.js';
+import { DEFAULT_MERCHANTS, SOURCE_TO_MERCHANT, detectMerchant, learnExample } from './data/merchants.js';
 import { currentStock, suggestItemId, movementDedupKey, movementsToRows, toNum } from './data/stock.js';
 
 export function createApp({ document, window, pdfjsLib, XLSX }) {
@@ -58,6 +58,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const stockMerchantSel = document.getElementById('stock-merchant');
   const stockRefresh = document.getElementById('btn-stock-refresh');
   const stockFromOrders = document.getElementById('btn-stock-from-orders');
+  const stockFromFedex = document.getElementById('btn-stock-from-fedex');
+  const stockAddManual = document.getElementById('btn-stock-add-manual');
   const stockCopyMoves = document.getElementById('btn-stock-copy-moves');
   const stockStatus = document.getElementById('stock-status');
   const stockPendingHead = document.getElementById('stock-pending-head');
@@ -541,6 +543,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       ['tab-builder', 'panel-builder'],
       ['tab-fedex', 'panel-fedex'],
       ['tab-tracking', 'panel-tracking'],
+      ['tab-stock', 'panel-stock'],
       ['tab-merchants', 'panel-merchants'],
     ];
     const els = tabs.map(([t, p]) => ({
@@ -816,6 +819,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   function initStock() {
     if (stockRefresh) stockRefresh.addEventListener('click', loadStock);
     if (stockFromOrders) stockFromOrders.addEventListener('click', pullOrdersToPending);
+    if (stockFromFedex) stockFromFedex.addEventListener('click', pullSavedFedexToPending);
+    if (stockAddManual) stockAddManual.addEventListener('click', addManualMove);
     if (stockCopyMoves) stockCopyMoves.addEventListener('click', copyConfirmedMoves);
     if (stockAddItem) stockAddItem.addEventListener('click', addStockItem);
     if (stockMerchantSel) {
@@ -907,6 +912,81 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (skippedNoMerchant) msg += ` Skipped ${skippedNoMerchant} order(s) with no merchant set.`;
     setStatusInto(stockStatus, msg, made ? 'ok' : 'warn');
     renderStock();
+  }
+
+  // Back-fill pending movements from shipments already saved in D1 (FedEx).
+  async function pullSavedFedexToPending() {
+    if (!savedFedexRows.length) await loadSavedFedex();
+    if (!savedFedexRows.length) {
+      setStatusInto(stockStatus, 'No saved FedEx shipments to pull from.', 'warn');
+      return;
+    }
+    const store = makeStore('stockmoves');
+    const today = toISODate(new Date());
+    let made = 0;
+    for (const s of savedFedexRows) {
+      const merchant = SOURCE_TO_MERCHANT[s.source] || '';
+      const prod = findProductByKey(s.productKey);
+      const label = (prod && prod.label) || s.productKey || s.recipientName || 'Unknown';
+      const qtyCell = Array.isArray(s.cells) ? toNum(s.cells[36]) : 0; // commodityQuantity
+      const qty = String(-(Math.abs(qtyCell) || 1));
+      const orderKey = s.dedupKey || `fedex-${s.id}`;
+      const dedupKey = movementDedupKey(orderKey, label);
+      if (stockMoves.some((m) => m.dedupKey === dedupKey)) continue;
+      const move = {
+        merchant,
+        itemId: suggestItemId(stockItems, merchant, s.productKey) || '',
+        product: label,
+        qty,
+        date: today,
+        country: '',
+        batch: '',
+        section: '',
+        status: 'pending',
+        orderKey,
+        note: 'from saved FedEx',
+        dedupKey,
+      };
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const saved = await store.save(move);
+        saved._matchKey = s.productKey;
+        const i = stockMoves.findIndex((m) => String(m.id) === String(saved.id));
+        if (i >= 0) stockMoves[i] = saved; else stockMoves.push(saved);
+        made += 1;
+      } catch (err) {
+        setStatusInto(stockStatus, `Save failed: ${err.message}`, 'err');
+      }
+    }
+    setStatusInto(stockStatus, `Added ${made} pending movement(s) from saved FedEx.`, made ? 'ok' : 'warn');
+    renderStock();
+  }
+
+  // Add a blank pending movement to fill in by hand (back-entry).
+  async function addManualMove() {
+    const merchant = stockMerchant || (merchantNames()[0] || '');
+    const move = {
+      merchant,
+      itemId: '',
+      product: 'Manual entry',
+      qty: '-1',
+      date: toISODate(new Date()),
+      country: '',
+      batch: '',
+      section: '',
+      status: 'pending',
+      orderKey: '',
+      note: 'manual',
+      dedupKey: `manual-${Date.now()}`,
+    };
+    try {
+      const saved = await makeStore('stockmoves').save(move);
+      stockMoves.push(saved);
+      setStatusInto(stockStatus, 'Added a blank pending movement — map an item, set qty/date, then Confirm.', 'ok');
+      renderStock();
+    } catch (err) {
+      setStatusInto(stockStatus, `Add failed: ${err.message}`, 'err');
+    }
   }
 
   function itemsForMerchant(merchant) {
@@ -1043,7 +1123,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
       cell(makeStockInput(move.date, (v) => { move.date = v; }, 'w-md'));
       cell(txt(move.merchant));
-      cell(txt(move.product));
+      cell(makeStockInput(move.product, (v) => { move.product = v; }, 'w-md'));
 
       // Stock item dropdown (only this merchant's items).
       const sel = document.createElement('select');
@@ -1173,11 +1253,44 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     return createStore({ baseUrl, fetchImpl, storage: window.localStorage, resource });
   }
 
+  // App settings: cached in memory, mirrored to localStorage, shared via D1.
+  // Autosave defaults ON unless explicitly turned off.
+  const settingsCache = {};
+  function getSetting(key, dflt) {
+    if (Object.prototype.hasOwnProperty.call(settingsCache, key)) return settingsCache[key];
+    try {
+      const v = window.localStorage.getItem(key);
+      if (v !== null) return v;
+    } catch {}
+    return dflt;
+  }
+  function setSetting(key, value) {
+    settingsCache[key] = value;
+    try { window.localStorage.setItem(key, value); } catch {}
+    // Mirror to D1 (fire-and-forget).
+    makeStore('settings').save({ key, value, dedupKey: key }).catch(() => {});
+  }
+  async function loadSettings() {
+    try {
+      const list = await makeStore('settings').list();
+      for (const s of list) {
+        if (s && s.key) {
+          settingsCache[s.key] = s.value;
+          try { window.localStorage.setItem(s.key, s.value); } catch {}
+        }
+      }
+    } catch {}
+    refreshAutosaveChecks();
+  }
   function autosaveOn(section) {
-    try { return window.localStorage.getItem(AUTOSAVE_KEYS[section]) === '1'; } catch { return false; }
+    return getSetting(AUTOSAVE_KEYS[section], '1') !== '0';
   }
   function setAutosave(section, on) {
-    try { window.localStorage.setItem(AUTOSAVE_KEYS[section], on ? '1' : '0'); } catch {}
+    setSetting(AUTOSAVE_KEYS[section], on ? '1' : '0');
+  }
+  function refreshAutosaveChecks() {
+    if (fedexAutosave) fedexAutosave.checked = autosaveOn('fedex');
+    if (trackAutosave) trackAutosave.checked = autosaveOn('rows');
   }
   // Debounced autosave timers keyed by the row/order object.
   const autosaveTimers = new WeakMap();
@@ -1551,7 +1664,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     initTracking();
     initMerchants();
     initStock();
-    // Load merchants + learned patterns from the store (async, non-blocking).
+    // Load settings (autosave toggles) + merchants + learned patterns (async).
+    loadSettings().catch(() => {});
     loadLearnedPatterns().then(loadMerchants).catch(() => {});
   } catch (err) {
     setTrackStatus(`Save sections failed to initialise: ${err.message}`, 'err');
