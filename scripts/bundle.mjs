@@ -192,10 +192,7 @@ ${css}
   <div class="row-summary" id="summary">Drop PDFs above to begin.</div>
   <div id="status" aria-live="polite"></div>
   <div id="preview-wrapper">
-    <table aria-label="Shipments preview">
-      <thead id="table-head"></thead>
-      <tbody id="table-body"></tbody>
-    </table>
+    <div id="cards" class="cards" aria-label="Shipments preview"></div>
   </div>
 
   <section class="section-divider">

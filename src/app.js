@@ -25,8 +25,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const folderPicker = document.getElementById('folder-picker');
   const clearBtn = document.getElementById('btn-clear');
   const downloadBtn = document.getElementById('btn-download');
-  const tableHead = document.getElementById('table-head');
-  const tableBody = document.getElementById('table-body');
+  const cards = document.getElementById('cards');
   const statusEl = document.getElementById('status');
   const summary = document.getElementById('summary');
 
@@ -50,7 +49,6 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   let orders = [];
   let trackingRows = [];
 
-  renderHeader();
   renderRows();
 
   dropZone.addEventListener('click', () => filePicker.click());
@@ -162,38 +160,40 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
   }
 
-  function renderHeader() {
-    tableHead.innerHTML = '';
-    const tr = document.createElement('tr');
-    const headerSeq = ['File', 'Source', 'Product (MID)'].concat(headers);
-    for (const h of headerSeq) {
-      const th = document.createElement('th');
-      th.textContent = humanizeHeader(h);
-      tr.appendChild(th);
-    }
-    tableHead.appendChild(tr);
-  }
-
+  // Render each shipment as a card. The 52 export fields flow in a responsive
+  // grid that wraps onto as many lines as needed — every column is visible with
+  // no horizontal scrolling, the values stay editable, and the export is
+  // unaffected (the xlsx is rebuilt from `orders`, not the DOM).
   function renderRows() {
-    tableBody.innerHTML = '';
+    cards.innerHTML = '';
     orders.forEach((o, idx) => {
-      const tr = document.createElement('tr');
       const cells = buildRow({ recipient: o.recipient, product: o.product }, idx);
       const hasResolvedProduct = !!o.product && !!o.product.mid;
-      if (!hasResolvedProduct) tr.classList.add('invalid');
 
-      const fileTd = document.createElement('td');
-      fileTd.className = 'col-file';
-      fileTd.textContent = o.fileName;
-      tr.appendChild(fileTd);
+      const card = document.createElement('div');
+      card.className = `card${hasResolvedProduct ? '' : ' invalid'}`;
 
-      const srcTd = document.createElement('td');
-      srcTd.textContent = o.source || '';
-      tr.appendChild(srcTd);
+      // Card header: index, file, source, product picker.
+      const head = document.createElement('div');
+      head.className = 'card-head';
 
-      const prodTd = document.createElement('td');
-      prodTd.className = 'col-product';
+      const num = document.createElement('span');
+      num.className = 'card-num';
+      num.textContent = `#${idx + 1}`;
+      head.appendChild(num);
+
+      const file = document.createElement('span');
+      file.className = 'card-file';
+      file.textContent = o.fileName || '';
+      head.appendChild(file);
+
+      const src = document.createElement('span');
+      src.className = 'badge';
+      src.textContent = o.source || '';
+      head.appendChild(src);
+
       const sel = document.createElement('select');
+      sel.className = 'card-product';
       const empty = document.createElement('option');
       empty.value = '';
       empty.textContent = '— pick product —';
@@ -206,27 +206,50 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         sel.appendChild(opt);
       }
       sel.addEventListener('change', () => {
-        const product = findProductByKey(sel.value);
-        orders[idx].product = product || null;
+        orders[idx].product = findProductByKey(sel.value) || null;
         renderRows();
       });
-      prodTd.appendChild(sel);
-      tr.appendChild(prodTd);
+      head.appendChild(sel);
 
+      if (!hasResolvedProduct) {
+        const warn = document.createElement('span');
+        warn.className = 'badge err';
+        warn.textContent = 'no MID — pick a product';
+        head.appendChild(warn);
+      }
+
+      card.appendChild(head);
+
+      // Field grid.
+      const grid = document.createElement('div');
+      grid.className = 'fields';
       cells.forEach((value, colIdx) => {
-        const td = document.createElement('td');
-        td.textContent = value;
-        td.setAttribute('contenteditable', 'true');
-        td.dataset.colIdx = colIdx;
-        td.addEventListener('input', () => {
-          orders[idx].overrides = orders[idx].overrides || {};
-          orders[idx].overrides[colIdx] = td.textContent;
-        });
-        tr.appendChild(td);
-      });
+        const field = document.createElement('div');
+        field.className = 'field';
 
-      tableBody.appendChild(tr);
+        const label = document.createElement('span');
+        label.className = 'flabel';
+        label.textContent = humanizeHeader(headers[colIdx]);
+        field.appendChild(label);
+
+        const val = document.createElement('div');
+        val.className = 'fval';
+        val.setAttribute('contenteditable', 'true');
+        val.dataset.colIdx = colIdx;
+        val.textContent = value;
+        val.addEventListener('input', () => {
+          orders[idx].overrides = orders[idx].overrides || {};
+          orders[idx].overrides[colIdx] = val.textContent;
+        });
+        field.appendChild(val);
+
+        grid.appendChild(field);
+      });
+      card.appendChild(grid);
+
+      cards.appendChild(card);
     });
+
     const unresolved = orders.filter((o) => !o.product || !o.product.mid).length;
     downloadBtn.disabled = !orders.length || unresolved > 0;
     summary.innerHTML = orders.length

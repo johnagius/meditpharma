@@ -104,44 +104,60 @@ thead th {
   font-size: 11px;
   line-height: 1.25;
 }
-/* FedEx preview: 55 columns can't all fit the viewport, so keep columns
-   compact — headers wrap onto multiple lines at word boundaries (clean,
-   stacked words, never letter-by-letter), data stays single-line with an
-   ellipsis. The table scrolls sideways for the overflow. */
-#preview-wrapper table { width: max-content; table-layout: auto; }
-#preview-wrapper thead th {
-  white-space: normal;
-  word-break: normal;
-  overflow-wrap: break-word;
-  hyphens: none;
-  min-width: 62px;
-  max-width: 96px;
-  vertical-align: bottom;
+/* FedEx preview: one card per shipment. The 52 export fields flow in a
+   responsive grid that wraps onto as many lines as needed, so every column is
+   visible with no horizontal scrolling. */
+.cards { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
+.card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  padding: 10px 12px;
 }
-#preview-wrapper tbody td {
-  padding: 4px 8px;
+.card.invalid { background: rgba(248, 113, 113, 0.08); border-color: rgba(248, 113, 113, 0.45); }
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-  min-width: 62px;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-tbody tr.invalid { background: rgba(248, 113, 113, 0.08); }
-tbody td[contenteditable="true"]:focus {
-  outline: 2px solid var(--accent);
-  background: #1f2b58;
-}
-td.col-product select {
+.card-num { font-weight: 700; color: var(--accent); }
+.card-file { color: var(--muted); font-size: 12px; }
+.card-product {
   background: #0b1224;
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 12px;
-  padding: 2px 6px;
-  width: 100%;
+  padding: 4px 6px;
+  max-width: 320px;
 }
-td.col-file { color: var(--muted); }
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px 12px;
+}
+.field { display: flex; flex-direction: column; min-width: 0; }
+.field .flabel {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.field .fval {
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #0b1224;
+  min-height: 24px;
+  overflow-wrap: anywhere;
+}
+.field .fval:focus { outline: 2px solid var(--accent); background: #16224a; }
 .badge {
   display: inline-block;
   padding: 1px 6px;

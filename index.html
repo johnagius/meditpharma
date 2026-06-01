@@ -112,44 +112,60 @@ thead th {
   font-size: 11px;
   line-height: 1.25;
 }
-/* FedEx preview: 55 columns can't all fit the viewport, so keep columns
-   compact — headers wrap onto multiple lines at word boundaries (clean,
-   stacked words, never letter-by-letter), data stays single-line with an
-   ellipsis. The table scrolls sideways for the overflow. */
-#preview-wrapper table { width: max-content; table-layout: auto; }
-#preview-wrapper thead th {
-  white-space: normal;
-  word-break: normal;
-  overflow-wrap: break-word;
-  hyphens: none;
-  min-width: 62px;
-  max-width: 96px;
-  vertical-align: bottom;
+/* FedEx preview: one card per shipment. The 52 export fields flow in a
+   responsive grid that wraps onto as many lines as needed, so every column is
+   visible with no horizontal scrolling. */
+.cards { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
+.card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  padding: 10px 12px;
 }
-#preview-wrapper tbody td {
-  padding: 4px 8px;
+.card.invalid { background: rgba(248, 113, 113, 0.08); border-color: rgba(248, 113, 113, 0.45); }
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-  min-width: 62px;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-tbody tr.invalid { background: rgba(248, 113, 113, 0.08); }
-tbody td[contenteditable="true"]:focus {
-  outline: 2px solid var(--accent);
-  background: #1f2b58;
-}
-td.col-product select {
+.card-num { font-weight: 700; color: var(--accent); }
+.card-file { color: var(--muted); font-size: 12px; }
+.card-product {
   background: #0b1224;
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 12px;
-  padding: 2px 6px;
-  width: 100%;
+  padding: 4px 6px;
+  max-width: 320px;
 }
-td.col-file { color: var(--muted); }
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px 12px;
+}
+.field { display: flex; flex-direction: column; min-width: 0; }
+.field .flabel {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.field .fval {
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #0b1224;
+  min-height: 24px;
+  overflow-wrap: anywhere;
+}
+.field .fval:focus { outline: 2px solid var(--accent); background: #16224a; }
 .badge {
   display: inline-block;
   padding: 1px 6px;
@@ -284,10 +300,7 @@ footer {
   <div class="row-summary" id="summary">Drop PDFs above to begin.</div>
   <div id="status" aria-live="polite"></div>
   <div id="preview-wrapper">
-    <table aria-label="Shipments preview">
-      <thead id="table-head"></thead>
-      <tbody id="table-body"></tbody>
-    </table>
+    <div id="cards" class="cards" aria-label="Shipments preview"></div>
   </div>
 
   <section class="section-divider">
@@ -310,7 +323,7 @@ footer {
   </div>
 </main>
 <footer>
-  PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-01 09:01 UTC
+  PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-01 09:05 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -1470,8 +1483,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   const folderPicker = document.getElementById('folder-picker');
   const clearBtn = document.getElementById('btn-clear');
   const downloadBtn = document.getElementById('btn-download');
-  const tableHead = document.getElementById('table-head');
-  const tableBody = document.getElementById('table-body');
+  const cards = document.getElementById('cards');
   const statusEl = document.getElementById('status');
   const summary = document.getElementById('summary');
 
@@ -1495,7 +1507,6 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   let orders = [];
   let trackingRows = [];
 
-  renderHeader();
   renderRows();
 
   dropZone.addEventListener('click', () => filePicker.click());
@@ -1607,38 +1618,40 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     return spaced.charAt(0).toUpperCase() + spaced.slice(1);
   }
 
-  function renderHeader() {
-    tableHead.innerHTML = '';
-    const tr = document.createElement('tr');
-    const headerSeq = ['File', 'Source', 'Product (MID)'].concat(headers);
-    for (const h of headerSeq) {
-      const th = document.createElement('th');
-      th.textContent = humanizeHeader(h);
-      tr.appendChild(th);
-    }
-    tableHead.appendChild(tr);
-  }
-
+  // Render each shipment as a card. The 52 export fields flow in a responsive
+  // grid that wraps onto as many lines as needed — every column is visible with
+  // no horizontal scrolling, the values stay editable, and the export is
+  // unaffected (the xlsx is rebuilt from `orders`, not the DOM).
   function renderRows() {
-    tableBody.innerHTML = '';
+    cards.innerHTML = '';
     orders.forEach((o, idx) => {
-      const tr = document.createElement('tr');
       const cells = buildRow({ recipient: o.recipient, product: o.product }, idx);
       const hasResolvedProduct = !!o.product && !!o.product.mid;
-      if (!hasResolvedProduct) tr.classList.add('invalid');
 
-      const fileTd = document.createElement('td');
-      fileTd.className = 'col-file';
-      fileTd.textContent = o.fileName;
-      tr.appendChild(fileTd);
+      const card = document.createElement('div');
+      card.className = `card${hasResolvedProduct ? '' : ' invalid'}`;
 
-      const srcTd = document.createElement('td');
-      srcTd.textContent = o.source || '';
-      tr.appendChild(srcTd);
+      // Card header: index, file, source, product picker.
+      const head = document.createElement('div');
+      head.className = 'card-head';
 
-      const prodTd = document.createElement('td');
-      prodTd.className = 'col-product';
+      const num = document.createElement('span');
+      num.className = 'card-num';
+      num.textContent = `#${idx + 1}`;
+      head.appendChild(num);
+
+      const file = document.createElement('span');
+      file.className = 'card-file';
+      file.textContent = o.fileName || '';
+      head.appendChild(file);
+
+      const src = document.createElement('span');
+      src.className = 'badge';
+      src.textContent = o.source || '';
+      head.appendChild(src);
+
       const sel = document.createElement('select');
+      sel.className = 'card-product';
       const empty = document.createElement('option');
       empty.value = '';
       empty.textContent = '— pick product —';
@@ -1651,27 +1664,50 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         sel.appendChild(opt);
       }
       sel.addEventListener('change', () => {
-        const product = findProductByKey(sel.value);
-        orders[idx].product = product || null;
+        orders[idx].product = findProductByKey(sel.value) || null;
         renderRows();
       });
-      prodTd.appendChild(sel);
-      tr.appendChild(prodTd);
+      head.appendChild(sel);
 
+      if (!hasResolvedProduct) {
+        const warn = document.createElement('span');
+        warn.className = 'badge err';
+        warn.textContent = 'no MID — pick a product';
+        head.appendChild(warn);
+      }
+
+      card.appendChild(head);
+
+      // Field grid.
+      const grid = document.createElement('div');
+      grid.className = 'fields';
       cells.forEach((value, colIdx) => {
-        const td = document.createElement('td');
-        td.textContent = value;
-        td.setAttribute('contenteditable', 'true');
-        td.dataset.colIdx = colIdx;
-        td.addEventListener('input', () => {
-          orders[idx].overrides = orders[idx].overrides || {};
-          orders[idx].overrides[colIdx] = td.textContent;
-        });
-        tr.appendChild(td);
-      });
+        const field = document.createElement('div');
+        field.className = 'field';
 
-      tableBody.appendChild(tr);
+        const label = document.createElement('span');
+        label.className = 'flabel';
+        label.textContent = humanizeHeader(headers[colIdx]);
+        field.appendChild(label);
+
+        const val = document.createElement('div');
+        val.className = 'fval';
+        val.setAttribute('contenteditable', 'true');
+        val.dataset.colIdx = colIdx;
+        val.textContent = value;
+        val.addEventListener('input', () => {
+          orders[idx].overrides = orders[idx].overrides || {};
+          orders[idx].overrides[colIdx] = val.textContent;
+        });
+        field.appendChild(val);
+
+        grid.appendChild(field);
+      });
+      card.appendChild(grid);
+
+      cards.appendChild(card);
     });
+
     const unresolved = orders.filter((o) => !o.product || !o.product.mid).length;
     downloadBtn.disabled = !orders.length || unresolved > 0;
     summary.innerHTML = orders.length

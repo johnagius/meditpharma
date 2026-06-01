@@ -51,7 +51,7 @@ test.describe('FedEx Batch Builder', () => {
     await page.setInputFiles('#file-picker', allDhPdfs);
 
     await expect.poll(
-      async () => page.locator('#table-body tr').count(),
+      async () => page.locator('#cards .card').count(),
       { timeout: 30_000 }
     ).toBe(allDhPdfs.length);
 
@@ -87,7 +87,7 @@ test.describe('FedEx Batch Builder', () => {
     await page.waitForFunction(() => typeof (window as any).AppModule !== 'undefined');
     await page.setInputFiles('#file-picker', allDhPdfs);
     await expect.poll(
-      async () => page.locator('#table-body tr').count(),
+      async () => page.locator('#cards .card').count(),
       { timeout: 30_000 }
     ).toBe(allDhPdfs.length);
     const downloadBtn = page.locator('#btn-download');
@@ -126,12 +126,12 @@ test.describe('FedEx Batch Builder', () => {
     const secilPdf = path.join(repoRoot, 'batch upload', 'Secil Orders', 'Orders 230.pdf');
     await page.setInputFiles('#file-picker', secilPdf);
     await expect.poll(
-      async () => page.locator('#table-body tr').count(),
+      async () => page.locator('#cards .card').count(),
       { timeout: 30_000 }
     ).toBe(1);
     const downloadBtn = page.locator('#btn-download');
     await expect(downloadBtn).toBeDisabled();
-    await page.locator('#table-body select').selectOption('ozempic');
+    await page.locator('#cards .card-product').selectOption('ozempic');
     await expect(downloadBtn).toBeEnabled();
   });
 });
