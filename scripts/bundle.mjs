@@ -173,9 +173,9 @@ window.ParserIndex = ParserIndex;
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>PharmaConsulta — Shipment & Order Management</title>
+<title>Meditpharma — Shipment & Order Management</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2338bdf8'/%3E%3Ctext x='8' y='12' text-anchor='middle' font-size='10' font-family='sans-serif' fill='%230b1224' font-weight='700'%3EPC%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2338bdf8'/%3E%3Ctext x='8' y='12' text-anchor='middle' font-size='10' font-family='sans-serif' fill='%230b1224' font-weight='700'%3EMP%3C/text%3E%3C/svg%3E">
 <style>
 ${css}
 </style>
@@ -183,9 +183,9 @@ ${css}
 <body>
 <header>
   <div class="brand">
-    <div class="brand-mark" aria-hidden="true">PC</div>
+    <div class="brand-mark" aria-hidden="true">MP</div>
     <div class="brand-text">
-      <h1>PharmaConsulta</h1>
+      <h1>Meditpharma</h1>
       <span class="brand-sub">Shipment &amp; Order Management</span>
     </div>
     <span class="brand-status">All processing runs in your browser</span>
@@ -340,7 +340,7 @@ ${css}
   </section>
 </main>
 <footer>
-  PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build ${BUILD_STAMP}
+  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build ${BUILD_STAMP}
 </footer>
 <script src="${PDFJS_CDN}" crossorigin="anonymous"></script>
 <script src="${XLSX_CDN}" crossorigin="anonymous"></script>
