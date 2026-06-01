@@ -1,4 +1,4 @@
-# PharmaConsulta tracking Worker (Cloudflare + D1)
+# Meditpharma tracking Worker (Cloudflare + D1)
 
 REST API that persists the tracking-sheet rows from the web app into a
 Cloudflare D1 database. The static `index.html` works without it (it falls back

@@ -34,6 +34,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // FedEx D1 controls
   const fedexAutosave = document.getElementById('chk-fedex-autosave');
   const fedexSaveAll = document.getElementById('btn-fedex-saveall');
+  const addToStockBtn = document.getElementById('btn-add-to-stock');
   const fedexBackend = document.getElementById('fedex-backend');
   const fedexStatus = document.getElementById('fedex-status');
 
@@ -137,6 +138,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     orders = [];
     trackingRows = [];
     statusEl.textContent = '';
+    clearAddToStockFlash();
     renderRows();
     renderAllTracking();
   });
@@ -236,14 +238,37 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (autosaveOn('rows')) {
       trackingRows.forEach((r) => { if (!r.id) saveRow(r, { silent: true }); });
     }
-    // Offer to add the freshly parsed orders to the stock movement sheet.
+    // Surface a flashing CTA (instead of an interrupting popup) to add the
+    // freshly parsed orders to the stock movement sheet.
     const added = orders.length - beforeCount;
-    if (added > 0 && typeof window.confirm === 'function') {
-      if (window.confirm(`Add ${added} parsed order(s) to the stock movement sheet as pending movements?`)) {
-        await pullOrdersToPending();
-        setStatus('Added to Stock as pending — review and confirm them in the Stock tab.', 'ok');
-      }
-    }
+    if (added > 0) showAddToStockFlash();
+  }
+
+  function showAddToStockFlash() {
+    if (!addToStockBtn) return;
+    const n = orders.length;
+    addToStockBtn.textContent = `➕ Update Stock Movement Sheet (${n} order${n > 1 ? 's' : ''})`;
+    addToStockBtn.classList.remove('hidden');
+    addToStockBtn.classList.add('flash');
+  }
+
+  function clearAddToStockFlash() {
+    if (!addToStockBtn) return;
+    addToStockBtn.classList.add('hidden');
+    addToStockBtn.classList.remove('flash');
+  }
+
+  // Flashing CTA: jump to Stock, focus the right merchant, pull + show pending.
+  async function goAddToStock() {
+    if (!orders.length) { clearAddToStockFlash(); return; }
+    if (!stockItems.length && !stockMoves.length) await loadStock();
+    await pullOrdersToPending();
+    const ms = new Set(orders.map((o) => o.merchant).filter(Boolean));
+    stockMerchant = ms.size === 1 ? Array.from(ms)[0] : '';
+    if (stockMerchantSel) stockMerchantSel.value = stockMerchant;
+    clearAddToStockFlash();
+    activateTab('panel-stock'); // reloads stock from D1 + renders with the merchant
+    if (stockStatus && stockStatus.scrollIntoView) stockStatus.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   // Turn a camelCase column key into a readable, space-separated label so the
@@ -545,37 +570,39 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   }
 
   // ---- Tabs ----
+  const TAB_DEFS = [
+    ['tab-builder', 'panel-builder'],
+    ['tab-fedex', 'panel-fedex'],
+    ['tab-tracking', 'panel-tracking'],
+    ['tab-stock', 'panel-stock'],
+    ['tab-merchants', 'panel-merchants'],
+  ];
+  let tabEls = [];
+
+  // Switch to a panel and always refresh its data from the store.
+  function activateTab(panelId) {
+    tabEls.forEach(({ btn, panel }) => {
+      if (btn) btn.classList.toggle('active', btn.dataset.panel === panelId);
+      if (panel) panel.classList.toggle('active', panel.id === panelId);
+    });
+    if (panelId === 'panel-fedex') loadSavedFedex();
+    else if (panelId === 'panel-tracking') loadSavedRows();
+    else if (panelId === 'panel-stock') loadStock();
+  }
+
   function initTabs() {
     const settingsBtn = document.getElementById('btn-settings');
     const settingsBar = document.getElementById('global-settings');
     if (settingsBtn && settingsBar) {
       settingsBtn.addEventListener('click', () => settingsBar.classList.toggle('hidden'));
     }
-    const tabs = [
-      ['tab-builder', 'panel-builder'],
-      ['tab-fedex', 'panel-fedex'],
-      ['tab-tracking', 'panel-tracking'],
-      ['tab-stock', 'panel-stock'],
-      ['tab-merchants', 'panel-merchants'],
-    ];
-    const els = tabs.map(([t, p]) => ({
+    tabEls = TAB_DEFS.map(([t, p]) => ({
       btn: document.getElementById(t),
       panel: document.getElementById(p),
     }));
-    els.forEach(({ btn }, i) => {
+    tabEls.forEach(({ btn }) => {
       if (!btn) return;
-      btn.addEventListener('click', () => {
-        els.forEach(({ btn: b, panel }) => {
-          if (b) b.classList.remove('active');
-          if (panel) panel.classList.remove('active');
-        });
-        if (els[i].btn) els[i].btn.classList.add('active');
-        if (els[i].panel) els[i].panel.classList.add('active');
-        // Lazily refresh saved tabs the first time they're opened.
-        if (tabs[i][1] === 'panel-fedex' && !savedFedexRows.length) loadSavedFedex();
-        if (tabs[i][1] === 'panel-tracking' && !savedTrackingRows.length) loadSavedRows();
-        if (tabs[i][1] === 'panel-stock' && !stockItems.length && !stockMoves.length) loadStock();
-      });
+      btn.addEventListener('click', () => activateTab(btn.dataset.panel));
     });
   }
 
@@ -829,6 +856,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
   // ---- Stock ----
   function initStock() {
+    if (addToStockBtn) addToStockBtn.addEventListener('click', goAddToStock);
     if (stockRefresh) stockRefresh.addEventListener('click', loadStock);
     if (stockFromTracking) stockFromTracking.addEventListener('click', openTrackingPicker);
     if (stockAddManual) stockAddManual.addEventListener('click', addManualMove);

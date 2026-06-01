@@ -221,6 +221,7 @@ ${css}
       <button id="btn-clear" class="danger" type="button">Clear</button>
       <button id="btn-download" class="primary" type="button" disabled>Download xlsx</button>
       <button id="btn-fedex-saveall" type="button">Save all to D1</button>
+      <button id="btn-add-to-stock" class="flash hidden" type="button">Update Stock Movement Sheet</button>
       <label class="autosave"><input type="checkbox" id="chk-fedex-autosave"> Autosave to D1</label>
     </div>
     <div class="row-summary" id="summary">Drop PDFs above to begin.</div>

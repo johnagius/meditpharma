@@ -1,4 +1,4 @@
--- Tracking rows persisted from the PharmaConsulta web app.
+-- Tracking rows persisted from the Meditpharma web app.
 CREATE TABLE IF NOT EXISTS tracking_rows (
   id                  INTEGER PRIMARY KEY AUTOINCREMENT,
   day                 TEXT DEFAULT '',

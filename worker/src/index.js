@@ -1,4 +1,4 @@
-// Cloudflare Worker: REST API over a D1 database for PharmaConsulta.
+// Cloudflare Worker: REST API over a D1 database for Meditpharma.
 //
 // Two resources, same CRUD shape:
 //   /api/rows      tracking-sheet rows   (table tracking_rows)
