@@ -38,10 +38,28 @@ src/
   parsers/
     activa.js dh.js k2.js pdms.js secil.js   five PDF layouts
     index.js                detect + dispatch + multi‑order support (k2)
+  trackingRow.js            order → tracking row (multi‑product) + date/day helpers
+  trackingStore.js          save/list/update/remove rows (D1 API or localStorage)
+  data/states.js            US state code ↔ full‑name expansion
 scripts/bundle.mjs          inlines src/* + pdf.js + xlsx into index.html
+worker/                     Cloudflare Worker + D1 REST API for saved tracking rows
 tests/                      vitest unit tests + .txt fixtures per parser
 e2e/                        Playwright e2e (Chromium for Testing)
 ```
+
+## Tracking section
+
+Below the FedEx table the app renders a **Tracking sheet** — one row per order
+with *all* products listed together (`Product` = "Xeomin, Botox",
+`quantity` = "2,1"). `day`/`Date` are linked dropdown+calendar (changing one
+updates the other and the `ddmmyy-N` order number); `Account` is a dropdown
+(Fedex / Fedex LPN / Fedex PPS / Fedex RSW); `Product description` is the
+row's rotating HS description. Each row can be saved, overwritten, copied
+(tab‑separated) or deleted.
+
+Persistence goes through `trackingStore.js`: if a **Sync API URL** is set in the
+UI it calls the Cloudflare Worker in `worker/` (D1‑backed); otherwise it falls
+back to browser `localStorage`. See `worker/README.md` to deploy.
 
 ## Commands
 

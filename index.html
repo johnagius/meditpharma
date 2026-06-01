@@ -165,6 +165,86 @@ footer {
 .row-summary strong { color: var(--text); }
 .hidden { display: none !important; }
 
+/* ---- Tracking section ---- */
+.section-divider {
+  margin: 40px 0 8px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.section-divider h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+.section-divider p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.track-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.track-settings input[type="text"] {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 6px 8px;
+  min-width: 280px;
+}
+.track-settings .backend-badge { font-weight: 600; }
+.track-settings .backend-badge.d1 { color: var(--accent); }
+.track-settings .backend-badge.local { color: var(--warn); }
+#tracking-wrapper {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  max-height: 70vh;
+}
+#tracking-table { border-collapse: collapse; font-size: 12px; width: max-content; }
+#tracking-table thead th {
+  background: #1f2b58;
+  position: sticky;
+  top: 0;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid #334155;
+  white-space: nowrap;
+}
+#tracking-table tbody td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  vertical-align: top;
+}
+#tracking-table tbody tr.saved { background: rgba(74, 222, 128, 0.06); }
+#tracking-table input,
+#tracking-table select {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+#tracking-table input:focus,
+#tracking-table select:focus { outline: 2px solid var(--accent); }
+#tracking-table input.w-sm { width: 56px; }
+#tracking-table input.w-md { width: 120px; }
+#tracking-table input.w-lg { width: 200px; }
+#tracking-table input.w-xl { width: 260px; }
+#tracking-table .row-actions { display: flex; gap: 4px; }
+#tracking-table .row-actions button { padding: 4px 8px; font-size: 11px; }
+#tracking-status { font-size: 12px; color: var(--muted); margin: 8px 0; min-height: 18px; }
+
 </style>
 </head>
 <body>
@@ -192,9 +272,28 @@ footer {
       <tbody id="table-body"></tbody>
     </table>
   </div>
+
+  <section class="section-divider">
+    <h2>Tracking sheet</h2>
+    <p>One row per order (all products listed together). Edit any cell, then save a line to the database or copy it for pasting into a spreadsheet.</p>
+  </section>
+  <div class="track-settings">
+    <label for="track-api-url">Sync API URL (Cloudflare Worker):</label>
+    <input type="text" id="track-api-url" placeholder="https://your-worker.workers.dev (leave blank to use this browser)">
+    <button id="btn-track-save-url" type="button">Save URL</button>
+    <button id="btn-track-load" type="button">Load saved rows</button>
+    <span>Saving to: <span id="track-backend" class="backend-badge local">this browser (localStorage)</span></span>
+  </div>
+  <div id="tracking-status" aria-live="polite"></div>
+  <div id="tracking-wrapper">
+    <table id="tracking-table" aria-label="Tracking sheet">
+      <thead id="tracking-head"></thead>
+      <tbody id="tracking-body"></tbody>
+    </table>
+  </div>
 </main>
 <footer>
-  PharmaConsulta &middot; runs entirely in your browser. No data leaves your machine.
+  PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure.
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -342,6 +441,37 @@ const HS_CODES = [
   return { HS_CODES };
 })();
 
+// === data/states.js ===
+const ModStates = (function () {
+// Maps US state names <-> 2-letter codes. Parsers store the 2-letter code
+// (e.g. "NJ"); the tracking section wants the full name (e.g. "New Jersey").
+
+const STATE_NAMES = {
+  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
+  CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', FL: 'Florida', GA: 'Georgia',
+  HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa',
+  KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland',
+  MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi',
+  MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire',
+  NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina',
+  ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania',
+  RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee',
+  TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington',
+  WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
+  DC: 'District of Columbia', PR: 'Puerto Rico',
+};
+
+// Expand a 2-letter code to its full name. Anything already spelled out (or
+// unknown) is returned unchanged.
+function expandState(value) {
+  const v = String(value || '').trim();
+  if (/^[A-Za-z]{2}$/.test(v)) return STATE_NAMES[v.toUpperCase()] || v;
+  return v;
+}
+
+  return { expandState, STATE_NAMES };
+})();
+
 // === data/midCodes.js ===
 const ModMid = (function () {
 const PRODUCTS = [
@@ -349,7 +479,7 @@ const PRODUCTS = [
   { key: 'wegovy', label: 'Wegovy', mid: 'DKNOVNORBAG', country: 'DK', patterns: [/wegovy/i] },
   { key: 'norditropin', label: 'Norditropin', mid: 'DKNOVNOR1BAG', country: 'DK', patterns: [/norditropin/i] },
   { key: 'botox', label: 'Botox', mid: 'IEALLPHAWE', country: 'IE', patterns: [/botox/i, /\bBOT\s+\d+IU\b/i] },
-  { key: 'xeomin', label: 'Xeomin', mid: 'DEMERPHA100FRA', country: 'DE', patterns: [/xeomin/i] },
+  { key: 'xeomin', label: 'Xeomin', mid: 'DEMERPHA100FRA', country: 'DE', patterns: [/xeomin/i, /\bXEO\s+\d+IU\b/i] },
   { key: 'azzalure', label: 'Azzalure', mid: 'GBIPSBIOWRE', country: 'GB', patterns: [/azzalure/i] },
   { key: 'dysport', label: 'Dysport', mid: 'GBIPS37LON', country: 'GB', patterns: [/dysport/i] },
   { key: 'emla', label: 'Emla', mid: 'IEASPPHA3016DUB', country: 'IE', patterns: [/\bemla\b/i] },
@@ -450,6 +580,269 @@ function HEADER_ROW() {
 }
 
   return { buildRow, HEADER_ROW };
+})();
+
+// === trackingRow.js ===
+const ModTrackingRow = (function () {
+const HS_CODES = ModHs.HS_CODES;
+const expandState = ModStates.expandState;
+
+// Column headers for the tracking section, in order.
+const TRACKING_HEADERS = [
+  'day',
+  'Date',
+  'Order number',
+  'tracking number',
+  'Product',
+  'quantity',
+  'Product description',
+  'Destination (city)',
+  'Destination (state)',
+  'Account',
+  'Client',
+  'Delivered on',
+  'Comments',
+  'Direction Remarks',
+];
+
+// Field keys in the same order as TRACKING_HEADERS.
+const TRACKING_KEYS = [
+  'day',
+  'date',
+  'orderNumber',
+  'trackingNumber',
+  'product',
+  'quantity',
+  'productDescription',
+  'destCity',
+  'destState',
+  'account',
+  'client',
+  'deliveredOn',
+  'comments',
+  'directionRemarks',
+];
+
+// Account dropdown options.
+const ACCOUNTS = ['Fedex', 'Fedex LPN', 'Fedex PPS', 'Fedex RSW'];
+
+// getDay() is 0=Sunday .. 6=Saturday.
+const WEEKDAYS = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
+];
+
+function weekdayName(date) {
+  return WEEKDAYS[date.getDay()];
+}
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+// "01.06.26"
+function formatDateDDMMYY(date) {
+  return `${pad2(date.getDate())}.${pad2(date.getMonth() + 1)}.${String(date.getFullYear()).slice(-2)}`;
+}
+
+// "010626"
+function dateCompact(date) {
+  return `${pad2(date.getDate())}${pad2(date.getMonth() + 1)}${String(date.getFullYear()).slice(-2)}`;
+}
+
+// "010626-1"
+function orderNumberFor(date, seq) {
+  return `${dateCompact(date)}-${seq}`;
+}
+
+// yyyy-mm-dd for <input type="date">
+function toISODate(date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+// Parse a yyyy-mm-dd string into a local Date (no timezone surprises).
+function fromISODate(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
+// Move `date` to the given weekday (getDay index) within the same Mon–Sun week.
+function setWeekdayWithinWeek(date, targetDayIdx) {
+  const mondayOffset = (date.getDay() + 6) % 7; // 0 when Monday
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - mondayOffset);
+  const targetOffset = (targetDayIdx + 6) % 7; // 0 when Monday
+  const out = new Date(monday);
+  out.setDate(monday.getDate() + targetOffset);
+  return out;
+}
+
+// Split "2 x XEO 100IU (ENG) *note*" style lines into { qty, text }.
+// Notes wrapped in *asterisks* are stripped from the text.
+function parseProductLines(lines) {
+  const arr = Array.isArray(lines) ? lines : [lines];
+  const out = [];
+  for (const raw of arr) {
+    const line = String(raw || '').trim();
+    if (!line) continue;
+    const m = line.match(/^\s*(\d+)\s*[x×]\s*(.+?)\s*$/i);
+    let qty = '1';
+    let text = line;
+    if (m) {
+      qty = m[1];
+      text = m[2];
+    }
+    text = text.replace(/\*[^*]*\*/g, '').replace(/\s{2,}/g, ' ').trim();
+    out.push({ qty, text });
+  }
+  return out;
+}
+
+// Build a fully-defaulted tracking row from a parsed order.
+//  order: { recipient: {...}, products: [{ qty, label }] }
+//  rowIndex: 0-based position (drives the rotating HS description + order seq)
+//  date: JS Date used for day/date/order-number defaults
+function buildTrackingRow(order, rowIndex, date = new Date()) {
+  const recipient = order.recipient || {};
+  const products = order.products || [];
+  const hs = HS_CODES[rowIndex % HS_CODES.length];
+
+  return {
+    day: weekdayName(date),
+    date: formatDateDDMMYY(date),
+    isoDate: toISODate(date),
+    orderNumber: orderNumberFor(date, rowIndex + 1),
+    trackingNumber: '',
+    product: products.map((p) => p.label).join(', '),
+    quantity: products.map((p) => p.qty).join(','),
+    productDescription: hs.description,
+    destCity: recipient.city || '',
+    destState: expandState(recipient.state),
+    account: ACCOUNTS[0],
+    client: recipient.name || '',
+    deliveredOn: '',
+    comments: '',
+    directionRemarks: '',
+  };
+}
+
+// Tab-separated cells (header order) for copy-to-clipboard / spreadsheet paste.
+function trackingRowToCells(row) {
+  return TRACKING_KEYS.map((k) => row[k] ?? '');
+}
+
+  return { weekdayName, formatDateDDMMYY, dateCompact, orderNumberFor, toISODate, fromISODate, setWeekdayWithinWeek, parseProductLines, buildTrackingRow, trackingRowToCells, TRACKING_HEADERS, TRACKING_KEYS, ACCOUNTS, WEEKDAYS };
+})();
+
+// === trackingStore.js ===
+const ModTrackingStore = (function () {
+// Storage client for saved tracking rows.
+//
+// When a Cloudflare Worker URL is configured it talks to the D1-backed REST
+// API (see worker/). With no URL it falls back to browser localStorage so the
+// page keeps working fully offline. Both back-ends expose the same async API:
+//   list()            -> [row, ...]
+//   save(row)         -> row (with new id)
+//   update(id, row)   -> row
+//   remove(id)        -> { ok: true }
+
+const LS_KEY = 'pharmaconsulta_tracking_rows';
+
+// Fields persisted for a tracking row (id is assigned by the store).
+const TRACKING_FIELDS = [
+  'day', 'date', 'isoDate', 'orderNumber', 'trackingNumber', 'product', 'quantity',
+  'productDescription', 'destCity', 'destState', 'account', 'client',
+  'deliveredOn', 'deliveredOnIso', 'comments', 'directionRemarks',
+];
+
+function pick(row) {
+  const out = {};
+  for (const f of TRACKING_FIELDS) out[f] = row[f] ?? '';
+  return out;
+}
+
+function createLocalStore(storage) {
+  const read = () => {
+    try {
+      return JSON.parse(storage.getItem(LS_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  };
+  const write = (rows) => storage.setItem(LS_KEY, JSON.stringify(rows));
+
+  return {
+    backend: 'local',
+    async list() {
+      return read();
+    },
+    async save(row) {
+      const rows = read();
+      const id = rows.reduce((max, r) => Math.max(max, Number(r.id) || 0), 0) + 1;
+      const saved = { id, ...pick(row) };
+      rows.push(saved);
+      write(rows);
+      return saved;
+    },
+    async update(id, row) {
+      const rows = read();
+      const idx = rows.findIndex((r) => String(r.id) === String(id));
+      if (idx === -1) throw new Error(`Row ${id} not found`);
+      rows[idx] = { id: rows[idx].id, ...pick(row) };
+      write(rows);
+      return rows[idx];
+    },
+    async remove(id) {
+      const rows = read().filter((r) => String(r.id) !== String(id));
+      write(rows);
+      return { ok: true };
+    },
+  };
+}
+
+function createApiStore(baseUrl, fetchImpl) {
+  const base = baseUrl.replace(/\/+$/, '');
+  const json = async (res) => {
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`API ${res.status}: ${body || res.statusText}`);
+    }
+    return res.json();
+  };
+  return {
+    backend: 'd1',
+    async list() {
+      return json(await fetchImpl(`${base}/api/rows`));
+    },
+    async save(row) {
+      return json(await fetchImpl(`${base}/api/rows`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pick(row)),
+      }));
+    },
+    async update(id, row) {
+      return json(await fetchImpl(`${base}/api/rows/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pick(row)),
+      }));
+    },
+    async remove(id) {
+      return json(await fetchImpl(`${base}/api/rows/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      }));
+    },
+  };
+}
+
+function createStore({ baseUrl = '', fetchImpl, storage } = {}) {
+  if (baseUrl && fetchImpl) return createApiStore(baseUrl, fetchImpl);
+  if (storage) return createLocalStore(storage);
+  throw new Error('createStore needs either a baseUrl+fetchImpl or a storage');
+}
+
+  return { createStore, TRACKING_FIELDS };
 })();
 
 // === excelExporter.js ===
@@ -619,9 +1012,15 @@ function parse(text) {
   if (buf.length) line2 = buf.shift();
 
   const productsIdx = lines.findIndex((l) => /^Products Ordered:/i.test(l));
-  const productLine = productsIdx >= 0
-    ? (lines.slice(productsIdx + 1).find((l) => l && !/^\*{5,}/.test(l)) || '')
-    : '';
+  const productLines = [];
+  if (productsIdx >= 0) {
+    for (let i = productsIdx + 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line) continue;
+      if (/^\*{5,}/.test(line)) break;
+      productLines.push(line);
+    }
+  }
 
   return {
     source: 'activa',
@@ -637,7 +1036,8 @@ function parse(text) {
       phone,
       email: '',
     },
-    productText: productLine,
+    productText: productLines[0] || '',
+    productLines,
     rawText: text,
   };
 }
@@ -1033,6 +1433,19 @@ const buildAOA = ModExporter.buildAOA;
 const buildFileName = ModExporter.buildFileName;
 const HEADER_ROW = ModBuildRow.HEADER_ROW;
 const buildRow = ModBuildRow.buildRow;
+const TRACKING_HEADERS = ModTrackingRow.TRACKING_HEADERS;
+const ACCOUNTS = ModTrackingRow.ACCOUNTS;
+const WEEKDAYS = ModTrackingRow.WEEKDAYS;
+const buildTrackingRow = ModTrackingRow.buildTrackingRow;
+const trackingRowToCells = ModTrackingRow.trackingRowToCells;
+const parseProductLines = ModTrackingRow.parseProductLines;
+const formatDateDDMMYY = ModTrackingRow.formatDateDDMMYY;
+const weekdayName = ModTrackingRow.weekdayName;
+const orderNumberFor = ModTrackingRow.orderNumberFor;
+const setWeekdayWithinWeek = ModTrackingRow.setWeekdayWithinWeek;
+const toISODate = ModTrackingRow.toISODate;
+const fromISODate = ModTrackingRow.fromISODate;
+const createStore = ModTrackingStore.createStore;
 
 function createApp({ document, window, pdfjsLib, XLSX }) {
   const dropZone = document.getElementById('drop-zone');
@@ -1045,11 +1458,24 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   const statusEl = document.getElementById('status');
   const summary = document.getElementById('summary');
 
+  // Tracking section elements
+  const trackApiUrl = document.getElementById('track-api-url');
+  const trackSaveUrl = document.getElementById('btn-track-save-url');
+  const trackLoadSaved = document.getElementById('btn-track-load');
+  const trackBackend = document.getElementById('track-backend');
+  const trackingHead = document.getElementById('tracking-head');
+  const trackingBody = document.getElementById('tracking-body');
+  const trackingStatus = document.getElementById('tracking-status');
+
+  const API_BASE_KEY = 'pharmaconsulta_tracking_api_base';
+
   const headers = HEADER_ROW();
   let orders = [];
+  let trackingRows = [];
 
   renderHeader();
   renderRows();
+  initTracking();
 
   dropZone.addEventListener('click', () => filePicker.click());
   dropZone.addEventListener('dragover', (e) => {
@@ -1077,6 +1503,9 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     orders = [];
     statusEl.textContent = '';
     renderRows();
+    // Keep rows that were loaded from the database; drop order-derived ones.
+    trackingRows = trackingRows.filter((r) => r._origin === 'db');
+    renderTracking();
   });
 
   downloadBtn.addEventListener('click', () => {
@@ -1142,6 +1571,8 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       }
     }
     renderRows();
+    buildTrackingFromOrders();
+    renderTracking();
   }
 
   function renderHeader() {
@@ -1218,6 +1649,293 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
             : ''
         }.`
       : 'Drop PDFs above to begin.';
+  }
+
+  // ---- Tracking section ----
+
+  function getApiBase() {
+    try {
+      return (window.localStorage.getItem(API_BASE_KEY) || '').trim();
+    } catch {
+      return '';
+    }
+  }
+
+  function makeStore() {
+    const baseUrl = getApiBase();
+    const fetchImpl = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
+    return createStore({ baseUrl, fetchImpl, storage: window.localStorage });
+  }
+
+  function updateBackendBadge() {
+    if (!trackBackend) return;
+    const base = getApiBase();
+    trackBackend.textContent = base ? 'D1 (Cloudflare)' : 'this browser (localStorage)';
+    trackBackend.className = `backend-badge ${base ? 'd1' : 'local'}`;
+  }
+
+  function setTrackStatus(msg, level = '') {
+    if (!trackingStatus) return;
+    const line = document.createElement('div');
+    line.className = `status-line ${level}`;
+    line.textContent = msg;
+    trackingStatus.appendChild(line);
+    while (trackingStatus.children.length > 8) trackingStatus.removeChild(trackingStatus.firstChild);
+  }
+
+  function resolveProducts(order) {
+    const lines = order.productLines && order.productLines.length
+      ? order.productLines
+      : (order.productText ? [order.productText] : []);
+    return parseProductLines(lines).map((p) => {
+      const detected = detectProduct(p.text);
+      return { qty: p.qty, label: detected ? detected.label : p.text, text: p.text };
+    });
+  }
+
+  function buildTrackingFromOrders() {
+    const dbRows = trackingRows.filter((r) => r._origin === 'db');
+    const today = new Date();
+    const orderRows = orders.map((o, idx) => {
+      const row = buildTrackingRow(
+        { recipient: o.recipient, products: resolveProducts(o) },
+        idx,
+        today
+      );
+      row._origin = 'order';
+      return row;
+    });
+    trackingRows = orderRows.concat(dbRows);
+  }
+
+  function initTracking() {
+    if (!trackingHead) return;
+    renderTrackingHeader();
+    if (trackApiUrl) trackApiUrl.value = getApiBase();
+    updateBackendBadge();
+    if (trackSaveUrl) {
+      trackSaveUrl.addEventListener('click', () => {
+        const v = (trackApiUrl.value || '').trim().replace(/\/+$/, '');
+        try { window.localStorage.setItem(API_BASE_KEY, v); } catch {}
+        if (trackApiUrl) trackApiUrl.value = v;
+        updateBackendBadge();
+        setTrackStatus(
+          v ? `Sync URL saved — saves now go to D1 at ${v}` : 'Sync URL cleared — saves go to this browser.',
+          'ok'
+        );
+      });
+    }
+    if (trackLoadSaved) trackLoadSaved.addEventListener('click', loadSavedRows);
+    renderTracking();
+  }
+
+  function renderTrackingHeader() {
+    trackingHead.innerHTML = '';
+    const tr = document.createElement('tr');
+    for (const h of TRACKING_HEADERS.concat(['Actions'])) {
+      const th = document.createElement('th');
+      th.textContent = h;
+      tr.appendChild(th);
+    }
+    trackingHead.appendChild(tr);
+  }
+
+  function input(value, cls, onInput) {
+    const el = document.createElement('input');
+    el.type = 'text';
+    el.className = cls;
+    el.value = value ?? '';
+    el.addEventListener('input', () => onInput(el.value));
+    return el;
+  }
+
+  function dateInput(isoValue, onChange) {
+    const el = document.createElement('input');
+    el.type = 'date';
+    el.className = 'w-md';
+    if (isoValue) el.value = isoValue;
+    el.addEventListener('change', () => onChange(el.value));
+    return el;
+  }
+
+  function renderTracking() {
+    if (!trackingBody) return;
+    trackingBody.innerHTML = '';
+    trackingRows.forEach((row) => {
+      const tr = document.createElement('tr');
+      if (row.id) tr.classList.add('saved');
+
+      const tdMap = {};
+      const cell = (key, node) => {
+        const td = document.createElement('td');
+        td.appendChild(node);
+        tr.appendChild(td);
+        tdMap[key] = node;
+      };
+
+      // day (dropdown) — linked to date + order number
+      const daySel = document.createElement('select');
+      for (const wd of WEEKDAYS) {
+        const opt = document.createElement('option');
+        opt.value = wd;
+        opt.textContent = wd;
+        if (wd === row.day) opt.selected = true;
+        daySel.appendChild(opt);
+      }
+      daySel.addEventListener('change', () => {
+        const base = fromISODate(row.isoDate) || new Date();
+        const moved = setWeekdayWithinWeek(base, WEEKDAYS.indexOf(daySel.value));
+        applyDate(row, moved, tdMap, false);
+      });
+      cell('day', daySel);
+
+      // Date (calendar) — linked to day + order number
+      cell('date', dateInput(row.isoDate, (iso) => {
+        const d = fromISODate(iso);
+        if (d) applyDate(row, d, tdMap, true);
+      }));
+
+      cell('orderNumber', input(row.orderNumber, 'w-md', (v) => { row.orderNumber = v; }));
+      cell('trackingNumber', input(row.trackingNumber, 'w-md', (v) => { row.trackingNumber = v; }));
+      cell('product', input(row.product, 'w-xl', (v) => { row.product = v; }));
+      cell('quantity', input(row.quantity, 'w-sm', (v) => { row.quantity = v; }));
+      cell('productDescription', input(row.productDescription, 'w-xl', (v) => { row.productDescription = v; }));
+      cell('destCity', input(row.destCity, 'w-md', (v) => { row.destCity = v; }));
+      cell('destState', input(row.destState, 'w-md', (v) => { row.destState = v; }));
+
+      // Account dropdown
+      const accSel = document.createElement('select');
+      for (const a of ACCOUNTS) {
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = a;
+        if (a === row.account) opt.selected = true;
+        accSel.appendChild(opt);
+      }
+      accSel.addEventListener('change', () => { row.account = accSel.value; });
+      cell('account', accSel);
+
+      cell('client', input(row.client, 'w-md', (v) => { row.client = v; }));
+
+      // Delivered on (calendar, empty by default)
+      cell('deliveredOn', dateInput(row.deliveredOnIso || '', (iso) => {
+        row.deliveredOnIso = iso;
+        row.deliveredOn = iso ? formatDateDDMMYY(fromISODate(iso)) : '';
+      }));
+
+      cell('comments', input(row.comments, 'w-lg', (v) => { row.comments = v; }));
+      cell('directionRemarks', input(row.directionRemarks, 'w-lg', (v) => { row.directionRemarks = v; }));
+
+      // Actions
+      const actTd = document.createElement('td');
+      const actions = document.createElement('div');
+      actions.className = 'row-actions';
+
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'primary';
+      saveBtn.textContent = row.id ? 'Overwrite' : 'Save';
+      saveBtn.addEventListener('click', () => saveRow(row));
+      actions.appendChild(saveBtn);
+
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.textContent = 'Copy';
+      copyBtn.addEventListener('click', () => copyRow(row));
+      actions.appendChild(copyBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'danger';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', () => removeRow(row));
+      actions.appendChild(delBtn);
+
+      actTd.appendChild(actions);
+      tr.appendChild(actTd);
+
+      trackingBody.appendChild(tr);
+    });
+  }
+
+  // Apply a new Date to a row, syncing day / date / order-number controls.
+  function applyDate(row, date, tdMap, fromCalendar) {
+    row.isoDate = toISODate(date);
+    row.date = formatDateDDMMYY(date);
+    row.day = weekdayName(date);
+    // Re-derive the order number only if the user hasn't manually overridden it.
+    const seqMatch = String(row.orderNumber).match(/-(\d+)\s*$/);
+    const seq = seqMatch ? seqMatch[1] : '1';
+    row.orderNumber = orderNumberFor(date, seq);
+    if (tdMap.day) tdMap.day.value = row.day;
+    if (tdMap.date && !fromCalendar) tdMap.date.value = row.isoDate;
+    if (tdMap.orderNumber) tdMap.orderNumber.value = row.orderNumber;
+  }
+
+  async function saveRow(row) {
+    const store = makeStore();
+    try {
+      setTrackStatus(row.id ? `Overwriting id ${row.id}…` : 'Saving…');
+      const saved = row.id ? await store.update(row.id, row) : await store.save(row);
+      row.id = saved.id;
+      setTrackStatus(
+        `${row.id ? 'Saved' : 'Saved'} order ${row.orderNumber} (id ${saved.id}) to ${store.backend === 'd1' ? 'D1' : 'this browser'}.`,
+        'ok'
+      );
+      renderTracking();
+    } catch (err) {
+      setTrackStatus(`Save failed: ${err.message}`, 'err');
+    }
+  }
+
+  async function copyRow(row) {
+    const text = trackingRowToCells(row).join('\t');
+    try {
+      await window.navigator.clipboard.writeText(text);
+      setTrackStatus(`Copied order ${row.orderNumber} to clipboard (tab-separated).`, 'ok');
+    } catch {
+      setTrackStatus(`Copy unavailable here. Row:\n${text}`, 'warn');
+    }
+  }
+
+  async function removeRow(row) {
+    if (row.id) {
+      const store = makeStore();
+      try {
+        await store.remove(row.id);
+      } catch (err) {
+        setTrackStatus(`Delete failed: ${err.message}`, 'err');
+        return;
+      }
+    }
+    trackingRows = trackingRows.filter((r) => r !== row);
+    setTrackStatus('Row removed.', 'ok');
+    renderTracking();
+  }
+
+  async function loadSavedRows() {
+    const store = makeStore();
+    try {
+      setTrackStatus(`Loading saved rows from ${store.backend === 'd1' ? 'D1' : 'this browser'}…`);
+      const saved = await store.list();
+      const existingIds = new Set(trackingRows.filter((r) => r.id).map((r) => String(r.id)));
+      let added = 0;
+      for (const s of saved) {
+        if (existingIds.has(String(s.id))) continue;
+        const d = fromISODate(s.isoDate);
+        trackingRows.push({
+          ...s,
+          isoDate: s.isoDate || '',
+          deliveredOnIso: s.deliveredOnIso || '',
+          _origin: 'db',
+        });
+        added += 1;
+      }
+      setTrackStatus(`Loaded ${saved.length} saved row(s); ${added} new added to the table.`, 'ok');
+      renderTracking();
+    } catch (err) {
+      setTrackStatus(`Load failed: ${err.message}`, 'err');
+    }
   }
 
   async function readDataTransfer(dt) {

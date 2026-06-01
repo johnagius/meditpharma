@@ -1,0 +1,15 @@
+{
+  "name": "pharmaconsulta-tracking-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker + D1 REST API for PharmaConsulta tracking rows.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate": "wrangler d1 migrations apply pharmaconsulta_tracking --remote",
+    "migrate:local": "wrangler d1 migrations apply pharmaconsulta_tracking --local"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

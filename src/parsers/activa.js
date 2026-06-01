@@ -69,9 +69,15 @@ export function parse(text) {
   if (buf.length) line2 = buf.shift();
 
   const productsIdx = lines.findIndex((l) => /^Products Ordered:/i.test(l));
-  const productLine = productsIdx >= 0
-    ? (lines.slice(productsIdx + 1).find((l) => l && !/^\*{5,}/.test(l)) || '')
-    : '';
+  const productLines = [];
+  if (productsIdx >= 0) {
+    for (let i = productsIdx + 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line) continue;
+      if (/^\*{5,}/.test(line)) break;
+      productLines.push(line);
+    }
+  }
 
   return {
     source: 'activa',
@@ -87,7 +93,8 @@ export function parse(text) {
       phone,
       email: '',
     },
-    productText: productLine,
+    productText: productLines[0] || '',
+    productLines,
     rawText: text,
   };
 }

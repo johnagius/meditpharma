@@ -1,0 +1,13 @@
+name = "pharmaconsulta-tracking"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# Created with:  npx wrangler d1 create pharmaconsulta_tracking
+# Paste the printed database_id below, then:
+#   npx wrangler d1 migrations apply pharmaconsulta_tracking --remote
+#   npx wrangler deploy
+[[d1_databases]]
+binding = "DB"
+database_name = "pharmaconsulta_tracking"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "migrations"

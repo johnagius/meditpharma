@@ -10,8 +10,11 @@ const MODULE_ORDER = [
   'data/columns.js',
   'data/senders.js',
   'data/hsCodes.js',
+  'data/states.js',
   'data/midCodes.js',
   'buildRow.js',
+  'trackingRow.js',
+  'trackingStore.js',
   'excelExporter.js',
   'pdfReader.js',
   'parsers/activa.js',
@@ -27,8 +30,11 @@ const NAMESPACES = {
   'data/columns.js': 'ModColumns',
   'data/senders.js': 'ModSenders',
   'data/hsCodes.js': 'ModHs',
+  'data/states.js': 'ModStates',
   'data/midCodes.js': 'ModMid',
   'buildRow.js': 'ModBuildRow',
+  'trackingRow.js': 'ModTrackingRow',
+  'trackingStore.js': 'ModTrackingStore',
   'excelExporter.js': 'ModExporter',
   'pdfReader.js': 'ModPdfReader',
   'parsers/activa.js': 'ParserActiva',
@@ -44,14 +50,18 @@ const IMPORT_TO_NS = {
   './data/columns.js': 'ModColumns',
   './data/senders.js': 'ModSenders',
   './data/hsCodes.js': 'ModHs',
+  './data/states.js': 'ModStates',
   './data/midCodes.js': 'ModMid',
   './buildRow.js': 'ModBuildRow',
+  './trackingRow.js': 'ModTrackingRow',
+  './trackingStore.js': 'ModTrackingStore',
   './excelExporter.js': 'ModExporter',
   './pdfReader.js': 'ModPdfReader',
   './parsers/index.js': 'ParserIndex',
   '../data/columns.js': 'ModColumns',
   '../data/senders.js': 'ModSenders',
   '../data/hsCodes.js': 'ModHs',
+  '../data/states.js': 'ModStates',
   '../data/midCodes.js': 'ModMid',
   '../buildRow.js': 'ModBuildRow',
   '../excelExporter.js': 'ModExporter',
@@ -186,9 +196,28 @@ ${css}
       <tbody id="table-body"></tbody>
     </table>
   </div>
+
+  <section class="section-divider">
+    <h2>Tracking sheet</h2>
+    <p>One row per order (all products listed together). Edit any cell, then save a line to the database or copy it for pasting into a spreadsheet.</p>
+  </section>
+  <div class="track-settings">
+    <label for="track-api-url">Sync API URL (Cloudflare Worker):</label>
+    <input type="text" id="track-api-url" placeholder="https://your-worker.workers.dev (leave blank to use this browser)">
+    <button id="btn-track-save-url" type="button">Save URL</button>
+    <button id="btn-track-load" type="button">Load saved rows</button>
+    <span>Saving to: <span id="track-backend" class="backend-badge local">this browser (localStorage)</span></span>
+  </div>
+  <div id="tracking-status" aria-live="polite"></div>
+  <div id="tracking-wrapper">
+    <table id="tracking-table" aria-label="Tracking sheet">
+      <thead id="tracking-head"></thead>
+      <tbody id="tracking-body"></tbody>
+    </table>
+  </div>
 </main>
 <footer>
-  PharmaConsulta &middot; runs entirely in your browser. No data leaves your machine.
+  PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure.
 </footer>
 <script src="${PDFJS_CDN}" crossorigin="anonymous"></script>
 <script src="${XLSX_CDN}" crossorigin="anonymous"></script>

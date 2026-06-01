@@ -156,3 +156,83 @@ footer {
 }
 .row-summary strong { color: var(--text); }
 .hidden { display: none !important; }
+
+/* ---- Tracking section ---- */
+.section-divider {
+  margin: 40px 0 8px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.section-divider h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+.section-divider p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.track-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.track-settings input[type="text"] {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 6px 8px;
+  min-width: 280px;
+}
+.track-settings .backend-badge { font-weight: 600; }
+.track-settings .backend-badge.d1 { color: var(--accent); }
+.track-settings .backend-badge.local { color: var(--warn); }
+#tracking-wrapper {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  max-height: 70vh;
+}
+#tracking-table { border-collapse: collapse; font-size: 12px; width: max-content; }
+#tracking-table thead th {
+  background: #1f2b58;
+  position: sticky;
+  top: 0;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid #334155;
+  white-space: nowrap;
+}
+#tracking-table tbody td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  vertical-align: top;
+}
+#tracking-table tbody tr.saved { background: rgba(74, 222, 128, 0.06); }
+#tracking-table input,
+#tracking-table select {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 4px 6px;
+}
+#tracking-table input:focus,
+#tracking-table select:focus { outline: 2px solid var(--accent); }
+#tracking-table input.w-sm { width: 56px; }
+#tracking-table input.w-md { width: 120px; }
+#tracking-table input.w-lg { width: 200px; }
+#tracking-table input.w-xl { width: 260px; }
+#tracking-table .row-actions { display: flex; gap: 4px; }
+#tracking-table .row-actions button { padding: 4px 8px; font-size: 11px; }
+#tracking-status { font-size: 12px; color: var(--muted); margin: 8px 0; min-height: 18px; }

@@ -3,7 +3,7 @@ export const PRODUCTS = [
   { key: 'wegovy', label: 'Wegovy', mid: 'DKNOVNORBAG', country: 'DK', patterns: [/wegovy/i] },
   { key: 'norditropin', label: 'Norditropin', mid: 'DKNOVNOR1BAG', country: 'DK', patterns: [/norditropin/i] },
   { key: 'botox', label: 'Botox', mid: 'IEALLPHAWE', country: 'IE', patterns: [/botox/i, /\bBOT\s+\d+IU\b/i] },
-  { key: 'xeomin', label: 'Xeomin', mid: 'DEMERPHA100FRA', country: 'DE', patterns: [/xeomin/i] },
+  { key: 'xeomin', label: 'Xeomin', mid: 'DEMERPHA100FRA', country: 'DE', patterns: [/xeomin/i, /\bXEO\s+\d+IU\b/i] },
   { key: 'azzalure', label: 'Azzalure', mid: 'GBIPSBIOWRE', country: 'GB', patterns: [/azzalure/i] },
   { key: 'dysport', label: 'Dysport', mid: 'GBIPS37LON', country: 'GB', patterns: [/dysport/i] },
   { key: 'emla', label: 'Emla', mid: 'IEASPPHA3016DUB', country: 'IE', patterns: [/\bemla\b/i] },
