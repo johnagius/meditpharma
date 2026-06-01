@@ -1,4 +1,4 @@
-// Storage client for saved tracking rows.
+// Storage client for saved rows (tracking sheet + FedEx shipments).
 //
 // When a Cloudflare Worker URL is configured it talks to the D1-backed REST
 // API (see worker/). With no URL it falls back to browser localStorage so the
@@ -8,30 +8,32 @@
 //   update(id, row)   -> row
 //   remove(id)        -> { ok: true }
 
-const LS_KEY = 'pharmaconsulta_tracking_rows';
-
-// Fields persisted for a tracking row (id is assigned by the store).
+// Fields persisted per resource (id is assigned by the store).
 export const TRACKING_FIELDS = [
   'day', 'date', 'isoDate', 'orderNumber', 'trackingNumber', 'product', 'quantity',
   'productDescription', 'destCity', 'destState', 'account', 'client',
   'deliveredOn', 'deliveredOnIso', 'comments', 'directionRemarks',
 ];
 
-function pick(row) {
+export const FEDEX_FIELDS = [
+  'fileName', 'source', 'productKey', 'productMid', 'recipientName', 'cells',
+];
+
+function pick(row, fields) {
   const out = {};
-  for (const f of TRACKING_FIELDS) out[f] = row[f] ?? '';
+  for (const f of fields) out[f] = row[f] ?? '';
   return out;
 }
 
-function createLocalStore(storage) {
+function createLocalStore(lsKey, fields, storage) {
   const read = () => {
     try {
-      return JSON.parse(storage.getItem(LS_KEY) || '[]');
+      return JSON.parse(storage.getItem(lsKey) || '[]');
     } catch {
       return [];
     }
   };
-  const write = (rows) => storage.setItem(LS_KEY, JSON.stringify(rows));
+  const write = (rows) => storage.setItem(lsKey, JSON.stringify(rows));
 
   return {
     backend: 'local',
@@ -41,7 +43,7 @@ function createLocalStore(storage) {
     async save(row) {
       const rows = read();
       const id = rows.reduce((max, r) => Math.max(max, Number(r.id) || 0), 0) + 1;
-      const saved = { id, ...pick(row) };
+      const saved = { id, ...pick(row, fields) };
       rows.push(saved);
       write(rows);
       return saved;
@@ -50,7 +52,7 @@ function createLocalStore(storage) {
       const rows = read();
       const idx = rows.findIndex((r) => String(r.id) === String(id));
       if (idx === -1) throw new Error(`Row ${id} not found`);
-      rows[idx] = { id: rows[idx].id, ...pick(row) };
+      rows[idx] = { id: rows[idx].id, ...pick(row, fields) };
       write(rows);
       return rows[idx];
     },
@@ -62,8 +64,9 @@ function createLocalStore(storage) {
   };
 }
 
-function createApiStore(baseUrl, fetchImpl) {
+function createApiStore(baseUrl, resource, fields, fetchImpl) {
   const base = baseUrl.replace(/\/+$/, '');
+  const url = `${base}/api/${resource}`;
   const json = async (res) => {
     if (!res.ok) {
       const body = await res.text().catch(() => '');
@@ -74,32 +77,33 @@ function createApiStore(baseUrl, fetchImpl) {
   return {
     backend: 'd1',
     async list() {
-      return json(await fetchImpl(`${base}/api/rows`));
+      return json(await fetchImpl(url));
     },
     async save(row) {
-      return json(await fetchImpl(`${base}/api/rows`, {
+      return json(await fetchImpl(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pick(row)),
+        body: JSON.stringify(pick(row, fields)),
       }));
     },
     async update(id, row) {
-      return json(await fetchImpl(`${base}/api/rows/${encodeURIComponent(id)}`, {
+      return json(await fetchImpl(`${url}/${encodeURIComponent(id)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pick(row)),
+        body: JSON.stringify(pick(row, fields)),
       }));
     },
     async remove(id) {
-      return json(await fetchImpl(`${base}/api/rows/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      }));
+      return json(await fetchImpl(`${url}/${encodeURIComponent(id)}`, { method: 'DELETE' }));
     },
   };
 }
 
-export function createStore({ baseUrl = '', fetchImpl, storage } = {}) {
-  if (baseUrl && fetchImpl) return createApiStore(baseUrl, fetchImpl);
-  if (storage) return createLocalStore(storage);
+// resource: 'rows' (tracking) | 'fedex'. fields/lsKey default per resource.
+export function createStore({ baseUrl = '', fetchImpl, storage, resource = 'rows', fields, lsKey } = {}) {
+  const flds = fields || (resource === 'fedex' ? FEDEX_FIELDS : TRACKING_FIELDS);
+  const key = lsKey || `pharmaconsulta_${resource}`;
+  if (baseUrl && fetchImpl) return createApiStore(baseUrl, resource, flds, fetchImpl);
+  if (storage) return createLocalStore(key, flds, storage);
   throw new Error('createStore needs either a baseUrl+fetchImpl or a storage');
 }

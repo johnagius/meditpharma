@@ -188,9 +188,14 @@ ${css}
     <button id="btn-add-folder" type="button">Add folder</button>
     <button id="btn-clear" class="danger" type="button">Clear</button>
     <button id="btn-download" class="primary" type="button" disabled>Download xlsx</button>
+    <button id="btn-fedex-saveall" type="button">Save all to D1</button>
+    <button id="btn-fedex-load" type="button">Load saved</button>
+    <label class="autosave"><input type="checkbox" id="chk-fedex-autosave"> Autosave to D1</label>
+    <span class="save-target">Saving to: <span id="fedex-backend" class="backend-badge local">this browser (localStorage)</span></span>
   </div>
   <div class="row-summary" id="summary">Drop PDFs above to begin.</div>
   <div id="status" aria-live="polite"></div>
+  <div id="fedex-status" aria-live="polite"></div>
   <div id="preview-wrapper">
     <div id="cards" class="cards" aria-label="Shipments preview"></div>
   </div>
@@ -204,6 +209,7 @@ ${css}
     <input type="text" id="track-api-url" placeholder="https://your-worker.workers.dev (leave blank to use this browser)">
     <button id="btn-track-save-url" type="button">Save URL</button>
     <button id="btn-track-load" type="button">Load saved rows</button>
+    <label class="autosave"><input type="checkbox" id="chk-track-autosave"> Autosave</label>
     <span>Saving to: <span id="track-backend" class="backend-badge local">this browser (localStorage)</span></span>
   </div>
   <div id="tracking-status" aria-live="polite"></div>

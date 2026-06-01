@@ -1,7 +1,7 @@
 import { dispatch } from './parsers/index.js';
 import { readPdfText } from './pdfReader.js';
 import { PRODUCTS, detectProduct, findProductByKey } from './data/midCodes.js';
-import { buildAOA, buildFileName } from './excelExporter.js';
+import { buildFileName } from './excelExporter.js';
 import { HEADER_ROW, buildRow } from './buildRow.js';
 import {
   TRACKING_HEADERS,
@@ -29,14 +29,27 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const statusEl = document.getElementById('status');
   const summary = document.getElementById('summary');
 
+  // FedEx D1 controls
+  const fedexAutosave = document.getElementById('chk-fedex-autosave');
+  const fedexSaveAll = document.getElementById('btn-fedex-saveall');
+  const fedexLoad = document.getElementById('btn-fedex-load');
+  const fedexBackend = document.getElementById('fedex-backend');
+  const fedexStatus = document.getElementById('fedex-status');
+
   // Tracking section elements
   const trackApiUrl = document.getElementById('track-api-url');
   const trackSaveUrl = document.getElementById('btn-track-save-url');
   const trackLoadSaved = document.getElementById('btn-track-load');
+  const trackAutosave = document.getElementById('chk-track-autosave');
   const trackBackend = document.getElementById('track-backend');
   const trackingHead = document.getElementById('tracking-head');
   const trackingBody = document.getElementById('tracking-body');
   const trackingStatus = document.getElementById('tracking-status');
+
+  const AUTOSAVE_KEYS = {
+    fedex: 'pharmaconsulta_autosave_fedex',
+    rows: 'pharmaconsulta_autosave_rows',
+  };
 
   const API_BASE_KEY = 'pharmaconsulta_tracking_api_base';
   // Default Cloudflare Worker (D1) endpoint. Used unless the user overrides it
@@ -74,17 +87,21 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   });
 
   clearBtn.addEventListener('click', () => {
-    orders = [];
+    // Keep rows loaded from the database; drop the order-derived ones.
+    orders = orders.filter((o) => o._loaded);
     statusEl.textContent = '';
     renderRows();
-    // Keep rows that were loaded from the database; drop order-derived ones.
     trackingRows = trackingRows.filter((r) => r._origin === 'db');
     renderTracking();
   });
 
   downloadBtn.addEventListener('click', () => {
     if (!orders.length) return;
-    const aoa = buildAOA(orders.map((o) => ({ recipient: o.recipient, product: o.product })));
+    // Use each row's editable `cells` (kept in sync with inline edits and what
+    // is saved to D1); fall back to a fresh buildRow for any row without them.
+    const aoa = [HEADER_ROW()].concat(
+      orders.map((o, i) => o.cells || buildRow({ recipient: o.recipient, product: o.product }, i))
+    );
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = aoa[0].map(() => ({ wch: 28.875 }));
     const wb = XLSX.utils.book_new();
@@ -148,6 +165,15 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     renderRows();
     buildTrackingFromOrders();
     renderTracking();
+    // Autosave freshly ingested data if enabled.
+    if (autosaveOn('fedex')) {
+      orders.forEach((o, i) => {
+        if (!o.fedexId && o.product && o.product.mid) saveFedexOrder(o, i, { silent: true });
+      });
+    }
+    if (autosaveOn('rows')) {
+      trackingRows.forEach((r) => { if (!r.id) saveRow(r, { silent: true }); });
+    }
   }
 
   // Turn a camelCase column key into a readable, space-separated label so the
@@ -168,13 +194,16 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   function renderRows() {
     cards.innerHTML = '';
     orders.forEach((o, idx) => {
-      const cells = buildRow({ recipient: o.recipient, product: o.product }, idx);
+      // Keep an editable copy of the row so inline edits persist into both the
+      // export and what gets saved to D1. Recomputed when the product changes.
+      if (!o.cells) o.cells = buildRow({ recipient: o.recipient, product: o.product }, idx);
+      const cells = o.cells;
       const hasResolvedProduct = !!o.product && !!o.product.mid;
 
       const card = document.createElement('div');
       card.className = `card${hasResolvedProduct ? '' : ' invalid'}`;
 
-      // Card header: index, file, source, product picker.
+      // Card header: index, file, source, product picker, save/copy/delete.
       const head = document.createElement('div');
       head.className = 'card-head';
 
@@ -208,7 +237,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       }
       sel.addEventListener('change', () => {
         orders[idx].product = findProductByKey(sel.value) || null;
+        orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product }, idx);
         renderRows();
+        if (autosaveOn('fedex') && orders[idx].product && orders[idx].product.mid) {
+          scheduleAutosave(orders[idx], () => saveFedexOrder(orders[idx], idx, { silent: true }));
+        }
       });
       head.appendChild(sel);
 
@@ -219,6 +252,32 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         head.appendChild(warn);
       }
 
+      const actions = document.createElement('div');
+      actions.className = 'card-actions';
+
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'primary';
+      saveBtn.textContent = o.fedexId ? 'Overwrite' : 'Save';
+      saveBtn.disabled = !hasResolvedProduct;
+      saveBtn.title = hasResolvedProduct ? '' : 'Pick a product first';
+      saveBtn.addEventListener('click', () => saveFedexOrder(o, idx));
+      actions.appendChild(saveBtn);
+
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.textContent = 'Copy';
+      copyBtn.addEventListener('click', () => copyFedexOrder(o));
+      actions.appendChild(copyBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'danger';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', () => removeFedexOrder(o));
+      actions.appendChild(delBtn);
+
+      head.appendChild(actions);
       card.appendChild(head);
 
       // Field grid.
@@ -239,8 +298,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         val.dataset.colIdx = colIdx;
         val.textContent = value;
         val.addEventListener('input', () => {
-          orders[idx].overrides = orders[idx].overrides || {};
-          orders[idx].overrides[colIdx] = val.textContent;
+          o.cells[colIdx] = val.textContent;
+          if (autosaveOn('fedex') && o.product && o.product.mid) {
+            scheduleAutosave(o, () => saveFedexOrder(o, idx, { silent: true }));
+          }
         });
         field.appendChild(val);
 
@@ -262,6 +323,140 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       : 'Drop PDFs above to begin.';
   }
 
+  // ---- FedEx D1 persistence ----
+
+  function setFedexStatus(msg, level = '') {
+    if (!fedexStatus) return;
+    const line = document.createElement('div');
+    line.className = `status-line ${level}`;
+    line.textContent = msg;
+    fedexStatus.appendChild(line);
+    while (fedexStatus.children.length > 8) fedexStatus.removeChild(fedexStatus.firstChild);
+  }
+
+  function updateFedexBackend() {
+    if (!fedexBackend) return;
+    const base = getApiBase();
+    fedexBackend.textContent = base ? 'D1 (Cloudflare)' : 'this browser (localStorage)';
+    fedexBackend.className = `backend-badge ${base ? 'd1' : 'local'}`;
+  }
+
+  function recordForOrder(o, idx) {
+    const cells = o.cells || buildRow({ recipient: o.recipient, product: o.product }, idx);
+    return {
+      fileName: o.fileName || '',
+      source: o.source || '',
+      productKey: o.product ? o.product.key : '',
+      productMid: o.product ? o.product.mid : '',
+      recipientName: o.recipient ? o.recipient.name || '' : '',
+      cells,
+    };
+  }
+
+  async function saveFedexOrder(o, idx, { silent = false } = {}) {
+    if (!o.product || !o.product.mid) {
+      if (!silent) setFedexStatus('Pick a product before saving this shipment.', 'warn');
+      return;
+    }
+    const store = makeStore('fedex');
+    try {
+      if (!silent) setFedexStatus(o.fedexId ? `Overwriting id ${o.fedexId}…` : 'Saving…');
+      const rec = recordForOrder(o, idx);
+      const saved = o.fedexId ? await store.update(o.fedexId, rec) : await store.save(rec);
+      o.fedexId = saved.id;
+      setFedexStatus(
+        `${silent ? 'Autosaved' : 'Saved'} ${o.recipient && o.recipient.name ? o.recipient.name : 'shipment'} (id ${saved.id}) to ${store.backend === 'd1' ? 'D1' : 'this browser'}.`,
+        'ok'
+      );
+      // Don't re-render on a silent autosave — it would steal focus mid-typing.
+      if (!silent) renderRows();
+    } catch (err) {
+      setFedexStatus(`Save failed: ${err.message}`, 'err');
+    }
+  }
+
+  async function copyFedexOrder(o, idx) {
+    const cells = o.cells || buildRow({ recipient: o.recipient, product: o.product }, idx);
+    const text = cells.join('\t');
+    try {
+      await window.navigator.clipboard.writeText(text);
+      setFedexStatus('Shipment row copied to clipboard (tab-separated).', 'ok');
+    } catch {
+      setFedexStatus(`Copy unavailable here. Row:\n${text}`, 'warn');
+    }
+  }
+
+  async function removeFedexOrder(o) {
+    if (o.fedexId) {
+      const store = makeStore('fedex');
+      try {
+        await store.remove(o.fedexId);
+      } catch (err) {
+        setFedexStatus(`Delete failed: ${err.message}`, 'err');
+        return;
+      }
+    }
+    orders = orders.filter((x) => x !== o);
+    setFedexStatus('Shipment removed.', 'ok');
+    renderRows();
+  }
+
+  async function saveAllFedex() {
+    const savable = orders.filter((o) => o.product && o.product.mid);
+    if (!savable.length) {
+      setFedexStatus('No shipments with a product to save.', 'warn');
+      return;
+    }
+    setFedexStatus(`Saving ${savable.length} shipment(s)…`);
+    for (let i = 0; i < orders.length; i++) {
+      if (orders[i].product && orders[i].product.mid) {
+        // eslint-disable-next-line no-await-in-loop
+        await saveFedexOrder(orders[i], i, { silent: true });
+      }
+    }
+    setFedexStatus(`Saved ${savable.length} shipment(s).`, 'ok');
+  }
+
+  async function loadSavedFedex() {
+    const store = makeStore('fedex');
+    try {
+      setFedexStatus(`Loading saved shipments from ${store.backend === 'd1' ? 'D1' : 'this browser'}…`);
+      const saved = await store.list();
+      const existing = new Set(orders.filter((o) => o.fedexId).map((o) => String(o.fedexId)));
+      let added = 0;
+      for (const s of saved) {
+        if (existing.has(String(s.id))) continue;
+        orders.push({
+          fileName: s.fileName || '',
+          source: s.source || '',
+          recipient: { name: s.recipientName || '' },
+          product: findProductByKey(s.productKey) || (s.productMid ? { key: s.productKey, mid: s.productMid } : null),
+          cells: Array.isArray(s.cells) ? s.cells : null,
+          fedexId: s.id,
+          _loaded: true,
+        });
+        added += 1;
+      }
+      setFedexStatus(`Loaded ${saved.length} saved shipment(s); ${added} new added.`, 'ok');
+      renderRows();
+    } catch (err) {
+      setFedexStatus(`Load failed: ${err.message}`, 'err');
+    }
+  }
+
+  function initFedex() {
+    updateFedexBackend();
+    if (fedexAutosave) {
+      fedexAutosave.checked = autosaveOn('fedex');
+      fedexAutosave.addEventListener('change', () => {
+        setAutosave('fedex', fedexAutosave.checked);
+        setFedexStatus(fedexAutosave.checked ? 'Autosave on — shipments save to D1 as you edit.' : 'Autosave off.', 'ok');
+      });
+    }
+    if (fedexSaveAll) fedexSaveAll.addEventListener('click', saveAllFedex);
+    if (fedexLoad) fedexLoad.addEventListener('click', loadSavedFedex);
+  }
+
   // ---- Tracking section ----
 
   function getApiBase() {
@@ -272,10 +467,24 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     return DEFAULT_API_BASE;
   }
 
-  function makeStore() {
+  function makeStore(resource = 'rows') {
     const baseUrl = getApiBase();
     const fetchImpl = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
-    return createStore({ baseUrl, fetchImpl, storage: window.localStorage });
+    return createStore({ baseUrl, fetchImpl, storage: window.localStorage, resource });
+  }
+
+  function autosaveOn(section) {
+    try { return window.localStorage.getItem(AUTOSAVE_KEYS[section]) === '1'; } catch { return false; }
+  }
+  function setAutosave(section, on) {
+    try { window.localStorage.setItem(AUTOSAVE_KEYS[section], on ? '1' : '0'); } catch {}
+  }
+  // Debounced autosave timers keyed by the row/order object.
+  const autosaveTimers = new WeakMap();
+  function scheduleAutosave(obj, fn) {
+    const prev = autosaveTimers.get(obj);
+    if (prev) window.clearTimeout(prev);
+    autosaveTimers.set(obj, window.setTimeout(fn, 1000));
   }
 
   function updateBackendBadge() {
@@ -330,6 +539,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         try { window.localStorage.setItem(API_BASE_KEY, v); } catch {}
         if (trackApiUrl) trackApiUrl.value = v;
         updateBackendBadge();
+        updateFedexBackend();
         setTrackStatus(
           v ? `Sync URL saved — saves now go to D1 at ${v}` : 'Sync URL cleared — saves go to this browser.',
           'ok'
@@ -337,6 +547,13 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       });
     }
     if (trackLoadSaved) trackLoadSaved.addEventListener('click', loadSavedRows);
+    if (trackAutosave) {
+      trackAutosave.checked = autosaveOn('rows');
+      trackAutosave.addEventListener('change', () => {
+        setAutosave('rows', trackAutosave.checked);
+        setTrackStatus(trackAutosave.checked ? 'Autosave on — rows save as you edit.' : 'Autosave off.', 'ok');
+      });
+    }
     renderTracking();
   }
 
@@ -377,7 +594,35 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     el.className = 'w-md';
     if (isoValue) el.value = isoValue;
     el.addEventListener('change', () => onChange(el.value));
+    // Open the native calendar as soon as the field is focused/clicked.
+    const pop = () => { try { el.showPicker && el.showPicker(); } catch {} };
+    el.addEventListener('focus', pop);
+    el.addEventListener('click', pop);
     return el;
+  }
+
+  // "Delivered on": calendar field + a one-click Today button.
+  function deliveredCell(row) {
+    const wrap = document.createElement('div');
+    wrap.className = 'delivered';
+    const el = dateInput(row.deliveredOnIso || '', (iso) => {
+      row.deliveredOnIso = iso;
+      row.deliveredOn = iso ? formatDateDDMMYY(fromISODate(iso)) : '';
+    });
+    const today = document.createElement('button');
+    today.type = 'button';
+    today.className = 'today-btn';
+    today.textContent = 'Today';
+    today.addEventListener('click', () => {
+      const iso = toISODate(new Date());
+      el.value = iso;
+      row.deliveredOnIso = iso;
+      row.deliveredOn = formatDateDDMMYY(new Date());
+      if (autosaveOn('rows')) scheduleAutosave(row, () => saveRow(row, { silent: true }));
+    });
+    wrap.appendChild(el);
+    wrap.appendChild(today);
+    return wrap;
   }
 
   function renderTracking() {
@@ -439,11 +684,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
       cell('client', input(row.client, 'w-md', (v) => { row.client = v; }));
 
-      // Delivered on (calendar, empty by default)
-      cell('deliveredOn', dateInput(row.deliveredOnIso || '', (iso) => {
-        row.deliveredOnIso = iso;
-        row.deliveredOn = iso ? formatDateDDMMYY(fromISODate(iso)) : '';
-      }));
+      // Delivered on (calendar + one-click Today, empty by default)
+      cell('deliveredOn', deliveredCell(row));
 
       cell('comments', input(row.comments, 'w-lg', (v) => { row.comments = v; }));
       cell('directionRemarks', input(row.directionRemarks, 'w-lg', (v) => { row.directionRemarks = v; }));
@@ -476,6 +718,13 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       actTd.appendChild(actions);
       tr.appendChild(actTd);
 
+      // Autosave: any edit (typing or dropdown/date change) within the row.
+      const queueAutosave = () => {
+        if (autosaveOn('rows')) scheduleAutosave(row, () => saveRow(row, { silent: true }));
+      };
+      tr.addEventListener('input', queueAutosave);
+      tr.addEventListener('change', queueAutosave);
+
       trackingBody.appendChild(tr);
     });
   }
@@ -494,17 +743,19 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (tdMap.orderNumber) tdMap.orderNumber.value = row.orderNumber;
   }
 
-  async function saveRow(row) {
-    const store = makeStore();
+  async function saveRow(row, { silent = false } = {}) {
+    const store = makeStore('rows');
     try {
-      setTrackStatus(row.id ? `Overwriting id ${row.id}…` : 'Saving…');
+      if (!silent) setTrackStatus(row.id ? `Overwriting id ${row.id}…` : 'Saving…');
       const saved = row.id ? await store.update(row.id, row) : await store.save(row);
       row.id = saved.id;
       setTrackStatus(
-        `${row.id ? 'Saved' : 'Saved'} order ${row.orderNumber} (id ${saved.id}) to ${store.backend === 'd1' ? 'D1' : 'this browser'}.`,
+        `${silent ? 'Autosaved' : 'Saved'} order ${row.orderNumber} (id ${saved.id}) to ${store.backend === 'd1' ? 'D1' : 'this browser'}.`,
         'ok'
       );
-      renderTracking();
+      // Don't re-render on a silent autosave — it would steal focus mid-typing.
+      // row.id is already set in memory, so the next save correctly updates.
+      if (!silent) renderTracking();
     } catch (err) {
       setTrackStatus(`Save failed: ${err.message}`, 'err');
     }
@@ -591,12 +842,13 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     }
   }
 
-  // Initialise the tracking section last and defensively: a failure here must
-  // never prevent the upload listeners above from being wired up.
+  // Initialise the save/tracking sections last and defensively: a failure here
+  // must never prevent the upload listeners above from being wired up.
   try {
+    initFedex();
     initTracking();
   } catch (err) {
-    setTrackStatus(`Tracking section failed to initialise: ${err.message}`, 'err');
+    setTrackStatus(`Save sections failed to initialise: ${err.message}`, 'err');
     if (window.console) window.console.error(err);
   }
 

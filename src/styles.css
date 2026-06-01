@@ -158,6 +158,22 @@ thead th {
   overflow-wrap: anywhere;
 }
 .field .fval:focus { outline: 2px solid var(--accent); background: #16224a; }
+.card-actions { margin-left: auto; display: flex; gap: 4px; }
+.card-actions button { padding: 4px 8px; font-size: 11px; }
+
+/* Save controls (FedEx actions bar + tracking settings) */
+.autosave { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.autosave input { width: auto; }
+.save-target { font-size: 12px; color: var(--muted); }
+#fedex-status { font-size: 12px; color: var(--muted); margin: 4px 0; min-height: 0; }
+#fedex-status .status-line.err { color: var(--err); }
+#fedex-status .status-line.warn { color: var(--warn); }
+#fedex-status .status-line.ok { color: var(--ok); }
+
+/* Delivered-on calendar + Today button */
+#tracking-table .delivered { display: flex; gap: 4px; align-items: center; }
+#tracking-table .delivered input { flex: 1 1 auto; min-width: 0; }
+#tracking-table .today-btn { flex: 0 0 auto; padding: 3px 5px; font-size: 10px; }
 .badge {
   display: inline-block;
   padding: 1px 6px;

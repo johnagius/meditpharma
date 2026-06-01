@@ -166,4 +166,25 @@ describe('createStore (localStorage backend)', () => {
     expect(calls[0].url).toBe('https://x.workers.dev/api/rows');
     expect(calls[0].opts.method).toBe('POST');
   });
+
+  it('supports a separate fedex resource (own path + cells field)', async () => {
+    // localStorage backend keeps tracking + fedex rows apart.
+    const storage = fakeStorage();
+    const fedex = createStore({ storage, resource: 'fedex' });
+    const cells = Array.from({ length: 52 }, (_, i) => `c${i}`);
+    const saved = await fedex.save({ recipientName: 'Carmine', cells, productKey: 'xeomin' });
+    expect(saved.id).toBe(1);
+    expect(saved.cells).toEqual(cells);
+    expect(saved.recipientName).toBe('Carmine');
+
+    // API backend hits /api/fedex.
+    const calls = [];
+    const fetchImpl = async (url, opts) => {
+      calls.push({ url, opts });
+      return { ok: true, json: async () => ({ id: 3, cells }) };
+    };
+    const api = createStore({ baseUrl: 'https://x.workers.dev', fetchImpl, resource: 'fedex' });
+    await api.save({ cells });
+    expect(calls[0].url).toBe('https://x.workers.dev/api/fedex');
+  });
 });
