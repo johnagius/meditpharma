@@ -236,16 +236,14 @@ ${css}
 
   <section class="panel" id="panel-fedex">
     <h2>Saved FedEx shipments</h2>
-    <p class="panel-hint">Shipments saved to the database. Refresh to pull the latest.</p>
+    <p class="panel-hint">Shipments saved to the database. Click a card to view/edit all fields; Overwrite saves changes back. Download one or all as xlsx.</p>
     <div class="actions">
       <button id="btn-saved-fedex-refresh" class="primary" type="button">Refresh</button>
+      <button id="btn-saved-fedex-download" type="button">Download all (xlsx)</button>
     </div>
     <div id="saved-fedex-status" aria-live="polite"></div>
     <div class="scroll-box">
-      <table id="saved-fedex-table" class="fedex-table" aria-label="Saved FedEx shipments">
-        <thead id="saved-fedex-head"></thead>
-        <tbody id="saved-fedex-body"></tbody>
-      </table>
+      <div id="saved-fedex-cards" class="cards" aria-label="Saved FedEx shipments"></div>
     </div>
   </section>
 

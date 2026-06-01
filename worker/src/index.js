@@ -13,6 +13,7 @@
 const RESOURCES = {
   rows: {
     table: 'tracking_rows',
+    dedup: true,
     fields: [
       ['day', 'day'],
       ['date', 'date'],
@@ -30,10 +31,12 @@ const RESOURCES = {
       ['deliveredOnIso', 'delivered_on_iso'],
       ['comments', 'comments'],
       ['directionRemarks', 'direction_remarks'],
+      ['dedupKey', 'dedup_key'],
     ],
   },
   fedex: {
     table: 'fedex_rows',
+    dedup: true,
     // `cells` holds the full 52-column row as JSON.
     json: ['cells'],
     fields: [
@@ -43,6 +46,7 @@ const RESOURCES = {
       ['productMid', 'product_mid'],
       ['recipientName', 'recipient_name'],
       ['cells', 'cells'],
+      ['dedupKey', 'dedup_key'],
     ],
   },
   merchants: {
@@ -105,6 +109,15 @@ async function listRows(env, cfg) {
 }
 
 async function insertRow(env, cfg, body) {
+  // De-dup: if this resource supports it and a row with the same dedup_key
+  // already exists, update that row instead of inserting a duplicate.
+  if (cfg.dedup && body && body.dedupKey) {
+    const existing = await env.DB
+      .prepare(`SELECT id FROM ${cfg.table} WHERE dedup_key = ?`)
+      .bind(String(body.dedupKey))
+      .first();
+    if (existing && existing.id != null) return updateRow(env, cfg, existing.id, body);
+  }
   const cols = cfg.fields.map(([, col]) => col);
   const placeholders = cols.map(() => '?').join(', ');
   const sql = `INSERT INTO ${cfg.table} (${cols.join(', ')}) VALUES (${placeholders}) RETURNING *`;

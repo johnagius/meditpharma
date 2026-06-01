@@ -37,10 +37,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const fedexStatus = document.getElementById('fedex-status');
 
   // Saved tabs
-  const savedFedexHead = document.getElementById('saved-fedex-head');
-  const savedFedexBody = document.getElementById('saved-fedex-body');
+  const savedFedexCards = document.getElementById('saved-fedex-cards');
   const savedFedexStatus = document.getElementById('saved-fedex-status');
   const savedFedexRefresh = document.getElementById('btn-saved-fedex-refresh');
+  const savedFedexDownload = document.getElementById('btn-saved-fedex-download');
   const savedTrackHead = document.getElementById('saved-track-head');
   const savedTrackBody = document.getElementById('saved-track-body');
   const savedTrackStatus = document.getElementById('saved-track-status');
@@ -114,13 +114,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     renderAllTracking();
   });
 
-  downloadBtn.addEventListener('click', () => {
-    if (!orders.length) return;
-    // Use each row's editable `cells` (kept in sync with inline edits and what
-    // is saved to D1); fall back to a fresh buildRow for any row without them.
-    const aoa = [HEADER_ROW()].concat(
-      orders.map((o, i) => o.cells || buildRow({ recipient: o.recipient, product: o.product }, i))
-    );
+  // Build + download an xlsx from rows of 52-cell arrays.
+  function downloadCells(cellRows, filename, statusFn) {
+    if (!cellRows.length) return;
+    const aoa = [HEADER_ROW()].concat(cellRows);
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = aoa[0].map(() => ({ wch: 28.875 }));
     const wb = XLSX.utils.book_new();
@@ -132,12 +129,20 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = buildFileName(orders.length);
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 200);
-    setStatus(`Downloaded ${a.download}`, 'ok');
+    if (statusFn) statusFn(`Downloaded ${filename}`, 'ok');
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    if (!orders.length) return;
+    // Use each row's editable `cells` (kept in sync with inline edits and what
+    // is saved to D1); fall back to a fresh buildRow for any row without them.
+    const rows = orders.map((o, i) => o.cells || buildRow({ recipient: o.recipient, product: o.product }, i));
+    downloadCells(rows, buildFileName(orders.length), setStatus);
   });
 
   function setStatus(msg, level = '') {
@@ -156,6 +161,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       return;
     }
     setStatus(`Reading ${pdfs.length} PDF(s)…`);
+    let skipped = 0;
     for (const file of pdfs) {
       try {
         const text = await readPdfText(file, pdfjsLib);
@@ -167,6 +173,9 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         for (const order of parsed) {
           const product = detectProduct(order.productText) || detectProduct(text);
           const md = detectMerchant(text, { source: order.source, learned: learnedPatterns });
+          const dedupKey = `${hashText(text)}|${order.orderId || (order.recipient && order.recipient.name) || ''}`;
+          // Skip an identical order already loaded this session (no dup cards).
+          if (orders.some((o) => o.dedupKey === dedupKey)) { skipped += 1; continue; }
           orders.push({
             fileName: file.name,
             source: order.source,
@@ -176,6 +185,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
             product: product || null,
             orderId: order.orderId || '',
             text,
+            dedupKey,
             merchant: md ? md.merchant : '',
             merchantVia: md ? md.via : '',
           });
@@ -185,6 +195,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         setStatus(`${file.name}: ${err.message}`, 'err');
       }
     }
+    if (skipped) setStatus(`Skipped ${skipped} duplicate order(s) already loaded.`, 'warn');
     renderRows();
     buildTrackingFromOrders();
     renderAllTracking();
@@ -328,33 +339,12 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       card.appendChild(head);
 
       // Field grid.
-      const grid = document.createElement('div');
-      grid.className = 'fields';
-      cells.forEach((value, colIdx) => {
-        const field = document.createElement('div');
-        field.className = 'field';
-
-        const label = document.createElement('span');
-        label.className = 'flabel';
-        label.textContent = humanizeHeader(headers[colIdx]);
-        field.appendChild(label);
-
-        const val = document.createElement('div');
-        val.className = 'fval';
-        val.setAttribute('contenteditable', 'true');
-        val.dataset.colIdx = colIdx;
-        val.textContent = value;
-        val.addEventListener('input', () => {
-          o.cells[colIdx] = val.textContent;
-          if (autosaveOn('fedex') && o.product && o.product.mid) {
-            scheduleAutosave(o, () => saveFedexOrder(o, idx, { silent: true }));
-          }
-        });
-        field.appendChild(val);
-
-        grid.appendChild(field);
-      });
-      card.appendChild(grid);
+      card.appendChild(buildFieldGrid(cells, (colIdx, text) => {
+        o.cells[colIdx] = text;
+        if (autosaveOn('fedex') && o.product && o.product.mid) {
+          scheduleAutosave(o, () => saveFedexOrder(o, idx, { silent: true }));
+        }
+      }));
 
       cards.appendChild(card);
     });
@@ -368,6 +358,37 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
             : ''
         }.`
       : 'Drop PDFs above to begin.';
+  }
+
+  // Small stable string hash (djb2) for content-based de-dup keys.
+  function hashText(str) {
+    let h = 5381;
+    const s = String(str || '');
+    for (let i = 0; i < s.length; i += 1) h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(36);
+  }
+
+  // Editable label+value grid for the 52 cells. onEdit(colIdx, text) on input.
+  function buildFieldGrid(cells, onEdit) {
+    const grid = document.createElement('div');
+    grid.className = 'fields';
+    cells.forEach((value, colIdx) => {
+      const field = document.createElement('div');
+      field.className = 'field';
+      const label = document.createElement('span');
+      label.className = 'flabel';
+      label.textContent = humanizeHeader(headers[colIdx]);
+      field.appendChild(label);
+      const val = document.createElement('div');
+      val.className = 'fval';
+      val.setAttribute('contenteditable', 'true');
+      val.dataset.colIdx = colIdx;
+      val.textContent = value;
+      val.addEventListener('input', () => onEdit(colIdx, val.textContent));
+      field.appendChild(val);
+      grid.appendChild(field);
+    });
+    return grid;
   }
 
   // ---- FedEx D1 persistence ----
@@ -397,6 +418,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       productMid: o.product ? o.product.mid : '',
       recipientName: o.recipient ? o.recipient.name || '' : '',
       cells,
+      dedupKey: o.dedupKey || '',
     };
   }
 
@@ -534,39 +556,78 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   }
 
   function renderSavedFedex() {
-    if (!savedFedexHead || !savedFedexBody) return;
-    savedFedexHead.innerHTML = '';
-    const htr = document.createElement('tr');
-    for (const h of ['id', 'Recipient', 'Product', 'MID', 'File', 'Source', 'Actions']) {
-      const th = document.createElement('th');
-      th.textContent = h;
-      htr.appendChild(th);
+    if (!savedFedexCards) return;
+    savedFedexCards.innerHTML = '';
+    if (!savedFedexRows.length) {
+      const empty = document.createElement('div');
+      empty.className = 'panel-hint';
+      empty.textContent = 'No saved shipments yet. Save some from the Builder tab, then Refresh.';
+      savedFedexCards.appendChild(empty);
     }
-    savedFedexHead.appendChild(htr);
-
-    savedFedexBody.innerHTML = '';
     savedFedexRows.forEach((s) => {
-      const tr = document.createElement('tr');
-      const td = (txt) => {
-        const c = document.createElement('td');
-        c.textContent = txt == null ? '' : String(txt);
-        tr.appendChild(c);
-      };
-      td(s.id);
-      td(s.recipientName);
-      td(s.productKey);
-      td(s.productMid);
-      td(s.fileName);
-      td(s.source);
+      if (!Array.isArray(s.cells)) s.cells = [];
+      const card = document.createElement('div');
+      card.className = 'card collapsed';
 
-      const actTd = document.createElement('td');
-      const act = document.createElement('div');
-      act.className = 'row-actions';
+      const head = document.createElement('div');
+      head.className = 'card-head';
+
+      const num = document.createElement('span');
+      num.className = 'card-num';
+      num.textContent = `#${s.id}`;
+      head.appendChild(num);
+
+      const who = document.createElement('span');
+      who.textContent = `${s.recipientName || '—'} · ${s.productKey || '—'} (${s.productMid || '—'})`;
+      head.appendChild(who);
+
+      const fileBadge = document.createElement('span');
+      fileBadge.className = 'card-file';
+      fileBadge.textContent = s.fileName || '';
+      head.appendChild(fileBadge);
+
+      const actions = document.createElement('div');
+      actions.className = 'card-actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.textContent = 'View / edit';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        card.classList.toggle('collapsed');
+      });
+      actions.appendChild(editBtn);
+
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'primary';
+      saveBtn.textContent = 'Overwrite';
+      saveBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          await makeStore('fedex').update(s.id, s);
+          setStatusInto(savedFedexStatus, `Saved changes to id ${s.id}.`, 'ok');
+        } catch (err) {
+          setStatusInto(savedFedexStatus, `Save failed: ${err.message}`, 'err');
+        }
+      });
+      actions.appendChild(saveBtn);
+
+      const dlBtn = document.createElement('button');
+      dlBtn.type = 'button';
+      dlBtn.textContent = 'Download';
+      dlBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        downloadCells([s.cells], buildFileName(1), (m, l) => setStatusInto(savedFedexStatus, m, l));
+      });
+      actions.appendChild(dlBtn);
+
       const copyBtn = document.createElement('button');
       copyBtn.type = 'button';
       copyBtn.textContent = 'Copy';
-      copyBtn.addEventListener('click', async () => {
-        const text = (Array.isArray(s.cells) ? s.cells : []).join('\t');
+      copyBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const text = s.cells.join('\t');
         try {
           await window.navigator.clipboard.writeText(text);
           setStatusInto(savedFedexStatus, 'Row copied (tab-separated).', 'ok');
@@ -574,12 +635,14 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
           setStatusInto(savedFedexStatus, `Copy unavailable. Row:\n${text}`, 'warn');
         }
       });
-      act.appendChild(copyBtn);
+      actions.appendChild(copyBtn);
+
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
       delBtn.className = 'danger';
       delBtn.textContent = 'Delete';
-      delBtn.addEventListener('click', async () => {
+      delBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         try {
           await makeStore('fedex').remove(s.id);
           savedFedexRows = savedFedexRows.filter((r) => r !== s);
@@ -589,11 +652,16 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
           setStatusInto(savedFedexStatus, `Delete failed: ${err.message}`, 'err');
         }
       });
-      act.appendChild(delBtn);
-      actTd.appendChild(act);
-      tr.appendChild(actTd);
+      actions.appendChild(delBtn);
 
-      savedFedexBody.appendChild(tr);
+      head.appendChild(actions);
+      head.addEventListener('click', () => card.classList.toggle('collapsed'));
+      card.appendChild(head);
+
+      // Editable field grid (hidden while collapsed).
+      card.appendChild(buildFieldGrid(s.cells, (colIdx, text) => { s.cells[colIdx] = text; }));
+
+      savedFedexCards.appendChild(card);
     });
   }
 
@@ -707,6 +775,16 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       });
     }
     if (savedFedexRefresh) savedFedexRefresh.addEventListener('click', loadSavedFedex);
+    if (savedFedexDownload) {
+      savedFedexDownload.addEventListener('click', () => {
+        const rows = savedFedexRows.map((s) => (Array.isArray(s.cells) ? s.cells : [])).filter((c) => c.length);
+        if (!rows.length) {
+          setStatusInto(savedFedexStatus, 'Nothing to download — Refresh first.', 'warn');
+          return;
+        }
+        downloadCells(rows, buildFileName(rows.length), (m, l) => setStatusInto(savedFedexStatus, m, l));
+      });
+    }
     renderMerchants();
   }
 
@@ -775,6 +853,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         today
       );
       row._origin = 'order';
+      row.dedupKey = o.dedupKey || '';
       return row;
     });
   }

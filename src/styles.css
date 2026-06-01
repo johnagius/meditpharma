@@ -115,6 +115,8 @@ thead th {
   padding: 10px 12px;
 }
 .card.invalid { background: rgba(248, 113, 113, 0.08); border-color: rgba(248, 113, 113, 0.45); }
+.card.collapsed .fields { display: none; }
+.card.collapsed .card-head { margin-bottom: 0; padding-bottom: 0; border-bottom: none; cursor: pointer; }
 .card-head {
   display: flex;
   align-items: center;

@@ -153,6 +153,16 @@ describe('createStore (localStorage backend)', () => {
     expect(all[0].id).toBe(1);
   });
 
+  it('updates (not duplicates) a row with the same dedupKey', async () => {
+    const store = createStore({ storage: fakeStorage() });
+    const a = await store.save({ orderNumber: '010626-1', product: 'Xeomin', dedupKey: 'abc|1' });
+    const b = await store.save({ orderNumber: '010626-1', product: 'Xeomin, Botox', dedupKey: 'abc|1' });
+    expect(b.id).toBe(a.id); // same row reused
+    const all = await store.list();
+    expect(all).toHaveLength(1);
+    expect(all[0].product).toBe('Xeomin, Botox'); // updated content
+  });
+
   it('routes to the API backend when a baseUrl + fetch are given', async () => {
     const calls = [];
     const fetchImpl = async (url, opts) => {

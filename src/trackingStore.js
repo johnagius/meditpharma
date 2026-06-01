@@ -12,11 +12,11 @@
 export const TRACKING_FIELDS = [
   'day', 'date', 'isoDate', 'orderNumber', 'trackingNumber', 'product', 'quantity',
   'productDescription', 'destCity', 'destState', 'account', 'client',
-  'deliveredOn', 'deliveredOnIso', 'comments', 'directionRemarks',
+  'deliveredOn', 'deliveredOnIso', 'comments', 'directionRemarks', 'dedupKey',
 ];
 
 export const FEDEX_FIELDS = [
-  'fileName', 'source', 'productKey', 'productMid', 'recipientName', 'cells',
+  'fileName', 'source', 'productKey', 'productMid', 'recipientName', 'cells', 'dedupKey',
 ];
 
 export const MERCHANT_FIELDS = ['name'];
@@ -52,6 +52,15 @@ function createLocalStore(lsKey, fields, storage) {
     },
     async save(row) {
       const rows = read();
+      // De-dup: update an existing row with the same dedupKey instead of adding.
+      if (row.dedupKey) {
+        const existing = rows.find((r) => r.dedupKey && r.dedupKey === row.dedupKey);
+        if (existing) {
+          Object.assign(existing, pick(row, fields), { id: existing.id });
+          write(rows);
+          return existing;
+        }
+      }
       const id = rows.reduce((max, r) => Math.max(max, Number(r.id) || 0), 0) + 1;
       const saved = { id, ...pick(row, fields) };
       rows.push(saved);
