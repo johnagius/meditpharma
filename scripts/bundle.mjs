@@ -11,6 +11,7 @@ const MODULE_ORDER = [
   'data/senders.js',
   'data/hsCodes.js',
   'data/states.js',
+  'data/merchants.js',
   'data/midCodes.js',
   'buildRow.js',
   'trackingRow.js',
@@ -31,6 +32,7 @@ const NAMESPACES = {
   'data/senders.js': 'ModSenders',
   'data/hsCodes.js': 'ModHs',
   'data/states.js': 'ModStates',
+  'data/merchants.js': 'ModMerchants',
   'data/midCodes.js': 'ModMid',
   'buildRow.js': 'ModBuildRow',
   'trackingRow.js': 'ModTrackingRow',
@@ -51,6 +53,7 @@ const IMPORT_TO_NS = {
   './data/senders.js': 'ModSenders',
   './data/hsCodes.js': 'ModHs',
   './data/states.js': 'ModStates',
+  './data/merchants.js': 'ModMerchants',
   './data/midCodes.js': 'ModMid',
   './buildRow.js': 'ModBuildRow',
   './trackingRow.js': 'ModTrackingRow',
@@ -62,6 +65,7 @@ const IMPORT_TO_NS = {
   '../data/senders.js': 'ModSenders',
   '../data/hsCodes.js': 'ModHs',
   '../data/states.js': 'ModStates',
+  '../data/merchants.js': 'ModMerchants',
   '../data/midCodes.js': 'ModMid',
   '../buildRow.js': 'ModBuildRow',
   '../excelExporter.js': 'ModExporter',
@@ -178,47 +182,98 @@ ${css}
   <p>Drop PDF orders (single files or whole folders). Review the table, pick products where needed, then download the FedEx batch xlsx.</p>
 </header>
 <main>
-  <div id="drop-zone" tabindex="0" role="button" aria-label="Upload PDF files">
-    <strong>Drop PDFs or folders here</strong>
-    <small>&hellip; or click to pick files</small>
-    <input type="file" id="file-picker" accept="application/pdf" multiple class="hidden">
-    <input type="file" id="folder-picker" webkitdirectory directory multiple class="hidden">
-  </div>
-  <div class="actions">
-    <button id="btn-add-folder" type="button">Add folder</button>
-    <button id="btn-clear" class="danger" type="button">Clear</button>
-    <button id="btn-download" class="primary" type="button" disabled>Download xlsx</button>
-    <button id="btn-fedex-saveall" type="button">Save all to D1</button>
-    <button id="btn-fedex-load" type="button">Load saved</button>
-    <label class="autosave"><input type="checkbox" id="chk-fedex-autosave"> Autosave to D1</label>
-    <span class="save-target">Saving to: <span id="fedex-backend" class="backend-badge local">this browser (localStorage)</span></span>
-  </div>
-  <div class="row-summary" id="summary">Drop PDFs above to begin.</div>
-  <div id="status" aria-live="polite"></div>
-  <div id="fedex-status" aria-live="polite"></div>
-  <div id="preview-wrapper">
-    <div id="cards" class="cards" aria-label="Shipments preview"></div>
-  </div>
-
-  <section class="section-divider">
-    <h2>Tracking sheet</h2>
-    <p>One row per order (all products listed together). Edit any cell, then save a line to the database or copy it for pasting into a spreadsheet.</p>
-  </section>
-  <div class="track-settings">
+  <div class="global-settings">
     <label for="track-api-url">Sync API URL (Cloudflare Worker):</label>
     <input type="text" id="track-api-url" placeholder="https://your-worker.workers.dev (leave blank to use this browser)">
     <button id="btn-track-save-url" type="button">Save URL</button>
-    <button id="btn-track-load" type="button">Load saved rows</button>
-    <label class="autosave"><input type="checkbox" id="chk-track-autosave"> Autosave</label>
     <span>Saving to: <span id="track-backend" class="backend-badge local">this browser (localStorage)</span></span>
   </div>
-  <div id="tracking-status" aria-live="polite"></div>
-  <div id="tracking-wrapper">
-    <table id="tracking-table" aria-label="Tracking sheet">
-      <thead id="tracking-head"></thead>
-      <tbody id="tracking-body"></tbody>
-    </table>
-  </div>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" id="tab-builder" data-panel="panel-builder" type="button">Builder</button>
+    <button class="tab" id="tab-fedex" data-panel="panel-fedex" type="button">Saved FedEx</button>
+    <button class="tab" id="tab-tracking" data-panel="panel-tracking" type="button">Saved Tracking</button>
+    <button class="tab" id="tab-merchants" data-panel="panel-merchants" type="button">Merchants</button>
+  </nav>
+
+  <section class="panel active" id="panel-builder">
+    <div id="drop-zone" tabindex="0" role="button" aria-label="Upload PDF files">
+      <strong>Drop PDFs or folders here</strong>
+      <small>&hellip; or click to pick files</small>
+      <input type="file" id="file-picker" accept="application/pdf" multiple class="hidden">
+      <input type="file" id="folder-picker" webkitdirectory directory multiple class="hidden">
+    </div>
+    <div class="actions">
+      <button id="btn-add-folder" type="button">Add folder</button>
+      <button id="btn-clear" class="danger" type="button">Clear</button>
+      <button id="btn-download" class="primary" type="button" disabled>Download xlsx</button>
+      <button id="btn-fedex-saveall" type="button">Save all to D1</button>
+      <label class="autosave"><input type="checkbox" id="chk-fedex-autosave"> Autosave to D1</label>
+    </div>
+    <div class="row-summary" id="summary">Drop PDFs above to begin.</div>
+    <div id="status" aria-live="polite"></div>
+    <div id="fedex-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <div id="cards" class="cards" aria-label="Shipments preview"></div>
+    </div>
+
+    <section class="section-divider">
+      <h2>Tracking sheet</h2>
+      <p>One row per order (all products listed together). Edit any cell, then save a line to the database or copy it for pasting into a spreadsheet.</p>
+    </section>
+    <div class="track-settings">
+      <label class="autosave"><input type="checkbox" id="chk-track-autosave"> Autosave tracking rows</label>
+    </div>
+    <div id="tracking-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table id="tracking-table" class="track-table" aria-label="Tracking sheet">
+        <thead id="tracking-head"></thead>
+        <tbody id="tracking-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-fedex">
+    <h2>Saved FedEx shipments</h2>
+    <p class="panel-hint">Shipments saved to the database. Refresh to pull the latest.</p>
+    <div class="actions">
+      <button id="btn-saved-fedex-refresh" class="primary" type="button">Refresh</button>
+    </div>
+    <div id="saved-fedex-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table id="saved-fedex-table" class="fedex-table" aria-label="Saved FedEx shipments">
+        <thead id="saved-fedex-head"></thead>
+        <tbody id="saved-fedex-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-tracking">
+    <h2>Saved tracking rows</h2>
+    <p class="panel-hint">Tracking rows saved to the database. Edit a cell and Overwrite to update, or Refresh to reload.</p>
+    <div class="actions">
+      <button id="btn-saved-track-refresh" class="primary" type="button">Refresh</button>
+    </div>
+    <div id="saved-track-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table id="saved-track-table" class="track-table" aria-label="Saved tracking rows">
+        <thead id="saved-track-head"></thead>
+        <tbody id="saved-track-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-merchants">
+    <h2>Merchants</h2>
+    <p class="panel-hint">Merchants are auto-detected from each PDF's format and improve as you correct them. Add new merchants here.</p>
+    <div class="actions">
+      <input type="text" id="merchant-new" placeholder="New merchant name">
+      <button id="btn-merchant-add" class="primary" type="button">Add merchant</button>
+      <button id="btn-merchant-refresh" type="button">Refresh</button>
+    </div>
+    <div id="merchant-status" aria-live="polite"></div>
+    <div id="merchant-list" class="merchant-list"></div>
+  </section>
 </main>
 <footer>
   PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build ${BUILD_STAMP}

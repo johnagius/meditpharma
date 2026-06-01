@@ -82,12 +82,12 @@ button.danger { color: var(--err); }
 .status-line.err { color: var(--err); }
 .status-line.warn { color: var(--warn); }
 .status-line.ok { color: var(--ok); }
-#preview-wrapper {
+.scroll-box {
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel);
-  max-height: 60vh;
+  max-height: 70vh;
 }
 table {
   border-collapse: collapse;
@@ -171,9 +171,9 @@ thead th {
 #fedex-status .status-line.ok { color: var(--ok); }
 
 /* Delivered-on calendar + Today button */
-#tracking-table .delivered { display: flex; gap: 4px; align-items: center; }
-#tracking-table .delivered input { flex: 1 1 auto; min-width: 0; }
-#tracking-table .today-btn { flex: 0 0 auto; padding: 3px 5px; font-size: 10px; }
+.track-table .delivered { display: flex; gap: 4px; align-items: center; }
+.track-table .delivered input { flex: 1 1 auto; min-width: 0; }
+.track-table .today-btn { flex: 0 0 auto; padding: 3px 5px; font-size: 10px; }
 .badge {
   display: inline-block;
   padding: 1px 6px;
@@ -203,6 +203,93 @@ footer {
 }
 .row-summary strong { color: var(--text); }
 .hidden { display: none !important; }
+
+/* ---- Tabs ---- */
+.global-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.global-settings input[type="text"] {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 6px 8px;
+  min-width: 300px;
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 9px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.tab:hover { background: var(--panel); color: var(--text); }
+.tab.active {
+  background: var(--panel-2);
+  color: var(--text);
+  border-color: var(--border);
+  border-bottom: 1px solid var(--panel-2);
+  margin-bottom: -1px;
+}
+.panel { display: none; }
+.panel.active { display: block; }
+.panel > h2 { margin: 0 0 4px; font-size: 18px; }
+.panel-hint { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+
+/* ---- Merchants tab ---- */
+.merchant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 520px;
+}
+.merchant-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.merchant-name { font-size: 13px; }
+#merchant-status, #saved-fedex-status, #saved-track-status, #merchant-status { font-size: 12px; color: var(--muted); }
+#merchant-new {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  padding: 8px 10px;
+  min-width: 220px;
+}
+.card-merchant {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 4px 6px;
+  max-width: 160px;
+}
 
 /* ---- Tracking section ---- */
 .section-divider {
@@ -240,15 +327,22 @@ footer {
 .track-settings .backend-badge { font-weight: 600; }
 .track-settings .backend-badge.d1 { color: var(--accent); }
 .track-settings .backend-badge.local { color: var(--warn); }
-#tracking-wrapper {
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel);
-  max-height: 70vh;
+/* Saved FedEx table: readable columns, scrolls sideways. */
+.fedex-table { width: max-content; table-layout: auto; }
+.fedex-table thead th { white-space: nowrap; }
+.fedex-table tbody td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-#tracking-table { border-collapse: collapse; font-size: 12px; width: 100%; table-layout: fixed; }
-#tracking-table thead th {
+.fedex-table .row-actions { display: flex; gap: 4px; }
+.fedex-table .row-actions button { padding: 4px 8px; font-size: 11px; }
+
+.track-table { border-collapse: collapse; font-size: 12px; width: 100%; table-layout: fixed; }
+.track-table thead th {
   background: #1f2b58;
   position: sticky;
   top: 0;
@@ -262,15 +356,15 @@ footer {
   font-size: 11px;
   line-height: 1.25;
 }
-#tracking-table tbody td {
+.track-table tbody td {
   padding: 4px 5px;
   border-bottom: 1px solid var(--border);
   white-space: normal;
   vertical-align: top;
 }
-#tracking-table tbody tr.saved { background: rgba(74, 222, 128, 0.06); }
-#tracking-table input,
-#tracking-table select {
+.track-table tbody tr.saved { background: rgba(74, 222, 128, 0.06); }
+.track-table input,
+.track-table select {
   background: #0b1224;
   color: var(--text);
   border: 1px solid var(--border);
@@ -280,8 +374,8 @@ footer {
   width: 100%;
   min-width: 0;
 }
-#tracking-table input:focus,
-#tracking-table select:focus { outline: 2px solid var(--accent); }
-#tracking-table .row-actions { display: flex; flex-wrap: wrap; gap: 4px; }
-#tracking-table .row-actions button { padding: 4px 6px; font-size: 11px; flex: 1 1 auto; }
+.track-table input:focus,
+.track-table select:focus { outline: 2px solid var(--accent); }
+.track-table .row-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+.track-table .row-actions button { padding: 4px 6px; font-size: 11px; flex: 1 1 auto; }
 #tracking-status { font-size: 12px; color: var(--muted); margin: 8px 0; min-height: 18px; }

@@ -45,6 +45,19 @@ const RESOURCES = {
       ['cells', 'cells'],
     ],
   },
+  merchants: {
+    table: 'merchants',
+    fields: [['name', 'name']],
+  },
+  patterns: {
+    table: 'merchant_patterns',
+    json: ['tokens'],
+    fields: [
+      ['merchant', 'merchant'],
+      ['tokens', 'tokens'],
+      ['label', 'label'],
+    ],
+  },
 };
 
 const CORS = {
