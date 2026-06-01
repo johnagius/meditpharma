@@ -1,4 +1,4 @@
--- FedEx shipment rows persisted from the PharmaConsulta web app.
+-- FedEx shipment rows persisted from the Meditpharma web app.
 -- The full 52-column FedEx row is stored as JSON in `cells`; a few fields are
 -- denormalised for readability.
 CREATE TABLE IF NOT EXISTS fedex_rows (

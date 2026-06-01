@@ -1,4 +1,4 @@
-# pharmaconsulta — FedEx Batch Upload
+# Meditpharma — Shipment & Order Management
 
 A browser‑only tool that turns PDF shipping orders (Activa, D.H., K2, PDMS,
 Secil layouts) into a FedEx batch‑import xlsx that matches the user's

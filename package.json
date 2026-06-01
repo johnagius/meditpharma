@@ -1,5 +1,5 @@
 {
-  "name": "pharmaconsulta-batch-upload",
+  "name": "meditpharma-batch-upload",
   "version": "1.0.0",
   "description": "Browser-only tool: drop PDF shipping orders, get a FedEx batch xlsx.",
   "private": true,

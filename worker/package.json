@@ -1,8 +1,8 @@
 {
-  "name": "pharmaconsulta-tracking-worker",
+  "name": "meditpharma-tracking-worker",
   "version": "1.0.0",
   "private": true,
-  "description": "Cloudflare Worker + D1 REST API for PharmaConsulta tracking rows.",
+  "description": "Cloudflare Worker + D1 REST API for Meditpharma tracking rows.",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
