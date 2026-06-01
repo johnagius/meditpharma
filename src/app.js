@@ -488,6 +488,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
   // ---- Tabs ----
   function initTabs() {
+    const settingsBtn = document.getElementById('btn-settings');
+    const settingsBar = document.getElementById('global-settings');
+    if (settingsBtn && settingsBar) {
+      settingsBtn.addEventListener('click', () => settingsBar.classList.toggle('hidden'));
+    }
     const tabs = [
       ['tab-builder', 'panel-builder'],
       ['tab-fedex', 'panel-fedex'],

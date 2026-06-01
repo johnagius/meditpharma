@@ -219,9 +219,14 @@ footer {
   align-items: center;
   gap: 8px;
   margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
   font-size: 12px;
   color: var(--muted);
 }
+.tab-gear { margin-left: auto; font-size: 15px; padding: 9px 12px; }
 .global-settings input[type="text"] {
   background: #0b1224;
   color: var(--text);
@@ -396,19 +401,20 @@ footer {
   <p>Drop PDF orders (single files or whole folders). Review the table, pick products where needed, then download the FedEx batch xlsx.</p>
 </header>
 <main>
-  <div class="global-settings">
-    <label for="track-api-url">Sync API URL (Cloudflare Worker):</label>
-    <input type="text" id="track-api-url" placeholder="https://your-worker.workers.dev (leave blank to use this browser)">
-    <button id="btn-track-save-url" type="button">Save URL</button>
-    <span>Saving to: <span id="track-backend" class="backend-badge local">this browser (localStorage)</span></span>
-  </div>
-
   <nav class="tabs" role="tablist">
     <button class="tab active" id="tab-builder" data-panel="panel-builder" type="button">Builder</button>
     <button class="tab" id="tab-fedex" data-panel="panel-fedex" type="button">Saved FedEx</button>
     <button class="tab" id="tab-tracking" data-panel="panel-tracking" type="button">Saved Tracking</button>
     <button class="tab" id="tab-merchants" data-panel="panel-merchants" type="button">Merchants</button>
+    <button class="tab tab-gear" id="btn-settings" type="button" title="Sync settings" aria-label="Sync settings">&#9881;</button>
   </nav>
+
+  <div class="global-settings hidden" id="global-settings">
+    <label for="track-api-url">Sync API URL (Cloudflare Worker):</label>
+    <input type="text" id="track-api-url" placeholder="https://your-worker.workers.dev (leave blank to use this browser)">
+    <button id="btn-track-save-url" type="button">Save URL</button>
+    <span>Saving to: <span id="track-backend" class="backend-badge local">this browser (localStorage)</span></span>
+  </div>
 
   <section class="panel active" id="panel-builder">
     <div id="drop-zone" tabindex="0" role="button" aria-label="Upload PDF files">
@@ -490,7 +496,7 @@ footer {
   </section>
 </main>
 <footer>
-  PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-01 09:48 UTC
+  PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-01 09:53 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -2210,6 +2216,11 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
 
   // ---- Tabs ----
   function initTabs() {
+    const settingsBtn = document.getElementById('btn-settings');
+    const settingsBar = document.getElementById('global-settings');
+    if (settingsBtn && settingsBar) {
+      settingsBtn.addEventListener('click', () => settingsBar.classList.toggle('hidden'));
+    }
     const tabs = [
       ['tab-builder', 'panel-builder'],
       ['tab-fedex', 'panel-fedex'],

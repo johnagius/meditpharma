@@ -182,19 +182,20 @@ ${css}
   <p>Drop PDF orders (single files or whole folders). Review the table, pick products where needed, then download the FedEx batch xlsx.</p>
 </header>
 <main>
-  <div class="global-settings">
-    <label for="track-api-url">Sync API URL (Cloudflare Worker):</label>
-    <input type="text" id="track-api-url" placeholder="https://your-worker.workers.dev (leave blank to use this browser)">
-    <button id="btn-track-save-url" type="button">Save URL</button>
-    <span>Saving to: <span id="track-backend" class="backend-badge local">this browser (localStorage)</span></span>
-  </div>
-
   <nav class="tabs" role="tablist">
     <button class="tab active" id="tab-builder" data-panel="panel-builder" type="button">Builder</button>
     <button class="tab" id="tab-fedex" data-panel="panel-fedex" type="button">Saved FedEx</button>
     <button class="tab" id="tab-tracking" data-panel="panel-tracking" type="button">Saved Tracking</button>
     <button class="tab" id="tab-merchants" data-panel="panel-merchants" type="button">Merchants</button>
+    <button class="tab tab-gear" id="btn-settings" type="button" title="Sync settings" aria-label="Sync settings">&#9881;</button>
   </nav>
+
+  <div class="global-settings hidden" id="global-settings">
+    <label for="track-api-url">Sync API URL (Cloudflare Worker):</label>
+    <input type="text" id="track-api-url" placeholder="https://your-worker.workers.dev (leave blank to use this browser)">
+    <button id="btn-track-save-url" type="button">Save URL</button>
+    <span>Saving to: <span id="track-backend" class="backend-badge local">this browser (localStorage)</span></span>
+  </div>
 
   <section class="panel active" id="panel-builder">
     <div id="drop-zone" tabindex="0" role="button" aria-label="Upload PDF files">
