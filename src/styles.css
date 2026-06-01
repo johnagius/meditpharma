@@ -104,7 +104,10 @@ thead th {
   font-weight: 600;
   border-bottom: 1px solid #334155;
   white-space: normal;
-  word-break: break-word;
+  word-break: normal;
+  overflow-wrap: break-word;
+  font-size: 11px;
+  line-height: 1.25;
 }
 tbody td {
   padding: 4px 8px;
@@ -212,7 +215,10 @@ footer {
   font-weight: 600;
   border-bottom: 1px solid #334155;
   white-space: normal;
-  word-break: break-word;
+  word-break: normal;
+  overflow-wrap: break-word;
+  font-size: 11px;
+  line-height: 1.25;
 }
 #tracking-table tbody td {
   padding: 4px 5px;

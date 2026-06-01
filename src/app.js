@@ -150,13 +150,24 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     renderTracking();
   }
 
+  // Turn a camelCase column key into a readable, space-separated label so the
+  // header wraps at word boundaries (e.g. "recipientContactName" -> "Recipient
+  // Contact Name") instead of breaking letter-by-letter in narrow columns.
+  function humanizeHeader(key) {
+    if (/[\s(]/.test(key)) return key; // already friendly (File, Product (MID)...)
+    const spaced = key
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/([A-Za-z])(\d)/g, '$1 $2');
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  }
+
   function renderHeader() {
     tableHead.innerHTML = '';
     const tr = document.createElement('tr');
     const headerSeq = ['File', 'Source', 'Product (MID)'].concat(headers);
     for (const h of headerSeq) {
       const th = document.createElement('th');
-      th.textContent = h;
+      th.textContent = humanizeHeader(h);
       tr.appendChild(th);
     }
     tableHead.appendChild(tr);
