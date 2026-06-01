@@ -19,6 +19,16 @@ export const FEDEX_FIELDS = [
   'fileName', 'source', 'productKey', 'productMid', 'recipientName', 'cells',
 ];
 
+export const MERCHANT_FIELDS = ['name'];
+export const PATTERN_FIELDS = ['merchant', 'tokens', 'label'];
+
+const FIELDS_BY_RESOURCE = {
+  rows: TRACKING_FIELDS,
+  fedex: FEDEX_FIELDS,
+  merchants: MERCHANT_FIELDS,
+  patterns: PATTERN_FIELDS,
+};
+
 function pick(row, fields) {
   const out = {};
   for (const f of fields) out[f] = row[f] ?? '';
@@ -101,7 +111,7 @@ function createApiStore(baseUrl, resource, fields, fetchImpl) {
 
 // resource: 'rows' (tracking) | 'fedex'. fields/lsKey default per resource.
 export function createStore({ baseUrl = '', fetchImpl, storage, resource = 'rows', fields, lsKey } = {}) {
-  const flds = fields || (resource === 'fedex' ? FEDEX_FIELDS : TRACKING_FIELDS);
+  const flds = fields || FIELDS_BY_RESOURCE[resource] || TRACKING_FIELDS;
   const key = lsKey || `pharmaconsulta_${resource}`;
   if (baseUrl && fetchImpl) return createApiStore(baseUrl, resource, flds, fetchImpl);
   if (storage) return createLocalStore(key, flds, storage);

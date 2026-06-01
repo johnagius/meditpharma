@@ -90,12 +90,12 @@ button.danger { color: var(--err); }
 .status-line.err { color: var(--err); }
 .status-line.warn { color: var(--warn); }
 .status-line.ok { color: var(--ok); }
-#preview-wrapper {
+.scroll-box {
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel);
-  max-height: 60vh;
+  max-height: 70vh;
 }
 table {
   border-collapse: collapse;
@@ -179,9 +179,9 @@ thead th {
 #fedex-status .status-line.ok { color: var(--ok); }
 
 /* Delivered-on calendar + Today button */
-#tracking-table .delivered { display: flex; gap: 4px; align-items: center; }
-#tracking-table .delivered input { flex: 1 1 auto; min-width: 0; }
-#tracking-table .today-btn { flex: 0 0 auto; padding: 3px 5px; font-size: 10px; }
+.track-table .delivered { display: flex; gap: 4px; align-items: center; }
+.track-table .delivered input { flex: 1 1 auto; min-width: 0; }
+.track-table .today-btn { flex: 0 0 auto; padding: 3px 5px; font-size: 10px; }
 .badge {
   display: inline-block;
   padding: 1px 6px;
@@ -211,6 +211,93 @@ footer {
 }
 .row-summary strong { color: var(--text); }
 .hidden { display: none !important; }
+
+/* ---- Tabs ---- */
+.global-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.global-settings input[type="text"] {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 6px 8px;
+  min-width: 300px;
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 9px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.tab:hover { background: var(--panel); color: var(--text); }
+.tab.active {
+  background: var(--panel-2);
+  color: var(--text);
+  border-color: var(--border);
+  border-bottom: 1px solid var(--panel-2);
+  margin-bottom: -1px;
+}
+.panel { display: none; }
+.panel.active { display: block; }
+.panel > h2 { margin: 0 0 4px; font-size: 18px; }
+.panel-hint { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+
+/* ---- Merchants tab ---- */
+.merchant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 520px;
+}
+.merchant-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.merchant-name { font-size: 13px; }
+#merchant-status, #saved-fedex-status, #saved-track-status, #merchant-status { font-size: 12px; color: var(--muted); }
+#merchant-new {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  padding: 8px 10px;
+  min-width: 220px;
+}
+.card-merchant {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 4px 6px;
+  max-width: 160px;
+}
 
 /* ---- Tracking section ---- */
 .section-divider {
@@ -248,15 +335,22 @@ footer {
 .track-settings .backend-badge { font-weight: 600; }
 .track-settings .backend-badge.d1 { color: var(--accent); }
 .track-settings .backend-badge.local { color: var(--warn); }
-#tracking-wrapper {
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel);
-  max-height: 70vh;
+/* Saved FedEx table: readable columns, scrolls sideways. */
+.fedex-table { width: max-content; table-layout: auto; }
+.fedex-table thead th { white-space: nowrap; }
+.fedex-table tbody td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-#tracking-table { border-collapse: collapse; font-size: 12px; width: 100%; table-layout: fixed; }
-#tracking-table thead th {
+.fedex-table .row-actions { display: flex; gap: 4px; }
+.fedex-table .row-actions button { padding: 4px 8px; font-size: 11px; }
+
+.track-table { border-collapse: collapse; font-size: 12px; width: 100%; table-layout: fixed; }
+.track-table thead th {
   background: #1f2b58;
   position: sticky;
   top: 0;
@@ -270,15 +364,15 @@ footer {
   font-size: 11px;
   line-height: 1.25;
 }
-#tracking-table tbody td {
+.track-table tbody td {
   padding: 4px 5px;
   border-bottom: 1px solid var(--border);
   white-space: normal;
   vertical-align: top;
 }
-#tracking-table tbody tr.saved { background: rgba(74, 222, 128, 0.06); }
-#tracking-table input,
-#tracking-table select {
+.track-table tbody tr.saved { background: rgba(74, 222, 128, 0.06); }
+.track-table input,
+.track-table select {
   background: #0b1224;
   color: var(--text);
   border: 1px solid var(--border);
@@ -288,10 +382,10 @@ footer {
   width: 100%;
   min-width: 0;
 }
-#tracking-table input:focus,
-#tracking-table select:focus { outline: 2px solid var(--accent); }
-#tracking-table .row-actions { display: flex; flex-wrap: wrap; gap: 4px; }
-#tracking-table .row-actions button { padding: 4px 6px; font-size: 11px; flex: 1 1 auto; }
+.track-table input:focus,
+.track-table select:focus { outline: 2px solid var(--accent); }
+.track-table .row-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+.track-table .row-actions button { padding: 4px 6px; font-size: 11px; flex: 1 1 auto; }
 #tracking-status { font-size: 12px; color: var(--muted); margin: 8px 0; min-height: 18px; }
 
 </style>
@@ -302,50 +396,101 @@ footer {
   <p>Drop PDF orders (single files or whole folders). Review the table, pick products where needed, then download the FedEx batch xlsx.</p>
 </header>
 <main>
-  <div id="drop-zone" tabindex="0" role="button" aria-label="Upload PDF files">
-    <strong>Drop PDFs or folders here</strong>
-    <small>&hellip; or click to pick files</small>
-    <input type="file" id="file-picker" accept="application/pdf" multiple class="hidden">
-    <input type="file" id="folder-picker" webkitdirectory directory multiple class="hidden">
-  </div>
-  <div class="actions">
-    <button id="btn-add-folder" type="button">Add folder</button>
-    <button id="btn-clear" class="danger" type="button">Clear</button>
-    <button id="btn-download" class="primary" type="button" disabled>Download xlsx</button>
-    <button id="btn-fedex-saveall" type="button">Save all to D1</button>
-    <button id="btn-fedex-load" type="button">Load saved</button>
-    <label class="autosave"><input type="checkbox" id="chk-fedex-autosave"> Autosave to D1</label>
-    <span class="save-target">Saving to: <span id="fedex-backend" class="backend-badge local">this browser (localStorage)</span></span>
-  </div>
-  <div class="row-summary" id="summary">Drop PDFs above to begin.</div>
-  <div id="status" aria-live="polite"></div>
-  <div id="fedex-status" aria-live="polite"></div>
-  <div id="preview-wrapper">
-    <div id="cards" class="cards" aria-label="Shipments preview"></div>
-  </div>
-
-  <section class="section-divider">
-    <h2>Tracking sheet</h2>
-    <p>One row per order (all products listed together). Edit any cell, then save a line to the database or copy it for pasting into a spreadsheet.</p>
-  </section>
-  <div class="track-settings">
+  <div class="global-settings">
     <label for="track-api-url">Sync API URL (Cloudflare Worker):</label>
     <input type="text" id="track-api-url" placeholder="https://your-worker.workers.dev (leave blank to use this browser)">
     <button id="btn-track-save-url" type="button">Save URL</button>
-    <button id="btn-track-load" type="button">Load saved rows</button>
-    <label class="autosave"><input type="checkbox" id="chk-track-autosave"> Autosave</label>
     <span>Saving to: <span id="track-backend" class="backend-badge local">this browser (localStorage)</span></span>
   </div>
-  <div id="tracking-status" aria-live="polite"></div>
-  <div id="tracking-wrapper">
-    <table id="tracking-table" aria-label="Tracking sheet">
-      <thead id="tracking-head"></thead>
-      <tbody id="tracking-body"></tbody>
-    </table>
-  </div>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" id="tab-builder" data-panel="panel-builder" type="button">Builder</button>
+    <button class="tab" id="tab-fedex" data-panel="panel-fedex" type="button">Saved FedEx</button>
+    <button class="tab" id="tab-tracking" data-panel="panel-tracking" type="button">Saved Tracking</button>
+    <button class="tab" id="tab-merchants" data-panel="panel-merchants" type="button">Merchants</button>
+  </nav>
+
+  <section class="panel active" id="panel-builder">
+    <div id="drop-zone" tabindex="0" role="button" aria-label="Upload PDF files">
+      <strong>Drop PDFs or folders here</strong>
+      <small>&hellip; or click to pick files</small>
+      <input type="file" id="file-picker" accept="application/pdf" multiple class="hidden">
+      <input type="file" id="folder-picker" webkitdirectory directory multiple class="hidden">
+    </div>
+    <div class="actions">
+      <button id="btn-add-folder" type="button">Add folder</button>
+      <button id="btn-clear" class="danger" type="button">Clear</button>
+      <button id="btn-download" class="primary" type="button" disabled>Download xlsx</button>
+      <button id="btn-fedex-saveall" type="button">Save all to D1</button>
+      <label class="autosave"><input type="checkbox" id="chk-fedex-autosave"> Autosave to D1</label>
+    </div>
+    <div class="row-summary" id="summary">Drop PDFs above to begin.</div>
+    <div id="status" aria-live="polite"></div>
+    <div id="fedex-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <div id="cards" class="cards" aria-label="Shipments preview"></div>
+    </div>
+
+    <section class="section-divider">
+      <h2>Tracking sheet</h2>
+      <p>One row per order (all products listed together). Edit any cell, then save a line to the database or copy it for pasting into a spreadsheet.</p>
+    </section>
+    <div class="track-settings">
+      <label class="autosave"><input type="checkbox" id="chk-track-autosave"> Autosave tracking rows</label>
+    </div>
+    <div id="tracking-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table id="tracking-table" class="track-table" aria-label="Tracking sheet">
+        <thead id="tracking-head"></thead>
+        <tbody id="tracking-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-fedex">
+    <h2>Saved FedEx shipments</h2>
+    <p class="panel-hint">Shipments saved to the database. Refresh to pull the latest.</p>
+    <div class="actions">
+      <button id="btn-saved-fedex-refresh" class="primary" type="button">Refresh</button>
+    </div>
+    <div id="saved-fedex-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table id="saved-fedex-table" class="fedex-table" aria-label="Saved FedEx shipments">
+        <thead id="saved-fedex-head"></thead>
+        <tbody id="saved-fedex-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-tracking">
+    <h2>Saved tracking rows</h2>
+    <p class="panel-hint">Tracking rows saved to the database. Edit a cell and Overwrite to update, or Refresh to reload.</p>
+    <div class="actions">
+      <button id="btn-saved-track-refresh" class="primary" type="button">Refresh</button>
+    </div>
+    <div id="saved-track-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table id="saved-track-table" class="track-table" aria-label="Saved tracking rows">
+        <thead id="saved-track-head"></thead>
+        <tbody id="saved-track-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-merchants">
+    <h2>Merchants</h2>
+    <p class="panel-hint">Merchants are auto-detected from each PDF's format and improve as you correct them. Add new merchants here.</p>
+    <div class="actions">
+      <input type="text" id="merchant-new" placeholder="New merchant name">
+      <button id="btn-merchant-add" class="primary" type="button">Add merchant</button>
+      <button id="btn-merchant-refresh" type="button">Refresh</button>
+    </div>
+    <div id="merchant-status" aria-live="polite"></div>
+    <div id="merchant-list" class="merchant-list"></div>
+  </section>
 </main>
 <footer>
-  PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-01 09:21 UTC
+  PharmaConsulta &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-01 09:48 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -522,6 +667,88 @@ function expandState(value) {
 }
 
   return { expandState, STATE_NAMES };
+})();
+
+// === data/merchants.js ===
+const ModMerchants = (function () {
+// Merchant list + learning-based format detection.
+//
+// Detection order:
+//   1. If a parser recognised the format, map its `source` -> merchant (seeded).
+//   2. Otherwise fingerprint the PDF text and compare to learned examples;
+//      the best match above a threshold wins.
+//   3. Otherwise unknown — the user picks from the dropdown, which teaches the
+//      system (a new learned example is stored).
+
+const DEFAULT_MERCHANTS = [
+  'David Hitchen', 'Activa', 'Secil', 'LWA', 'PDMS', 'PHCHIC',
+];
+
+// Seeded knowledge: parser source -> merchant. (k2 / "ORDER #" is intentionally
+// left out — it's learned from the first correction.)
+const SOURCE_TO_MERCHANT = {
+  activa: 'Activa',
+  dh: 'David Hitchen',
+  pdms: 'PDMS',
+  secil: 'Secil',
+};
+
+// Only generic glue words are filtered — the template label words
+// (shipping, products, order, …) are exactly the signal we want to keep.
+const STOPWORDS = new Set('the and for you your our with this that from'.split(/\s+/));
+
+// A format fingerprint: the document's structural words — the text BEFORE a
+// "label:" and any ALL-CAPS headers. These are stable across different orders
+// from the same merchant (the template), while the data (names, cities, which
+// are normal Title-case lines) is deliberately excluded.
+function fingerprint(text) {
+  const lines = String(text || '')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 40);
+  const tokens = new Set();
+  for (const line of lines) {
+    if (line.includes(':')) {
+      const head = line.slice(0, line.indexOf(':'));
+      for (const w of head.toLowerCase().match(/[a-z]{3,}/g) || []) tokens.add(w);
+    }
+    for (const w of line.match(/\b[A-Z]{3,}\b/g) || []) tokens.add(w.toLowerCase());
+  }
+  return Array.from(tokens).filter((t) => !STOPWORDS.has(t));
+}
+
+// Jaccard similarity of two token lists (0..1).
+function similarity(a, b) {
+  const A = new Set(a);
+  const B = new Set(b);
+  if (!A.size || !B.size) return 0;
+  let inter = 0;
+  for (const x of A) if (B.has(x)) inter += 1;
+  return inter / (A.size + B.size - inter);
+}
+
+// learned: [{ merchant, tokens: [...] }, ...]
+function detectMerchant(text, { source, learned = [], threshold = 0.5 } = {}) {
+  if (source && SOURCE_TO_MERCHANT[source]) {
+    return { merchant: SOURCE_TO_MERCHANT[source], via: 'format', score: 1 };
+  }
+  const tokens = fingerprint(text);
+  let best = null;
+  for (const ex of learned) {
+    const score = similarity(tokens, ex.tokens || []);
+    if (!best || score > best.score) best = { merchant: ex.merchant, score };
+  }
+  if (best && best.score >= threshold) return { merchant: best.merchant, via: 'learned', score: best.score };
+  return null;
+}
+
+// Build a learnable example from a correction.
+function learnExample(text, merchant, label = '') {
+  return { merchant, tokens: fingerprint(text), label };
+}
+
+  return { fingerprint, similarity, detectMerchant, learnExample, DEFAULT_MERCHANTS, SOURCE_TO_MERCHANT };
 })();
 
 // === data/midCodes.js ===
@@ -809,6 +1036,16 @@ const FEDEX_FIELDS = [
   'fileName', 'source', 'productKey', 'productMid', 'recipientName', 'cells',
 ];
 
+const MERCHANT_FIELDS = ['name'];
+const PATTERN_FIELDS = ['merchant', 'tokens', 'label'];
+
+const FIELDS_BY_RESOURCE = {
+  rows: TRACKING_FIELDS,
+  fedex: FEDEX_FIELDS,
+  merchants: MERCHANT_FIELDS,
+  patterns: PATTERN_FIELDS,
+};
+
 function pick(row, fields) {
   const out = {};
   for (const f of fields) out[f] = row[f] ?? '';
@@ -891,14 +1128,14 @@ function createApiStore(baseUrl, resource, fields, fetchImpl) {
 
 // resource: 'rows' (tracking) | 'fedex'. fields/lsKey default per resource.
 function createStore({ baseUrl = '', fetchImpl, storage, resource = 'rows', fields, lsKey } = {}) {
-  const flds = fields || (resource === 'fedex' ? FEDEX_FIELDS : TRACKING_FIELDS);
+  const flds = fields || FIELDS_BY_RESOURCE[resource] || TRACKING_FIELDS;
   const key = lsKey || `pharmaconsulta_${resource}`;
   if (baseUrl && fetchImpl) return createApiStore(baseUrl, resource, flds, fetchImpl);
   if (storage) return createLocalStore(key, flds, storage);
   throw new Error('createStore needs either a baseUrl+fetchImpl or a storage');
 }
 
-  return { createStore, TRACKING_FIELDS, FEDEX_FIELDS };
+  return { createStore, TRACKING_FIELDS, FEDEX_FIELDS, MERCHANT_FIELDS, PATTERN_FIELDS };
 })();
 
 // === excelExporter.js ===
@@ -1501,6 +1738,9 @@ const setWeekdayWithinWeek = ModTrackingRow.setWeekdayWithinWeek;
 const toISODate = ModTrackingRow.toISODate;
 const fromISODate = ModTrackingRow.fromISODate;
 const createStore = ModTrackingStore.createStore;
+const DEFAULT_MERCHANTS = ModMerchants.DEFAULT_MERCHANTS;
+const detectMerchant = ModMerchants.detectMerchant;
+const learnExample = ModMerchants.learnExample;
 
 function createApp({ document, window, pdfjsLib, XLSX }) {
   const dropZone = document.getElementById('drop-zone');
@@ -1515,14 +1755,29 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   // FedEx D1 controls
   const fedexAutosave = document.getElementById('chk-fedex-autosave');
   const fedexSaveAll = document.getElementById('btn-fedex-saveall');
-  const fedexLoad = document.getElementById('btn-fedex-load');
   const fedexBackend = document.getElementById('fedex-backend');
   const fedexStatus = document.getElementById('fedex-status');
+
+  // Saved tabs
+  const savedFedexHead = document.getElementById('saved-fedex-head');
+  const savedFedexBody = document.getElementById('saved-fedex-body');
+  const savedFedexStatus = document.getElementById('saved-fedex-status');
+  const savedFedexRefresh = document.getElementById('btn-saved-fedex-refresh');
+  const savedTrackHead = document.getElementById('saved-track-head');
+  const savedTrackBody = document.getElementById('saved-track-body');
+  const savedTrackStatus = document.getElementById('saved-track-status');
+  const savedTrackRefresh = document.getElementById('btn-saved-track-refresh');
+
+  // Merchants tab
+  const merchantNew = document.getElementById('merchant-new');
+  const merchantAdd = document.getElementById('btn-merchant-add');
+  const merchantRefresh = document.getElementById('btn-merchant-refresh');
+  const merchantStatus = document.getElementById('merchant-status');
+  const merchantListEl = document.getElementById('merchant-list');
 
   // Tracking section elements
   const trackApiUrl = document.getElementById('track-api-url');
   const trackSaveUrl = document.getElementById('btn-track-save-url');
-  const trackLoadSaved = document.getElementById('btn-track-load');
   const trackAutosave = document.getElementById('chk-track-autosave');
   const trackBackend = document.getElementById('track-backend');
   const trackingHead = document.getElementById('tracking-head');
@@ -1544,6 +1799,10 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   const headers = HEADER_ROW();
   let orders = [];
   let trackingRows = [];
+  let savedTrackingRows = [];
+  let savedFedexRows = [];
+  let merchantsList = DEFAULT_MERCHANTS.map((name) => ({ name }));
+  let learnedPatterns = [];
 
   renderRows();
 
@@ -1570,12 +1829,11 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   });
 
   clearBtn.addEventListener('click', () => {
-    // Keep rows loaded from the database; drop the order-derived ones.
-    orders = orders.filter((o) => o._loaded);
+    orders = [];
+    trackingRows = [];
     statusEl.textContent = '';
     renderRows();
-    trackingRows = trackingRows.filter((r) => r._origin === 'db');
-    renderTracking();
+    renderAllTracking();
   });
 
   downloadBtn.addEventListener('click', () => {
@@ -1630,6 +1888,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         }
         for (const order of parsed) {
           const product = detectProduct(order.productText) || detectProduct(text);
+          const md = detectMerchant(text, { source: order.source, learned: learnedPatterns });
           orders.push({
             fileName: file.name,
             source: order.source,
@@ -1638,6 +1897,9 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
             productLines: order.productLines || null,
             product: product || null,
             orderId: order.orderId || '',
+            text,
+            merchant: md ? md.merchant : '',
+            merchantVia: md ? md.via : '',
           });
         }
         setStatus(`${file.name}: parsed (${parsed.length} order${parsed.length > 1 ? 's' : ''}).`, 'ok');
@@ -1647,7 +1909,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     }
     renderRows();
     buildTrackingFromOrders();
-    renderTracking();
+    renderAllTracking();
     // Autosave freshly ingested data if enabled.
     if (autosaveOn('fedex')) {
       orders.forEach((o, i) => {
@@ -1704,6 +1966,30 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       src.className = 'badge';
       src.textContent = o.source || '';
       head.appendChild(src);
+
+      // Merchant dropdown (auto-detected, learns from corrections).
+      const merchSel = document.createElement('select');
+      merchSel.className = 'card-merchant';
+      merchSel.title = o.merchantVia === 'format'
+        ? 'Detected from the PDF format'
+        : (o.merchantVia === 'learned' ? 'Detected from a learned pattern' : 'Pick the merchant to teach detection');
+      const mEmpty = document.createElement('option');
+      mEmpty.value = '';
+      mEmpty.textContent = '— merchant —';
+      merchSel.appendChild(mEmpty);
+      for (const m of merchantsList) {
+        const opt = document.createElement('option');
+        opt.value = m.name;
+        opt.textContent = m.name;
+        if (o.merchant === m.name) opt.selected = true;
+        merchSel.appendChild(opt);
+      }
+      merchSel.addEventListener('change', () => {
+        o.merchant = merchSel.value;
+        o.merchantVia = 'manual';
+        if (o.merchant) learnMerchant(o);
+      });
+      head.appendChild(merchSel);
 
       const sel = document.createElement('select');
       sel.className = 'card-product';
@@ -1900,33 +2186,6 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     setFedexStatus(`Saved ${savable.length} shipment(s).`, 'ok');
   }
 
-  async function loadSavedFedex() {
-    const store = makeStore('fedex');
-    try {
-      setFedexStatus(`Loading saved shipments from ${store.backend === 'd1' ? 'D1' : 'this browser'}…`);
-      const saved = await store.list();
-      const existing = new Set(orders.filter((o) => o.fedexId).map((o) => String(o.fedexId)));
-      let added = 0;
-      for (const s of saved) {
-        if (existing.has(String(s.id))) continue;
-        orders.push({
-          fileName: s.fileName || '',
-          source: s.source || '',
-          recipient: { name: s.recipientName || '' },
-          product: findProductByKey(s.productKey) || (s.productMid ? { key: s.productKey, mid: s.productMid } : null),
-          cells: Array.isArray(s.cells) ? s.cells : null,
-          fedexId: s.id,
-          _loaded: true,
-        });
-        added += 1;
-      }
-      setFedexStatus(`Loaded ${saved.length} saved shipment(s); ${added} new added.`, 'ok');
-      renderRows();
-    } catch (err) {
-      setFedexStatus(`Load failed: ${err.message}`, 'err');
-    }
-  }
-
   function initFedex() {
     updateFedexBackend();
     if (fedexAutosave) {
@@ -1937,7 +2196,235 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       });
     }
     if (fedexSaveAll) fedexSaveAll.addEventListener('click', saveAllFedex);
-    if (fedexLoad) fedexLoad.addEventListener('click', loadSavedFedex);
+  }
+
+  // ---- Generic status helper ----
+  function setStatusInto(el, msg, level = '') {
+    if (!el) return;
+    const line = document.createElement('div');
+    line.className = `status-line ${level}`;
+    line.textContent = msg;
+    el.appendChild(line);
+    while (el.children.length > 8) el.removeChild(el.firstChild);
+  }
+
+  // ---- Tabs ----
+  function initTabs() {
+    const tabs = [
+      ['tab-builder', 'panel-builder'],
+      ['tab-fedex', 'panel-fedex'],
+      ['tab-tracking', 'panel-tracking'],
+      ['tab-merchants', 'panel-merchants'],
+    ];
+    const els = tabs.map(([t, p]) => ({
+      btn: document.getElementById(t),
+      panel: document.getElementById(p),
+    }));
+    els.forEach(({ btn }, i) => {
+      if (!btn) return;
+      btn.addEventListener('click', () => {
+        els.forEach(({ btn: b, panel }) => {
+          if (b) b.classList.remove('active');
+          if (panel) panel.classList.remove('active');
+        });
+        if (els[i].btn) els[i].btn.classList.add('active');
+        if (els[i].panel) els[i].panel.classList.add('active');
+        // Lazily refresh saved tabs the first time they're opened.
+        if (tabs[i][1] === 'panel-fedex' && !savedFedexRows.length) loadSavedFedex();
+        if (tabs[i][1] === 'panel-tracking' && !savedTrackingRows.length) loadSavedRows();
+      });
+    });
+  }
+
+  // ---- Saved FedEx tab ----
+  async function loadSavedFedex() {
+    const store = makeStore('fedex');
+    const status = (m, l) => setStatusInto(savedFedexStatus, m, l);
+    try {
+      status(`Loading saved shipments from ${store.backend === 'd1' ? 'D1' : 'this browser'}…`);
+      savedFedexRows = await store.list();
+      status(`Loaded ${savedFedexRows.length} saved shipment(s).`, 'ok');
+      renderSavedFedex();
+    } catch (err) {
+      status(`Load failed: ${err.message}`, 'err');
+    }
+  }
+
+  function renderSavedFedex() {
+    if (!savedFedexHead || !savedFedexBody) return;
+    savedFedexHead.innerHTML = '';
+    const htr = document.createElement('tr');
+    for (const h of ['id', 'Recipient', 'Product', 'MID', 'File', 'Source', 'Actions']) {
+      const th = document.createElement('th');
+      th.textContent = h;
+      htr.appendChild(th);
+    }
+    savedFedexHead.appendChild(htr);
+
+    savedFedexBody.innerHTML = '';
+    savedFedexRows.forEach((s) => {
+      const tr = document.createElement('tr');
+      const td = (txt) => {
+        const c = document.createElement('td');
+        c.textContent = txt == null ? '' : String(txt);
+        tr.appendChild(c);
+      };
+      td(s.id);
+      td(s.recipientName);
+      td(s.productKey);
+      td(s.productMid);
+      td(s.fileName);
+      td(s.source);
+
+      const actTd = document.createElement('td');
+      const act = document.createElement('div');
+      act.className = 'row-actions';
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.textContent = 'Copy';
+      copyBtn.addEventListener('click', async () => {
+        const text = (Array.isArray(s.cells) ? s.cells : []).join('\t');
+        try {
+          await window.navigator.clipboard.writeText(text);
+          setStatusInto(savedFedexStatus, 'Row copied (tab-separated).', 'ok');
+        } catch {
+          setStatusInto(savedFedexStatus, `Copy unavailable. Row:\n${text}`, 'warn');
+        }
+      });
+      act.appendChild(copyBtn);
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'danger';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', async () => {
+        try {
+          await makeStore('fedex').remove(s.id);
+          savedFedexRows = savedFedexRows.filter((r) => r !== s);
+          setStatusInto(savedFedexStatus, `Deleted id ${s.id}.`, 'ok');
+          renderSavedFedex();
+        } catch (err) {
+          setStatusInto(savedFedexStatus, `Delete failed: ${err.message}`, 'err');
+        }
+      });
+      act.appendChild(delBtn);
+      actTd.appendChild(act);
+      tr.appendChild(actTd);
+
+      savedFedexBody.appendChild(tr);
+    });
+  }
+
+  // ---- Merchants ----
+  async function loadMerchants() {
+    const store = makeStore('merchants');
+    try {
+      const list = await store.list();
+      if (list && list.length) {
+        merchantsList = list;
+      } else {
+        // Seed the defaults into the store on first run.
+        merchantsList = [];
+        for (const name of DEFAULT_MERCHANTS) {
+          // eslint-disable-next-line no-await-in-loop
+          const saved = await store.save({ name });
+          merchantsList.push(saved);
+        }
+      }
+    } catch {
+      merchantsList = DEFAULT_MERCHANTS.map((name) => ({ name }));
+    }
+    renderMerchants();
+    renderRows();
+  }
+
+  async function loadLearnedPatterns() {
+    try {
+      learnedPatterns = await makeStore('patterns').list();
+    } catch {
+      learnedPatterns = [];
+    }
+  }
+
+  function renderMerchants() {
+    if (!merchantListEl) return;
+    merchantListEl.innerHTML = '';
+    merchantsList.forEach((m) => {
+      const row = document.createElement('div');
+      row.className = 'merchant-row';
+      const name = document.createElement('span');
+      name.className = 'merchant-name';
+      const count = learnedPatterns.filter((p) => p.merchant === m.name).length;
+      name.textContent = count ? `${m.name}  (${count} learned)` : m.name;
+      row.appendChild(name);
+      if (m.id) {
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'danger';
+        del.textContent = 'Delete';
+        del.addEventListener('click', () => deleteMerchant(m));
+        row.appendChild(del);
+      }
+      merchantListEl.appendChild(row);
+    });
+  }
+
+  async function addMerchant() {
+    const name = (merchantNew && merchantNew.value || '').trim();
+    if (!name) return;
+    if (merchantsList.some((m) => m.name.toLowerCase() === name.toLowerCase())) {
+      setStatusInto(merchantStatus, `${name} already exists.`, 'warn');
+      return;
+    }
+    try {
+      const saved = await makeStore('merchants').save({ name });
+      merchantsList.push(saved);
+      if (merchantNew) merchantNew.value = '';
+      setStatusInto(merchantStatus, `Added ${name}.`, 'ok');
+      renderMerchants();
+      renderRows();
+    } catch (err) {
+      setStatusInto(merchantStatus, `Add failed: ${err.message}`, 'err');
+    }
+  }
+
+  async function deleteMerchant(m) {
+    try {
+      if (m.id) await makeStore('merchants').remove(m.id);
+      merchantsList = merchantsList.filter((x) => x !== m);
+      setStatusInto(merchantStatus, `Removed ${m.name}.`, 'ok');
+      renderMerchants();
+      renderRows();
+    } catch (err) {
+      setStatusInto(merchantStatus, `Delete failed: ${err.message}`, 'err');
+    }
+  }
+
+  // Teach the detector: store this PDF's fingerprint -> merchant.
+  async function learnMerchant(o) {
+    if (!o.text || !o.merchant) return;
+    const example = learnExample(o.text, o.merchant, o.fileName || '');
+    learnedPatterns.push(example);
+    try {
+      await makeStore('patterns').save(example);
+      setFedexStatus(`Learned ${o.merchant} from this format.`, 'ok');
+    } catch (err) {
+      setFedexStatus(`Couldn't save learned pattern: ${err.message}`, 'warn');
+    }
+  }
+
+  function initMerchants() {
+    if (merchantAdd) merchantAdd.addEventListener('click', addMerchant);
+    if (merchantNew) {
+      merchantNew.addEventListener('keydown', (e) => { if (e.key === 'Enter') addMerchant(); });
+    }
+    if (merchantRefresh) {
+      merchantRefresh.addEventListener('click', async () => {
+        await loadLearnedPatterns();
+        await loadMerchants();
+      });
+    }
+    if (savedFedexRefresh) savedFedexRefresh.addEventListener('click', loadSavedFedex);
+    renderMerchants();
   }
 
   // ---- Tracking section ----
@@ -1997,9 +2484,8 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   }
 
   function buildTrackingFromOrders() {
-    const dbRows = trackingRows.filter((r) => r._origin === 'db');
     const today = new Date();
-    const orderRows = orders.map((o, idx) => {
+    trackingRows = orders.map((o, idx) => {
       const row = buildTrackingRow(
         { recipient: o.recipient, products: resolveProducts(o) },
         idx,
@@ -2008,12 +2494,11 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       row._origin = 'order';
       return row;
     });
-    trackingRows = orderRows.concat(dbRows);
   }
 
   function initTracking() {
-    if (!trackingHead) return;
-    renderTrackingHeader();
+    renderTrackingHeader(trackingHead);
+    renderTrackingHeader(savedTrackHead);
     if (trackApiUrl) trackApiUrl.value = getApiBase();
     updateBackendBadge();
     if (trackSaveUrl) {
@@ -2029,7 +2514,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         );
       });
     }
-    if (trackLoadSaved) trackLoadSaved.addEventListener('click', loadSavedRows);
+    if (savedTrackRefresh) savedTrackRefresh.addEventListener('click', loadSavedRows);
     if (trackAutosave) {
       trackAutosave.checked = autosaveOn('rows');
       trackAutosave.addEventListener('change', () => {
@@ -2037,11 +2522,12 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         setTrackStatus(trackAutosave.checked ? 'Autosave on — rows save as you edit.' : 'Autosave off.', 'ok');
       });
     }
-    renderTracking();
+    renderAllTracking();
   }
 
-  function renderTrackingHeader() {
-    const table = trackingHead.parentElement;
+  function renderTrackingHeader(headEl) {
+    if (!headEl) return;
+    const table = headEl.parentElement;
     const oldCols = table.querySelector('colgroup');
     if (oldCols) oldCols.remove();
     const colgroup = document.createElement('colgroup');
@@ -2052,14 +2538,14 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     });
     table.insertBefore(colgroup, table.firstChild);
 
-    trackingHead.innerHTML = '';
+    headEl.innerHTML = '';
     const tr = document.createElement('tr');
     for (const h of TRACKING_HEADERS.concat(['Actions'])) {
       const th = document.createElement('th');
       th.textContent = h;
       tr.appendChild(th);
     }
-    trackingHead.appendChild(tr);
+    headEl.appendChild(tr);
   }
 
   function input(value, cls, onInput) {
@@ -2108,10 +2594,15 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     return wrap;
   }
 
-  function renderTracking() {
-    if (!trackingBody) return;
-    trackingBody.innerHTML = '';
-    trackingRows.forEach((row) => {
+  function renderAllTracking() {
+    renderTrackingRows(trackingBody, trackingRows);
+    renderTrackingRows(savedTrackBody, savedTrackingRows);
+  }
+
+  function renderTrackingRows(tbody, rows) {
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    rows.forEach((row) => {
       const tr = document.createElement('tr');
       if (row.id) tr.classList.add('saved');
 
@@ -2208,7 +2699,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       tr.addEventListener('input', queueAutosave);
       tr.addEventListener('change', queueAutosave);
 
-      trackingBody.appendChild(tr);
+      tbody.appendChild(tr);
     });
   }
 
@@ -2238,7 +2729,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       );
       // Don't re-render on a silent autosave — it would steal focus mid-typing.
       // row.id is already set in memory, so the next save correctly updates.
-      if (!silent) renderTracking();
+      if (!silent) renderAllTracking();
     } catch (err) {
       setTrackStatus(`Save failed: ${err.message}`, 'err');
     }
@@ -2256,7 +2747,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
 
   async function removeRow(row) {
     if (row.id) {
-      const store = makeStore();
+      const store = makeStore('rows');
       try {
         await store.remove(row.id);
       } catch (err) {
@@ -2265,32 +2756,28 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       }
     }
     trackingRows = trackingRows.filter((r) => r !== row);
+    savedTrackingRows = savedTrackingRows.filter((r) => r !== row);
     setTrackStatus('Row removed.', 'ok');
-    renderTracking();
+    renderAllTracking();
   }
 
+  // Loads saved tracking rows into the "Saved Tracking" tab.
   async function loadSavedRows() {
-    const store = makeStore();
+    const store = makeStore('rows');
+    const status = (m, l) => setStatusInto(savedTrackStatus, m, l);
     try {
-      setTrackStatus(`Loading saved rows from ${store.backend === 'd1' ? 'D1' : 'this browser'}…`);
+      status(`Loading saved rows from ${store.backend === 'd1' ? 'D1' : 'this browser'}…`);
       const saved = await store.list();
-      const existingIds = new Set(trackingRows.filter((r) => r.id).map((r) => String(r.id)));
-      let added = 0;
-      for (const s of saved) {
-        if (existingIds.has(String(s.id))) continue;
-        const d = fromISODate(s.isoDate);
-        trackingRows.push({
-          ...s,
-          isoDate: s.isoDate || '',
-          deliveredOnIso: s.deliveredOnIso || '',
-          _origin: 'db',
-        });
-        added += 1;
-      }
-      setTrackStatus(`Loaded ${saved.length} saved row(s); ${added} new added to the table.`, 'ok');
-      renderTracking();
+      savedTrackingRows = saved.map((s) => ({
+        ...s,
+        isoDate: s.isoDate || '',
+        deliveredOnIso: s.deliveredOnIso || '',
+        _origin: 'db',
+      }));
+      status(`Loaded ${savedTrackingRows.length} saved row(s).`, 'ok');
+      renderAllTracking();
     } catch (err) {
-      setTrackStatus(`Load failed: ${err.message}`, 'err');
+      status(`Load failed: ${err.message}`, 'err');
     }
   }
 
@@ -2328,8 +2815,12 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   // Initialise the save/tracking sections last and defensively: a failure here
   // must never prevent the upload listeners above from being wired up.
   try {
+    initTabs();
     initFedex();
     initTracking();
+    initMerchants();
+    // Load merchants + learned patterns from the store (async, non-blocking).
+    loadLearnedPatterns().then(loadMerchants).catch(() => {});
   } catch (err) {
     setTrackStatus(`Save sections failed to initialise: ${err.message}`, 'err');
     if (window.console) window.console.error(err);
