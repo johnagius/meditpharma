@@ -265,6 +265,7 @@ ${css}
     <p class="panel-hint">Tracking rows saved to the database. Edit a cell and Overwrite to update, or Refresh to reload.</p>
     <div class="actions">
       <button id="btn-saved-track-refresh" class="primary" type="button">Refresh</button>
+      <button id="btn-saved-track-download" type="button">Download all (xlsx)</button>
     </div>
     <div id="saved-track-status" aria-live="polite"></div>
     <div class="scroll-box">

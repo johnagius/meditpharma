@@ -48,6 +48,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const savedTrackBody = document.getElementById('saved-track-body');
   const savedTrackStatus = document.getElementById('saved-track-status');
   const savedTrackRefresh = document.getElementById('btn-saved-track-refresh');
+  const savedTrackDownload = document.getElementById('btn-saved-track-download');
 
   // Merchants tab
   const merchantNew = document.getElementById('merchant-new');
@@ -144,10 +145,9 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     renderAllTracking();
   });
 
-  // Build + download an xlsx from rows of 52-cell arrays.
-  function downloadCells(cellRows, filename, statusFn) {
-    if (!cellRows.length) return;
-    const aoa = [HEADER_ROW()].concat(cellRows);
+  // Build + download an xlsx from an array-of-arrays (first row = header).
+  function downloadAoa(aoa, filename, statusFn) {
+    if (!aoa || aoa.length < 2) { if (statusFn) statusFn('Nothing to download.', 'warn'); return; }
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = aoa[0].map(() => ({ wch: 28.875 }));
     const wb = XLSX.utils.book_new();
@@ -165,6 +165,17 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 200);
     if (statusFn) statusFn(`Downloaded ${filename}`, 'ok');
+  }
+
+  // Build + download an xlsx from rows of 52-cell FedEx arrays.
+  function downloadCells(cellRows, filename, statusFn) {
+    if (!cellRows.length) { if (statusFn) statusFn('Nothing to download.', 'warn'); return; }
+    downloadAoa([HEADER_ROW()].concat(cellRows), filename, statusFn);
+  }
+
+  // Date-stamped filename helper.
+  function dateStamp(d = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   downloadBtn.addEventListener('click', () => {
@@ -1490,6 +1501,16 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       });
     }
     if (savedTrackRefresh) savedTrackRefresh.addEventListener('click', loadSavedRows);
+    if (savedTrackDownload) {
+      savedTrackDownload.addEventListener('click', () => {
+        if (!savedTrackingRows.length) {
+          setStatusInto(savedTrackStatus, 'Nothing to download — Refresh first.', 'warn');
+          return;
+        }
+        const aoa = [TRACKING_HEADERS].concat(savedTrackingRows.map((r) => trackingRowToCells(r)));
+        downloadAoa(aoa, `Tracking_${dateStamp()}_${savedTrackingRows.length}rows.xlsx`, (m, l) => setStatusInto(savedTrackStatus, m, l));
+      });
+    }
     if (trackAutosave) {
       trackAutosave.checked = autosaveOn('rows');
       trackAutosave.addEventListener('change', () => {
