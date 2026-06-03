@@ -11,6 +11,7 @@ import {
   trackingRowToCells,
   parseProductLines,
   formatDateDDMMYY,
+  dateCompact,
   weekdayName,
   orderNumberFor,
   setWeekdayWithinWeek,
@@ -47,6 +48,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const savedTrackBody = document.getElementById('saved-track-body');
   const savedTrackStatus = document.getElementById('saved-track-status');
   const savedTrackRefresh = document.getElementById('btn-saved-track-refresh');
+  const savedTrackDownload = document.getElementById('btn-saved-track-download');
 
   // Merchants tab
   const merchantNew = document.getElementById('merchant-new');
@@ -143,10 +145,9 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     renderAllTracking();
   });
 
-  // Build + download an xlsx from rows of 52-cell arrays.
-  function downloadCells(cellRows, filename, statusFn) {
-    if (!cellRows.length) return;
-    const aoa = [HEADER_ROW()].concat(cellRows);
+  // Build + download an xlsx from an array-of-arrays (first row = header).
+  function downloadAoa(aoa, filename, statusFn) {
+    if (!aoa || aoa.length < 2) { if (statusFn) statusFn('Nothing to download.', 'warn'); return; }
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = aoa[0].map(() => ({ wch: 28.875 }));
     const wb = XLSX.utils.book_new();
@@ -164,6 +165,17 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 200);
     if (statusFn) statusFn(`Downloaded ${filename}`, 'ok');
+  }
+
+  // Build + download an xlsx from rows of 52-cell FedEx arrays.
+  function downloadCells(cellRows, filename, statusFn) {
+    if (!cellRows.length) { if (statusFn) statusFn('Nothing to download.', 'warn'); return; }
+    downloadAoa([HEADER_ROW()].concat(cellRows), filename, statusFn);
+  }
+
+  // Date-stamped filename helper.
+  function dateStamp(d = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   downloadBtn.addEventListener('click', () => {
@@ -192,6 +204,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     setStatus(`Reading ${pdfs.length} PDF(s)…`);
     let skipped = 0;
     const beforeCount = orders.length;
+    const today = new Date();
     for (const file of pdfs) {
       try {
         const text = await readPdfText(file, pdfjsLib);
@@ -200,12 +213,17 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
           setStatus(`${file.name}: format not recognised.`, 'err');
           continue;
         }
+        // One order number per PDF: orders in the same file share it; a new
+        // file consumes the next daily number. Assigned lazily so a file whose
+        // orders are all duplicates doesn't burn a number.
+        let fileOrderNumber = null;
         for (const order of parsed) {
           const product = detectProduct(order.productText) || detectProduct(text);
           const md = detectMerchant(text, { source: order.source, learned: learnedPatterns });
           const dedupKey = `${hashText(text)}|${order.orderId || (order.recipient && order.recipient.name) || ''}`;
           // Skip an identical order already loaded this session (no dup cards).
           if (orders.some((o) => o.dedupKey === dedupKey)) { skipped += 1; continue; }
+          if (!fileOrderNumber) fileOrderNumber = orderNumberFor(today, nextOrderSeq(dateCompact(today)));
           orders.push({
             fileName: file.name,
             source: order.source,
@@ -216,6 +234,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
             orderId: order.orderId || '',
             text,
             dedupKey,
+            orderNumber: fileOrderNumber,
             merchant: md ? md.merchant : '',
             merchantVia: md ? md.via : '',
           });
@@ -529,6 +548,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     orders = orders.filter((x) => x !== o);
     setFedexStatus('Shipment removed.', 'ok');
     renderRows();
+    await deleteLinkedByDedup('rows', o.dedupKey);
   }
 
   async function saveAllFedex() {
@@ -713,6 +733,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
           savedFedexRows = savedFedexRows.filter((r) => r !== s);
           setStatusInto(savedFedexStatus, `Deleted id ${s.id}.`, 'ok');
           renderSavedFedex();
+          await deleteLinkedByDedup('rows', s.dedupKey);
         } catch (err) {
           setStatusInto(savedFedexStatus, `Delete failed: ${err.message}`, 'err');
         }
@@ -1318,6 +1339,36 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     }
   }
 
+  // Cross-delete: FedEx shipments and tracking rows from the same order share a
+  // dedupKey. After deleting one, offer to delete its linked counterpart so we
+  // don't leave orphaned records.
+  async function deleteLinkedByDedup(otherResource, dedupKey) {
+    if (!dedupKey) return 0;
+    const store = makeStore(otherResource);
+    let list;
+    try { list = await store.list(); } catch { return 0; }
+    const matches = (list || []).filter((r) => r.dedupKey && String(r.dedupKey) === String(dedupKey));
+    if (!matches.length) return 0;
+    const name = otherResource === 'fedex' ? 'FedEx shipment' : 'tracking';
+    const ask = typeof window.confirm === 'function'
+      ? window.confirm(`Also delete the linked ${name} record? (keeps FedEx and tracking in sync)`)
+      : true;
+    if (!ask) return 0;
+    for (const m of matches) { try { await store.remove(m.id); } catch {} } // eslint-disable-line no-await-in-loop
+    const ids = new Set(matches.map((m) => String(m.id)));
+    if (otherResource === 'fedex') {
+      savedFedexRows = savedFedexRows.filter((r) => !ids.has(String(r.id)));
+      orders = orders.map((o) => (ids.has(String(o.fedexId)) ? { ...o, fedexId: undefined } : o));
+      renderSavedFedex();
+      renderRows();
+    } else {
+      savedTrackingRows = savedTrackingRows.filter((r) => !ids.has(String(r.id)));
+      trackingRows = trackingRows.map((r) => (ids.has(String(r.id)) ? { ...r, id: undefined } : r));
+      renderAllTracking();
+    }
+    return matches.length;
+  }
+
   // ---- Tracking section ----
 
   function getApiBase() {
@@ -1373,6 +1424,15 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (fedexAutosave) fedexAutosave.checked = autosaveOn('fedex');
     if (trackAutosave) trackAutosave.checked = autosaveOn('rows');
   }
+
+  // Persistent daily order-number counter (ddmmyy-N), shared via settings/D1,
+  // so each new PDF gets a distinct number for that day.
+  function nextOrderSeq(compact) {
+    const key = `orderseq_${compact}`;
+    const next = toNum(getSetting(key, '0')) + 1;
+    setSetting(key, String(next));
+    return next;
+  }
   // Debounced autosave timers keyed by the row/order object.
   const autosaveTimers = new WeakMap();
   function scheduleAutosave(obj, fn) {
@@ -1417,6 +1477,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       );
       row._origin = 'order';
       row.dedupKey = o.dedupKey || '';
+      if (o.orderNumber) row.orderNumber = o.orderNumber; // keep the assigned daily number
       return row;
     });
   }
@@ -1440,6 +1501,16 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       });
     }
     if (savedTrackRefresh) savedTrackRefresh.addEventListener('click', loadSavedRows);
+    if (savedTrackDownload) {
+      savedTrackDownload.addEventListener('click', () => {
+        if (!savedTrackingRows.length) {
+          setStatusInto(savedTrackStatus, 'Nothing to download — Refresh first.', 'warn');
+          return;
+        }
+        const aoa = [TRACKING_HEADERS].concat(savedTrackingRows.map((r) => trackingRowToCells(r)));
+        downloadAoa(aoa, `Tracking_${dateStamp()}_${savedTrackingRows.length}rows.xlsx`, (m, l) => setStatusInto(savedTrackStatus, m, l));
+      });
+    }
     if (trackAutosave) {
       trackAutosave.checked = autosaveOn('rows');
       trackAutosave.addEventListener('change', () => {
@@ -1684,6 +1755,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     savedTrackingRows = savedTrackingRows.filter((r) => r !== row);
     setTrackStatus('Row removed.', 'ok');
     renderAllTracking();
+    await deleteLinkedByDedup('fedex', row.dedupKey);
   }
 
   // Loads saved tracking rows into the "Saved Tracking" tab.

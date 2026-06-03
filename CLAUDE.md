@@ -122,8 +122,22 @@ Rebuild with `npm run bundle`.
 
 ## Git workflow
 
-The user asked for direct commits to `main`. Every meaningful unit of
-work (parsers, exporter, UI, tests, docs) gets its own commit on `main`
-and is pushed with `git push -u origin main`. After any change touching
-`src/` or the bundler, regenerate `index.html` so the raw‑URL download
-link always serves the latest build.
+**Always ship to `main`.** The user wants every change committed AND pushed to
+`main` — nothing is "done" until it's on `main`, because GitHub Pages deploys
+the live site from `main`. Don't leave finished work sitting on a feature
+branch. Every meaningful unit of work (parsers, exporter, UI, tests, docs)
+gets its own commit and is pushed with `git push -u origin main`. After any
+change touching `src/`, `scripts/bundle.mjs`, or the inline CSS, run
+`npm run bundle` so the shipped `index.html` is current, and there's a build
+stamp in the footer to verify the deployed version.
+
+The repo was renamed to **`johnagius/meditpharma`** (Pages:
+`https://johnagius.github.io/meditpharma/`). If a session was started before
+the rename, its git proxy may be pinned to the old name and `git push origin
+main` can fail with `503`; in that case push the branch and merge to `main`
+via the GitHub API/PR. A fresh session reconnects as `meditpharma` and can
+push `main` directly.
+
+Worker changes (`worker/**`) on `main` trigger the **Deploy tracking Worker**
+GitHub Action, which applies D1 migrations then deploys.
+
