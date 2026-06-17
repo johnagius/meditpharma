@@ -97,10 +97,13 @@ describe('buildTrackingRow', () => {
     // Activa: ddmmyyyy-<PDF order number>, date-linked.
     expect(buildTrackingRow({ ...order, merchant: 'Activa', orderId: '7' }, 0, MONDAY).orderNumber)
       .toBe('01062026-7');
+    // PDMS: ddmmyyyy-<generated sequence> (app.js supplies the suffix).
+    expect(buildTrackingRow({ ...order, merchant: 'PDMS', orderId: '3' }, 0, MONDAY).orderNumber)
+      .toBe('01062026-3');
     // Other merchants: PDF order number verbatim, no date prefix.
     expect(buildTrackingRow({ ...order, merchant: 'Krypton 2', orderId: '10101294' }, 0, MONDAY).orderNumber)
       .toBe('10101294');
-    // No order number in the PDF -> blank for non-Activa.
+    // No order number in the PDF -> blank for non-date-prefixed merchants.
     expect(buildTrackingRow(order, 0, MONDAY).orderNumber).toBe('');
   });
 

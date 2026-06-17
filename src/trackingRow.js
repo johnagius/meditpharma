@@ -100,14 +100,25 @@ export function isActivaMerchant(merchant) {
   return String(merchant || '').trim().toLowerCase() === 'activa';
 }
 
+export function isPdmsMerchant(merchant) {
+  return String(merchant || '').trim().toLowerCase() === 'pdms';
+}
+
+// Merchants whose order number carries a "ddmmyyyy-" date prefix.
+//  - Activa: suffix is the PDF order number.
+//  - PDMS:   suffix is a generated per-date sequence (computed in app.js).
+export function isDatePrefixedMerchant(merchant) {
+  return isActivaMerchant(merchant) || isPdmsMerchant(merchant);
+}
+
 // Order-number strategy by merchant:
-//  - Activa:  ddmmyyyy-<PDF order number>  (date-linked; updates with the Date)
-//  - others:  <PDF order number>           (no date prefix)
-// When the PDF carries no order number, Activa falls back to just the date and
-// other merchants to an empty string (filled in manually).
+//  - Activa / PDMS: ddmmyyyy-<suffix>   (date-linked; updates with the Date)
+//  - others:        <PDF order number>  (no date prefix)
+// When no suffix is available, date-prefixed merchants fall back to just the
+// date and other merchants to an empty string (filled in manually).
 export function orderNumberForMerchant(merchant, orderId, date) {
   const id = String(orderId || '').trim();
-  if (isActivaMerchant(merchant)) {
+  if (isDatePrefixedMerchant(merchant)) {
     return id ? `${dateCompact4(date)}-${id}` : dateCompact4(date);
   }
   return id;

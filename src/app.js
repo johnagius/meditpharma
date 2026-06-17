@@ -14,7 +14,8 @@ import {
   formatDateDDMMYY,
   weekdayName,
   dateCompact4,
-  isActivaMerchant,
+  isDatePrefixedMerchant,
+  isPdmsMerchant,
   orderNumberForMerchant,
   setWeekdayWithinWeek,
   toISODate,
@@ -308,7 +309,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     }
     if (skipped) setStatus(`Skipped ${skipped} duplicate order(s) already loaded.`, 'warn');
     renderRows();
-    buildTrackingFromOrders();
+    await buildTrackingFromOrders();
     renderAllTracking();
     // Autosave freshly ingested data if enabled.
     if (autosaveOn('fedex')) {
@@ -1543,11 +1544,46 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     });
   }
 
-  function buildTrackingFromOrders() {
+  // Highest N among "prefix-N" order numbers of saved PDMS rows for a date.
+  function maxPdmsSeq(prefix, rows) {
+    const re = new RegExp(`^${prefix}-(\\d+)$`);
+    let max = 0;
+    for (const r of rows || []) {
+      if (!isPdmsMerchant(r.merchant)) continue;
+      const m = String(r.orderNumber || '').match(re);
+      if (m) max = Math.max(max, Number(m[1]));
+    }
+    return max;
+  }
+
+  async function buildTrackingFromOrders() {
     const today = new Date();
+    const prefix = dateCompact4(today);
+
+    // PDMS PDFs carry no order number — generate ddmmyyyy-N, continuing from any
+    // already-saved PDMS rows for the same date. Load saved rows first so the
+    // sequence doesn't collide across sessions.
+    const hasPdms = orders.some((o) => isPdmsMerchant(o.merchant));
+    if (hasPdms && !savedTrackingRows.length) {
+      try { await loadSavedRows(); } catch {}
+    }
+    const savedByDedup = new Map(
+      savedTrackingRows.filter((r) => r.dedupKey).map((r) => [String(r.dedupKey), r])
+    );
+    let pdmsSeq = maxPdmsSeq(prefix, savedTrackingRows);
+
     trackingRows = orders.map((o, idx) => {
+      let { orderId } = o;
+      if (isPdmsMerchant(o.merchant)) {
+        // Reuse the saved row's number if this PDF was saved before; else assign
+        // the next sequence for this date.
+        const existing = o.dedupKey && savedByDedup.get(String(o.dedupKey));
+        const exMatch = existing && String(existing.orderNumber || '').match(new RegExp(`^${prefix}-(\\d+)$`));
+        if (exMatch) orderId = exMatch[1];
+        else { pdmsSeq += 1; orderId = String(pdmsSeq); }
+      }
       const row = buildTrackingRow(
-        { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant, orderId: o.orderId },
+        { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant, orderId },
         idx,
         today
       );
@@ -2185,10 +2221,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     row.isoDate = toISODate(date);
     row.date = formatDateDDMMYY(date);
     row.day = weekdayName(date);
-    // Only Activa order numbers carry a date prefix (ddmmyyyy-<id>), so only
+    // Activa and PDMS order numbers carry a date prefix (ddmmyyyy-<suffix>), so
     // they re-derive when the Date changes. Other merchants use the PDF order
     // number verbatim and are left untouched.
-    if (isActivaMerchant(row.merchant)) {
+    if (isDatePrefixedMerchant(row.merchant)) {
       const dash = String(row.orderNumber).indexOf('-');
       const suffix = dash >= 0 ? String(row.orderNumber).slice(dash + 1) : '';
       row.orderNumber = suffix ? `${dateCompact4(date)}-${suffix}` : dateCompact4(date);
