@@ -183,7 +183,8 @@ export function extractDose(text) {
 // Append a product's dose to its label unless the label already carries it, so
 // different doses are distinguishable: ("Botox", "BOTOX 100u") -> "Botox 100u".
 export function labelWithDose(baseLabel, text) {
-  const base = String(baseLabel || '');
+  const base = String(baseLabel || '').trim();
+  if (!base) return base; // never produce a dose-only label (" 100u")
   const dose = extractDose(text);
   if (!dose || base.toLowerCase().includes(dose.toLowerCase())) return base;
   return `${base} ${dose}`;

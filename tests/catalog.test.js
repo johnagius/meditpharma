@@ -3,7 +3,7 @@ import {
   builtinSeedProducts, buildCatalog, detectFromCatalog, PRODUCT_STATUSES,
 } from '../src/data/midCodes.js';
 import { builtinSeedHsCodes, activeHsList, HS_CODES } from '../src/data/hsCodes.js';
-import { parseRecords } from '../src/trackingRow.js';
+import { parseRecords, labelWithDose } from '../src/trackingRow.js';
 
 describe('product catalog detection', () => {
   const catalog = buildCatalog(builtinSeedProducts());
@@ -27,6 +27,21 @@ describe('product catalog detection', () => {
       { key: 'botox', name: 'Botox', mid: 'X', country: 'IE', status: 'withdrawn' },
     ]);
     expect(detectFromCatalog('BOTOX® 100u', cat)).toBe(null);
+  });
+
+  it('detected catalog products expose `name` (so labels are not dose-only)', () => {
+    // Regression: resolveProducts must read `name` for catalog products; reading
+    // `label` (undefined here) would yield a dose-only / empty label.
+    const d = detectFromCatalog('2 x BOT 50IU (ENG)', catalog);
+    expect(d.name).toBe('Botox');
+    expect(d.label).toBeUndefined();
+    const base = d.name || d.label || '';
+    expect(labelWithDose(base, '2 x BOT 50IU (ENG)')).toBe('Botox 50IU');
+  });
+
+  it('labelWithDose never emits a dose-only label for an empty base', () => {
+    expect(labelWithDose('', 'BOT 100IU')).toBe('');
+    expect(labelWithDose(undefined, '100u')).toBe('');
   });
 
   it('seeds one row per built-in product with a status', () => {

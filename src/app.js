@@ -1619,9 +1619,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     return parseProductLines(lines).map((p) => {
       const detected = detect(p.text);
       // Append the dose so different doses of the same product are distinct
-      // (Botox 100u vs Botox 50u) across tracking and stock. Unknown products
-      // keep their raw text.
-      const label = detected ? labelWithDose(detected.label, p.text) : p.text;
+      // (Botox 100u vs Botox 50u) across tracking and stock. Catalog products
+      // expose `name`; the built-in fallback uses `label`. Unknown products keep
+      // their raw text.
+      const base = detected ? (detected.name || detected.label || '') : '';
+      const label = detected ? (labelWithDose(base, p.text) || base || p.text) : p.text;
       return { qty: p.qty, label, text: p.text, key: detected ? detected.key : '' };
     });
   }
