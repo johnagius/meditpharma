@@ -1884,6 +1884,40 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     return el;
   }
 
+  // FedEx "track by number" deep link.
+  function fedexTrackUrl(number) {
+    return `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(String(number || '').trim())}`;
+  }
+
+  // Tracking-number cell: a text input plus a tiny arrow that opens the FedEx
+  // tracking page for the entered number. The arrow shows on focus/hover (CSS)
+  // and only when a number is present.
+  function trackingNumberCell(row) {
+    const wrap = document.createElement('div');
+    wrap.className = 'tracknum';
+    const go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'tracknum-go';
+    go.textContent = '↗';
+    go.tabIndex = -1;
+    go.title = 'Track on fedex.com';
+    go.style.display = (row.trackingNumber || '').trim() ? '' : 'none';
+    const el = input(row.trackingNumber, 'w-md', (v) => {
+      row.trackingNumber = v;
+      go.style.display = v.trim() ? '' : 'none';
+    });
+    // Don't steal focus from the input before the click registers.
+    go.addEventListener('mousedown', (e) => e.preventDefault());
+    go.addEventListener('click', () => {
+      const n = (row.trackingNumber || '').trim();
+      if (!n) return;
+      try { window.open(fedexTrackUrl(n), '_blank', 'noopener'); } catch {}
+    });
+    wrap.appendChild(el);
+    wrap.appendChild(go);
+    return wrap;
+  }
+
   // "Delivered on": calendar field + a one-click Today button.
   function deliveredCell(row) {
     const wrap = document.createElement('div');
@@ -2186,7 +2220,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       }));
 
       cell('orderNumber', input(row.orderNumber, 'w-md', (v) => { row.orderNumber = v; }));
-      cell('trackingNumber', input(row.trackingNumber, 'w-md', (v) => { row.trackingNumber = v; }));
+      cell('trackingNumber', trackingNumberCell(row));
       cell('product', input(row.product, 'w-xl', (v) => { row.product = v; }));
       cell('quantity', input(row.quantity, 'w-sm', (v) => { row.quantity = v; }));
       cell('productDescription', input(row.productDescription, 'w-xl', (v) => { row.productDescription = v; }));

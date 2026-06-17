@@ -455,6 +455,27 @@ footer {
   vertical-align: top;
 }
 .track-table tbody tr.saved { background: rgba(74, 222, 128, 0.06); }
+/* Tracking-number cell: input + arrow that links to FedEx (shown on focus/hover). */
+.track-table .tracknum { position: relative; display: flex; align-items: center; }
+.track-table .tracknum input { flex: 1 1 auto; padding-right: 18px; }
+.track-table .tracknum-go {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  width: auto;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 3px;
+}
+.track-table .tracknum:hover .tracknum-go,
+.track-table .tracknum:focus-within .tracknum-go { display: inline-flex; }
+.track-table .tracknum-go:hover { color: var(--accent-2, #7dd3fc); }
 .track-table tbody tr.row-selected { background: rgba(56, 189, 248, 0.14); }
 .track-table input.row-select,
 .track-table thead th input.row-select { width: auto; min-width: 0; cursor: pointer; }
@@ -886,7 +907,7 @@ button.mini { padding: 4px 8px; font-size: 11px; }
   </section>
 </main>
 <footer>
-  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 11:18 UTC
+  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 11:26 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -4401,6 +4422,40 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     return el;
   }
 
+  // FedEx "track by number" deep link.
+  function fedexTrackUrl(number) {
+    return `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(String(number || '').trim())}`;
+  }
+
+  // Tracking-number cell: a text input plus a tiny arrow that opens the FedEx
+  // tracking page for the entered number. The arrow shows on focus/hover (CSS)
+  // and only when a number is present.
+  function trackingNumberCell(row) {
+    const wrap = document.createElement('div');
+    wrap.className = 'tracknum';
+    const go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'tracknum-go';
+    go.textContent = '↗';
+    go.tabIndex = -1;
+    go.title = 'Track on fedex.com';
+    go.style.display = (row.trackingNumber || '').trim() ? '' : 'none';
+    const el = input(row.trackingNumber, 'w-md', (v) => {
+      row.trackingNumber = v;
+      go.style.display = v.trim() ? '' : 'none';
+    });
+    // Don't steal focus from the input before the click registers.
+    go.addEventListener('mousedown', (e) => e.preventDefault());
+    go.addEventListener('click', () => {
+      const n = (row.trackingNumber || '').trim();
+      if (!n) return;
+      try { window.open(fedexTrackUrl(n), '_blank', 'noopener'); } catch {}
+    });
+    wrap.appendChild(el);
+    wrap.appendChild(go);
+    return wrap;
+  }
+
   // "Delivered on": calendar field + a one-click Today button.
   function deliveredCell(row) {
     const wrap = document.createElement('div');
@@ -4703,7 +4758,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       }));
 
       cell('orderNumber', input(row.orderNumber, 'w-md', (v) => { row.orderNumber = v; }));
-      cell('trackingNumber', input(row.trackingNumber, 'w-md', (v) => { row.trackingNumber = v; }));
+      cell('trackingNumber', trackingNumberCell(row));
       cell('product', input(row.product, 'w-xl', (v) => { row.product = v; }));
       cell('quantity', input(row.quantity, 'w-sm', (v) => { row.quantity = v; }));
       cell('productDescription', input(row.productDescription, 'w-xl', (v) => { row.productDescription = v; }));
