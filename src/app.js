@@ -90,6 +90,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const productStatus = document.getElementById('product-status');
   const productAdd = document.getElementById('btn-product-add');
   const productImport = document.getElementById('btn-product-import');
+  const productTemplate = document.getElementById('btn-product-template');
   const productFile = document.getElementById('product-file');
   const productRefresh = document.getElementById('btn-product-refresh');
   const productStatusFilter = document.getElementById('product-status-filter');
@@ -98,6 +99,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const hsStatus = document.getElementById('hs-status');
   const hsAdd = document.getElementById('btn-hs-add');
   const hsImport = document.getElementById('btn-hs-import');
+  const hsTemplate = document.getElementById('btn-hs-template');
   const hsFile = document.getElementById('hs-file');
   const hsRefresh = document.getElementById('btn-hs-refresh');
 
@@ -2611,7 +2613,17 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       setStatusInto(productStatus, 'No rows recognised — include a header row with at least a "Product name" column.', 'warn');
       return;
     }
+    openImportConfirm(recs.length, 'products', (mode) => applyProductImport(recs, mode));
+  }
+
+  async function applyProductImport(recs, mode) {
     const store = makeStore('products');
+    if (mode === 'replace') {
+      for (const p of productsList.slice()) {
+        if (p.id) { try { await store.remove(p.id); } catch {} } // eslint-disable-line no-await-in-loop
+      }
+      productsList = [];
+    }
     let added = 0; let updated = 0; let failed = 0;
     for (const rec of recs) {
       if (!rec.name && !rec.key) continue;
@@ -2625,7 +2637,20 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       } catch { failed += 1; }
     }
     rebuildCatalog(); renderProductsTable(); renderRows();
-    setStatusInto(productStatus, `Import: added ${added}, updated ${updated}${failed ? `, ${failed} failed` : ''}.`, failed ? 'warn' : 'ok');
+    setStatusInto(
+      productStatus,
+      `${mode === 'replace' ? 'Replaced catalogue —' : 'Import:'} added ${added}, updated ${updated}${failed ? `, ${failed} failed` : ''}.`,
+      failed ? 'warn' : 'ok',
+    );
+  }
+
+  function downloadProductTemplate() {
+    const headers = ['Product name', 'MID', 'Country', 'Description', 'HS code',
+      'Manufacturer name', 'Manufacturing country', 'Manufacturing address', 'Keywords', 'Status'];
+    const example = ['Example Drug 50mg', 'XXEXAMPLE001', 'IE',
+      'Advanced formulation for aesthetic applications', '3304991000',
+      'Acme Pharma Ltd', 'IE', '1 Example Street, Dublin', 'exampledrug, ex-50', 'active'];
+    downloadAoa([headers, example], 'Products_template.xlsx', (m, l) => setStatusInto(productStatus, m, l));
   }
 
   // ---- HS codes ----
@@ -2675,7 +2700,17 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   async function importHs(text) {
     const recs = parseRecords(text, HS_ALIASES);
     if (!recs.length) { setStatusInto(hsStatus, 'No rows recognised — include a header row with a "Description" and/or "Code" column.', 'warn'); return; }
+    openImportConfirm(recs.length, 'HS codes', (mode) => applyHsImport(recs, mode));
+  }
+
+  async function applyHsImport(recs, mode) {
     const store = makeStore('hscodes');
+    if (mode === 'replace') {
+      for (const h of hsList.slice()) {
+        if (h.id) { try { await store.remove(h.id); } catch {} } // eslint-disable-line no-await-in-loop
+      }
+      hsList = [];
+    }
     let added = 0; let updated = 0; let failed = 0;
     let nextPos = hsList.reduce((m, h) => Math.max(m, Number(h.position) || 0), -1) + 1;
     for (const rec of recs) {
@@ -2689,7 +2724,47 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       } catch { failed += 1; }
     }
     rebuildCatalog(); renderHsTable();
-    setStatusInto(hsStatus, `Import: added ${added}, updated ${updated}${failed ? `, ${failed} failed` : ''}.`, failed ? 'warn' : 'ok');
+    setStatusInto(
+      hsStatus,
+      `${mode === 'replace' ? 'Replaced HS list —' : 'Import:'} added ${added}, updated ${updated}${failed ? `, ${failed} failed` : ''}.`,
+      failed ? 'warn' : 'ok',
+    );
+  }
+
+  function downloadHsTemplate() {
+    const headers = ['Description', 'Code', 'Position', 'Status'];
+    const example = ['Example cosmetic description, non-animal origin, non-colorant, EN packaging', '3304991000', '0', 'active'];
+    downloadAoa([headers, example], 'HS_codes_template.xlsx', (m, l) => setStatusInto(hsStatus, m, l));
+  }
+
+  // Ask whether an import should replace the whole catalogue/list or add to it.
+  // "Replace all" is guarded by a second confirm so it can't happen by mistake.
+  function openImportConfirm(count, what, onChoose) {
+    const overlay = document.createElement('div');
+    overlay.className = 'paste-overlay';
+    const box = document.createElement('div');
+    box.className = 'paste-box';
+    const h = document.createElement('h3');
+    h.textContent = `Import ${count} ${what}`;
+    const p = document.createElement('p');
+    p.textContent = `Choose how to import. "Add / update" keeps the current ${what} and adds new entries or updates matches. "Replace all" first DELETES every current ${what} entry, then loads the imported ${count} — use this only for a fresh catalogue. This cannot be undone.`;
+    const actions = document.createElement('div');
+    actions.className = 'paste-actions';
+    const add = document.createElement('button'); add.type = 'button'; add.className = 'primary'; add.textContent = 'Add / update';
+    const replace = document.createElement('button'); replace.type = 'button'; replace.className = 'danger'; replace.textContent = 'Replace all';
+    const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancel';
+    const close = () => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+    add.addEventListener('click', () => { close(); onChoose('add'); });
+    replace.addEventListener('click', () => {
+      const ok = typeof window.confirm !== 'function'
+        || window.confirm(`Delete ALL current ${what} and replace them with the imported ${count}? This cannot be undone.`);
+      if (ok) { close(); onChoose('replace'); }
+    });
+    cancel.addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+    actions.appendChild(add); actions.appendChild(replace); actions.appendChild(cancel);
+    box.appendChild(h); box.appendChild(p); box.appendChild(actions);
+    overlay.appendChild(box); document.body.appendChild(overlay);
   }
 
   // ---- Catalog load / seed ----
@@ -2815,6 +2890,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       'Paste rows (CSV or tab-separated) with a header row. Columns: Product name, MID, Country, Description, HS code, Manufacturer name, Manufacturing country, Manufacturing address, Keywords, Status. Matched/updated by name.',
       importProducts,
     ));
+    if (productTemplate) productTemplate.addEventListener('click', downloadProductTemplate);
     if (productFile) productFile.addEventListener('change', () => handleCatalogFile(productFile, importProducts, productStatus));
     if (productRefresh) productRefresh.addEventListener('click', loadCatalog);
     if (productStatusFilter) productStatusFilter.addEventListener('change', renderProductsTable);
@@ -2824,6 +2900,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       'Paste rows (CSV or tab-separated) with a header row. Columns: Description, Code, Position, Status. Matched/updated by Position.',
       importHs,
     ));
+    if (hsTemplate) hsTemplate.addEventListener('click', downloadHsTemplate);
     if (hsFile) hsFile.addEventListener('change', () => handleCatalogFile(hsFile, importHs, hsStatus));
     if (hsRefresh) hsRefresh.addEventListener('click', loadCatalog);
   }

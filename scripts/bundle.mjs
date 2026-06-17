@@ -330,6 +330,7 @@ ${css}
     <h3 class="sub-head">Products</h3>
     <div class="actions">
       <button id="btn-product-add" class="primary" type="button">+ Add product</button>
+      <button id="btn-product-template" type="button">Download template</button>
       <button id="btn-product-import" type="button">Import (paste)</button>
       <label class="file-btn">Upload CSV/XLSX<input type="file" id="product-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
       <label class="inline-field">Show
@@ -354,6 +355,7 @@ ${css}
     <h3 class="sub-head">HS codes (rotating cosmetic list)</h3>
     <div class="actions">
       <button id="btn-hs-add" class="primary" type="button">+ Add HS code</button>
+      <button id="btn-hs-template" type="button">Download template</button>
       <button id="btn-hs-import" type="button">Import (paste)</button>
       <label class="file-btn">Upload CSV/XLSX<input type="file" id="hs-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
       <button id="btn-hs-refresh" type="button">Refresh</button>
