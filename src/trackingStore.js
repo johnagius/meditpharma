@@ -12,7 +12,8 @@
 export const TRACKING_FIELDS = [
   'day', 'date', 'isoDate', 'orderNumber', 'trackingNumber', 'product', 'quantity',
   'productDescription', 'destCity', 'destState', 'account', 'client',
-  'deliveredOn', 'deliveredOnIso', 'comments', 'directionRemarks', 'dedupKey',
+  'deliveredOn', 'deliveredOnIso', 'comments', 'directionRemarks',
+  'supplier', 'pfi', 'totalValue', 'gapDdp', 'boxDim', 'dedupKey',
 ];
 
 export const FEDEX_FIELDS = [

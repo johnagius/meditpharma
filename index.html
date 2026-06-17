@@ -636,7 +636,7 @@ footer {
   </section>
 </main>
 <footer>
-  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-03 10:27 UTC
+  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 07:57 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -1079,6 +1079,11 @@ const TRACKING_HEADERS = [
   'Delivered on',
   'Comments',
   'Direction Remarks',
+  'Supplier',
+  'PFI',
+  'Total Value on invoice',
+  'GAP/DDP',
+  'Box Dim',
 ];
 
 // Field keys in the same order as TRACKING_HEADERS.
@@ -1097,6 +1102,11 @@ const TRACKING_KEYS = [
   'deliveredOn',
   'comments',
   'directionRemarks',
+  'supplier',
+  'pfi',
+  'totalValue',
+  'gapDdp',
+  'boxDim',
 ];
 
 // Account dropdown options.
@@ -1199,6 +1209,12 @@ function buildTrackingRow(order, rowIndex, date = new Date()) {
     deliveredOn: '',
     comments: '',
     directionRemarks: '',
+    // Krypton-specific invoice fields; blank for other merchants, filled in manually.
+    supplier: '',
+    pfi: '',
+    totalValue: '',
+    gapDdp: '',
+    boxDim: '',
   };
 }
 
@@ -1226,7 +1242,8 @@ const ModTrackingStore = (function () {
 const TRACKING_FIELDS = [
   'day', 'date', 'isoDate', 'orderNumber', 'trackingNumber', 'product', 'quantity',
   'productDescription', 'destCity', 'destState', 'account', 'client',
-  'deliveredOn', 'deliveredOnIso', 'comments', 'directionRemarks', 'dedupKey',
+  'deliveredOn', 'deliveredOnIso', 'comments', 'directionRemarks',
+  'supplier', 'pfi', 'totalValue', 'gapDdp', 'boxDim', 'dedupKey',
 ];
 
 const FEDEX_FIELDS = [
@@ -2038,7 +2055,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   // via the Sync API URL box (saving an explicit value — including blank).
   const DEFAULT_API_BASE = 'https://pharmaconsulta-tracking.labrint.workers.dev';
   // Proportional column widths (%) aligned with TRACKING_HEADERS + Actions.
-  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 6];
+  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 7, 5, 7, 6, 6, 6];
 
   const headers = HEADER_ROW();
   let orders = [];
@@ -3598,6 +3615,13 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
 
       cell('comments', input(row.comments, 'w-lg', (v) => { row.comments = v; }));
       cell('directionRemarks', input(row.directionRemarks, 'w-lg', (v) => { row.directionRemarks = v; }));
+
+      // Krypton invoice fields — global columns, filled in manually for Krypton.
+      cell('supplier', input(row.supplier, 'w-md', (v) => { row.supplier = v; }));
+      cell('pfi', input(row.pfi, 'w-sm', (v) => { row.pfi = v; }));
+      cell('totalValue', input(row.totalValue, 'w-md', (v) => { row.totalValue = v; }));
+      cell('gapDdp', input(row.gapDdp, 'w-sm', (v) => { row.gapDdp = v; }));
+      cell('boxDim', input(row.boxDim, 'w-md', (v) => { row.boxDim = v; }));
 
       // Actions
       const actTd = document.createElement('td');

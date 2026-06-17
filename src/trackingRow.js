@@ -17,6 +17,11 @@ export const TRACKING_HEADERS = [
   'Delivered on',
   'Comments',
   'Direction Remarks',
+  'Supplier',
+  'PFI',
+  'Total Value on invoice',
+  'GAP/DDP',
+  'Box Dim',
 ];
 
 // Field keys in the same order as TRACKING_HEADERS.
@@ -35,6 +40,11 @@ export const TRACKING_KEYS = [
   'deliveredOn',
   'comments',
   'directionRemarks',
+  'supplier',
+  'pfi',
+  'totalValue',
+  'gapDdp',
+  'boxDim',
 ];
 
 // Account dropdown options.
@@ -137,6 +147,12 @@ export function buildTrackingRow(order, rowIndex, date = new Date()) {
     deliveredOn: '',
     comments: '',
     directionRemarks: '',
+    // Krypton-specific invoice fields; blank for other merchants, filled in manually.
+    supplier: '',
+    pfi: '',
+    totalValue: '',
+    gapDdp: '',
+    boxDim: '',
   };
 }
 

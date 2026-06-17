@@ -99,7 +99,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // via the Sync API URL box (saving an explicit value — including blank).
   const DEFAULT_API_BASE = 'https://pharmaconsulta-tracking.labrint.workers.dev';
   // Proportional column widths (%) aligned with TRACKING_HEADERS + Actions.
-  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 6];
+  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 7, 5, 7, 6, 6, 6];
 
   const headers = HEADER_ROW();
   let orders = [];
@@ -1659,6 +1659,13 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
       cell('comments', input(row.comments, 'w-lg', (v) => { row.comments = v; }));
       cell('directionRemarks', input(row.directionRemarks, 'w-lg', (v) => { row.directionRemarks = v; }));
+
+      // Krypton invoice fields — global columns, filled in manually for Krypton.
+      cell('supplier', input(row.supplier, 'w-md', (v) => { row.supplier = v; }));
+      cell('pfi', input(row.pfi, 'w-sm', (v) => { row.pfi = v; }));
+      cell('totalValue', input(row.totalValue, 'w-md', (v) => { row.totalValue = v; }));
+      cell('gapDdp', input(row.gapDdp, 'w-sm', (v) => { row.gapDdp = v; }));
+      cell('boxDim', input(row.boxDim, 'w-md', (v) => { row.boxDim = v; }));
 
       // Actions
       const actTd = document.createElement('td');
