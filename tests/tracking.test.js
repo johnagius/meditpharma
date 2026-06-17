@@ -215,6 +215,14 @@ describe('buildTrackingRow', () => {
     expect(buildTrackingRow({ ...order, merchant: 'Activa' }, 0, MONDAY).merchant).toBe('Activa');
   });
 
+  it('defaults delivery status to Pending', () => {
+    const row = buildTrackingRow(order, 0, MONDAY);
+    expect(row.deliveryStatus).toBe('Pending');
+    const cells = trackingRowToCells(row);
+    expect(cells.length).toBe(TRACKING_HEADERS.length);
+    expect(cells[TRACKING_KEYS.indexOf('deliveryStatus')]).toBe('Pending');
+  });
+
   it('serialises to cells in header order', () => {
     const row = buildTrackingRow(order, 0, MONDAY);
     const cells = trackingRowToCells(row);

@@ -12,7 +12,7 @@
 export const TRACKING_FIELDS = [
   'day', 'date', 'isoDate', 'orderNumber', 'trackingNumber', 'product', 'quantity',
   'productDescription', 'destCity', 'destState', 'account', 'client',
-  'deliveredOn', 'deliveredOnIso', 'comments', 'directionRemarks',
+  'deliveredOn', 'deliveredOnIso', 'deliveryStatus', 'comments', 'directionRemarks',
   'supplier', 'pfi', 'totalValue', 'gapDdp', 'boxDim',
   'fromWhom', 'shippingCost', 'merchant', 'dedupKey',
 ];

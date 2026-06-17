@@ -240,6 +240,7 @@ ${css}
     <div class="track-settings">
       <label class="autosave"><input type="checkbox" id="chk-track-autosave"> Autosave tracking rows</label>
     </div>
+    <div id="tracking-dashboard" class="status-dash"></div>
     <div class="actions track-toolbar">
       <input type="text" id="tracking-filter" class="filter-input" placeholder="Filter rows&hellip;">
       <button id="btn-track-save-sel" class="primary" type="button" disabled>Save selected</button>
@@ -271,7 +272,8 @@ ${css}
 
   <section class="panel" id="panel-tracking">
     <h2>Saved tracking rows</h2>
-    <p class="panel-hint">Tracking rows saved to the database. Edit a cell, tick the rows you want, then use the buttons to save, copy or delete them. Click any column header to sort or filter. Refresh to reload.</p>
+    <p class="panel-hint">Tracking rows saved to the database. Edit a cell, tick the rows you want, then use the buttons to save, copy or delete them. Click any column header to sort or filter, or a status total below to filter by delivery status. Refresh to reload.</p>
+    <div id="saved-track-dashboard" class="status-dash"></div>
     <div class="actions track-toolbar">
       <input type="text" id="saved-track-filter" class="filter-input" placeholder="Filter rows&hellip;">
       <button id="btn-saved-track-save-sel" class="primary" type="button" disabled>Save selected</button>
@@ -305,6 +307,7 @@ ${css}
       <label class="inline-field">To <input type="date" id="bm-to"></label>
       <button id="btn-bm-refresh" type="button">Refresh</button>
     </div>
+    <div id="bm-dashboard" class="status-dash"></div>
     <div class="actions track-toolbar">
       <input type="text" id="bm-filter" class="filter-input" placeholder="Filter rows&hellip;">
       <button id="btn-bm-save-sel" class="primary" type="button" disabled>Save selected</button>

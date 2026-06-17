@@ -15,6 +15,7 @@ export const TRACKING_HEADERS = [
   'Account',
   'Client',
   'Delivered on',
+  'Delivery status',
   'Comments',
   'Direction Remarks',
   'Supplier',
@@ -41,6 +42,7 @@ export const TRACKING_KEYS = [
   'account',
   'client',
   'deliveredOn',
+  'deliveryStatus',
   'comments',
   'directionRemarks',
   'supplier',
@@ -326,6 +328,7 @@ export function buildTrackingRow(order, rowIndex, date = new Date(), hsCodes = H
     account: ACCOUNTS[0],
     client: recipient.name || '',
     deliveredOn: '',
+    deliveryStatus: 'Pending',
     comments: '',
     directionRemarks: '',
     // Krypton-specific invoice fields; blank for other merchants, filled in manually.

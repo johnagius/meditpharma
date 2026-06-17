@@ -162,7 +162,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const TRACKING_SELECT_WIDTH = 3;
   // Widths align with TRACKING_HEADERS. "Delivered on" (index 11) is wider so the
   // date is readable; the columns after it are a touch narrower to make room.
-  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 10, 7, 7, 6, 4, 6, 5, 5, 5, 4, 6];
+  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 10, 6, 7, 7, 6, 4, 6, 5, 5, 5, 4, 6];
 
   const headers = HEADER_ROW();
   let orders = [];
@@ -178,6 +178,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // Product catalog + HS-code list (D1-backed, seeded from the built-ins).
   // Kept in sync to a runtime catalog (with regex patterns) for detection and an
   // active rotating HS list for buildRow / buildTrackingRow.
+  // Delivery-status options for the dropdown + dashboard. Defaults plus any the
+  // user adds (persisted as a setting) or seen in saved rows.
+  let deliveryStatuses = ['Pending', 'Delivered'];
+
   let productsList = builtinSeedProducts();
   let hsList = builtinSeedHsCodes();
   let productCatalog = buildCatalog(productsList);
@@ -210,7 +214,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       setRows: (r) => { trackingRows = r; },
       filter: trackingFilter, saveBtn: trackSaveSel, copyBtn: trackCopySel,
       deleteBtn: trackDeleteSel, count: trackSelCount,
-      filterText: '', selectAll: null, sort: null, colFilters: {},
+      dash: document.getElementById('tracking-dashboard'),
+      filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
     },
     saved: {
       head: savedTrackHead, body: savedTrackBody, status: savedTrackStatus,
@@ -218,7 +223,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       setRows: (r) => { savedTrackingRows = r; },
       filter: savedTrackFilter, saveBtn: savedTrackSaveSel, copyBtn: savedTrackCopySel,
       deleteBtn: savedTrackDeleteSel, count: savedTrackSelCount,
-      filterText: '', selectAll: null, sort: null, colFilters: {},
+      dash: document.getElementById('saved-track-dashboard'),
+      filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
     },
     // "By Merchant" reads the SAME saved rows, narrowed by a selected merchant
     // and a date scope (today / all / range). Saving here hits the same store,
@@ -229,7 +235,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       setRows: (r) => { savedTrackingRows = r; },
       filter: bmFilter, saveBtn: bmSaveSel, copyBtn: bmCopySel,
       deleteBtn: bmDeleteSel, count: bmSelCount,
-      filterText: '', selectAll: null, sort: null, colFilters: {},
+      dash: document.getElementById('bm-dashboard'),
+      filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
       merchant: '', dateMode: 'all', rangeFrom: '', rangeTo: '',
       prefilter: (r) => bmRowMatches(TRACK_VIEWS.bymerchant, r),
     },
@@ -1918,6 +1925,84 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     return wrap;
   }
 
+  // Distinct status options for the dropdown (defaults + custom, de-duped).
+  function statusOptions() {
+    const out = [];
+    const seen = new Set();
+    for (const s of deliveryStatuses) {
+      const t = String(s || '').trim();
+      if (t && !seen.has(t.toLowerCase())) { seen.add(t.toLowerCase()); out.push(t); }
+    }
+    return out;
+  }
+
+  // Add a new delivery status to the shared list (persisted) and refresh.
+  function addDeliveryStatus(name) {
+    const t = String(name || '').trim();
+    if (!t) return;
+    if (!deliveryStatuses.some((s) => s.toLowerCase() === t.toLowerCase())) {
+      deliveryStatuses.push(t);
+      try { setSetting('delivery_statuses', JSON.stringify(deliveryStatuses)); } catch {}
+    }
+    renderAllTracking();
+  }
+
+  // Load the saved status list (setting) and merge in defaults.
+  function loadDeliveryStatuses() {
+    let list = ['Pending', 'Delivered'];
+    try {
+      const raw = getSetting('delivery_statuses', '');
+      if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr) && arr.length) list = arr.map((s) => String(s)); }
+    } catch {}
+    for (const d of ['Pending', 'Delivered']) {
+      if (!list.some((s) => String(s).toLowerCase() === d.toLowerCase())) list.unshift(d);
+    }
+    deliveryStatuses = list;
+  }
+
+  // Union any statuses seen in rows into the option list (no persist).
+  function mergeStatusesFromRows(rows) {
+    for (const r of rows || []) {
+      const t = String(r.deliveryStatus || '').trim();
+      if (t && !deliveryStatuses.some((s) => s.toLowerCase() === t.toLowerCase())) deliveryStatuses.push(t);
+    }
+  }
+
+  // Delivery-status dropdown: options + "+ Add status…". Adding a status keeps
+  // it for future rows; the select is colour-coded by status.
+  function deliveryStatusCell(row, view) {
+    const sel = document.createElement('select');
+    const cur = rowStatus(row);
+    sel.className = `status-select ${statusClass(cur)}`;
+    const opts = statusOptions();
+    if (!opts.some((o) => o.toLowerCase() === cur.toLowerCase())) opts.push(cur);
+    for (const s of opts) {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      if (s === cur) o.selected = true;
+      sel.appendChild(o);
+    }
+    const addOpt = document.createElement('option');
+    addOpt.value = '__add__'; addOpt.textContent = '+ Add status…';
+    sel.appendChild(addOpt);
+    sel.dataset.prev = cur;
+    sel.addEventListener('change', () => {
+      if (sel.value === '__add__') {
+        const name = (typeof window.prompt === 'function' ? window.prompt('New delivery status:') : '') || '';
+        const t = name.trim();
+        if (!t) { sel.value = sel.dataset.prev; return; }
+        row.deliveryStatus = t;
+        addDeliveryStatus(t); // persists + re-renders all selects/dashboards
+        return;
+      }
+      row.deliveryStatus = sel.value;
+      sel.dataset.prev = sel.value;
+      sel.className = `status-select ${statusClass(sel.value)}`;
+      renderStatusDashboard(view);
+    });
+    return sel;
+  }
+
   // "Delivered on": calendar field + a one-click Today button.
   function deliveredCell(row) {
     const wrap = document.createElement('div');
@@ -1993,7 +2078,14 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     return true; // 'all'
   }
 
-  function filteredRows(view) {
+  // The status shown for a row, defaulting blank/legacy rows to Pending.
+  function rowStatus(row) {
+    return String(row.deliveryStatus || '').trim() || 'Pending';
+  }
+
+  // Rows after merchant/date prefilter + free-text + column filters, but BEFORE
+  // the dashboard status filter — so the dashboard counts stay stable.
+  function scopedRows(view) {
     let rows = view.getRows();
     if (view.prefilter) rows = rows.filter(view.prefilter);
     rows = globalFiltered(rows, view.filterText);
@@ -2002,6 +2094,12 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       const allowed = cf[key];
       if (allowed && allowed.size) rows = rows.filter((r) => allowed.has(cellText(r, key)));
     }
+    return rows;
+  }
+
+  function filteredRows(view) {
+    let rows = scopedRows(view);
+    if (view.statusFilter) rows = rows.filter((r) => rowStatus(r) === view.statusFilter);
     if (view.sort && view.sort.key) {
       const { key, dir } = view.sort;
       const factor = dir === 'desc' ? -1 : 1;
@@ -2009,6 +2107,45 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         factor * cellSortValue(a, key).localeCompare(cellSortValue(b, key), undefined, { numeric: true, sensitivity: 'base' }));
     }
     return rows;
+  }
+
+  // Normalise a status to a CSS class for colour-coding.
+  function statusClass(s) {
+    const t = String(s || '').trim().toLowerCase();
+    if (!t) return 'st-all';
+    if (t === 'delivered') return 'st-delivered';
+    if (t === 'pending') return 'st-pending';
+    return 'st-other';
+  }
+
+  // Colour-coded, clickable totals above a table. Counts come from scopedRows
+  // (ignoring the active status filter); clicking a chip filters the table.
+  function renderStatusDashboard(view) {
+    const el = view.dash;
+    if (!el) return;
+    const rows = scopedRows(view);
+    const counts = {};
+    for (const r of rows) { const s = rowStatus(r); counts[s] = (counts[s] || 0) + 1; }
+    el.innerHTML = '';
+    const chip = (label, key, n) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `dash-chip ${statusClass(key)}${view.statusFilter === key ? ' active' : ''}`;
+      b.textContent = `${label}: ${n}`;
+      b.addEventListener('click', () => {
+        view.statusFilter = view.statusFilter === key ? '' : key;
+        renderTrackingRows(view);
+      });
+      el.appendChild(b);
+    };
+    chip('All', '', rows.length);
+    const seen = new Set();
+    const ordered = [];
+    for (const s of deliveryStatuses.concat(Object.keys(counts))) {
+      const t = String(s || '').trim();
+      if (t && !seen.has(t.toLowerCase())) { seen.add(t.toLowerCase()); ordered.push(t); }
+    }
+    for (const s of ordered) chip(s, s, counts[s] || 0);
   }
 
   // Re-render a view's header (to refresh sort arrows / active markers) and body.
@@ -2243,6 +2380,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
       // Delivered on (calendar + one-click Today, empty by default)
       cell('deliveredOn', deliveredCell(row));
+      cell('deliveryStatus', deliveryStatusCell(row, view));
 
       cell('comments', input(row.comments, 'w-lg', (v) => { row.comments = v; }));
       cell('directionRemarks', input(row.directionRemarks, 'w-lg', (v) => { row.directionRemarks = v; }));
@@ -2284,6 +2422,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       tbody.appendChild(tr);
     });
     updateTrackToolbar(view);
+    renderStatusDashboard(view);
   }
 
   // --- Toolbar actions: operate on the view's selected rows ---
@@ -2490,6 +2629,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         deliveredOnIso: s.deliveredOnIso || '',
         _origin: 'db',
       }));
+      mergeStatusesFromRows(savedTrackingRows);
       const filled = await backfillMerchants();
       status(`Loaded ${savedTrackingRows.length} saved row(s)${filled ? `, detected merchant for ${filled}` : ''}.`, 'ok');
       renderAllTracking();
@@ -2951,7 +3091,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     initMerchants();
     initStock();
     // Load settings (autosave toggles) + merchants + learned patterns (async).
-    loadSettings().catch(() => {});
+    loadSettings().then(() => { loadDeliveryStatuses(); renderAllTracking(); }).catch(() => {});
     loadLearnedPatterns().then(loadMerchants).catch(() => {});
     loadCatalog().catch(() => {});
   } catch (err) {

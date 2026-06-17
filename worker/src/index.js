@@ -29,6 +29,7 @@ const RESOURCES = {
       ['client', 'client'],
       ['deliveredOn', 'delivered_on'],
       ['deliveredOnIso', 'delivered_on_iso'],
+      ['deliveryStatus', 'delivery_status'],
       ['comments', 'comments'],
       ['directionRemarks', 'direction_remarks'],
       ['supplier', 'supplier'],

@@ -576,6 +576,26 @@ footer {
 .seg button + button { border-left: 1px solid var(--border); }
 .seg button.active { background: var(--accent); color: #0b1224; font-weight: 600; }
 
+/* Delivery-status dashboard chips + colour-coded status dropdown. */
+.status-dash { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.dash-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  cursor: pointer;
+}
+.dash-chip.active { box-shadow: 0 0 0 2px currentColor inset; }
+.dash-chip.st-all { color: var(--text); }
+.dash-chip.st-delivered { color: #4ade80; border-color: rgba(74, 222, 128, 0.45); }
+.dash-chip.st-pending { color: #fbbf24; border-color: rgba(251, 191, 36, 0.45); }
+.dash-chip.st-other { color: var(--accent); border-color: rgba(56, 189, 248, 0.45); }
+.track-table select.status-select.st-delivered { color: #4ade80; }
+.track-table select.status-select.st-pending { color: #fbbf24; }
+.track-table select.status-select.st-other { color: var(--accent); }
+
 /* Paste-from-Excel modal. */
 .paste-overlay {
   position: fixed;
