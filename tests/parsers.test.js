@@ -78,6 +78,37 @@ describe('PDF parsers', () => {
     expect(detectProduct(george.productText).key).toBe('dysport');
   });
 
+  it('captures every product line in a multi-product K2 order', () => {
+    const text = [
+      'ORDER #10101988',
+      'Order date: May 05, 2026',
+      'Krypton 2.0',
+      'Product Name Product Quantity',
+      '1. 1',
+      'BOTOX® 100u 100u 1 x 100u Vial*',
+      '□',
+      '2. 1',
+      'BOTOX® 50u 50u 1 x 50u Vial*',
+      '□',
+      'Shipping Address',
+      'Name: Ellen Radeker',
+      'Address: 4622 SERENITY WOODS CT',
+      'Country: UNITED STATES',
+      'City: CHARLOTTE',
+      'State: NC',
+      'Zip: 28216-8700',
+      'Phone: +14237629025',
+      'Email:',
+      'Marketing Notes:',
+    ].join('\n');
+    const orders = dispatch(text);
+    expect(orders).toHaveLength(1);
+    const o = orders[0];
+    expect(o.orderId).toBe('10101988');
+    expect(o.productLines).toHaveLength(2);
+    expect(o.productLines.every((l) => detectProduct(l).key === 'botox')).toBe(true);
+  });
+
   it('parses a PDMS prescription PDF text', () => {
     const orders = dispatch(fixture('pdms.txt'));
     expect(orders).toHaveLength(1);

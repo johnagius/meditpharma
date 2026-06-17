@@ -11,6 +11,37 @@ function splitIntoOrders(text) {
   return parts.filter((p) => /ORDER\s*#\s*\d+/i.test(p));
 }
 
+// Pull every numbered product line ("1. …", "2. …") from the region above the
+// Shipping Address. The quantity renders inconsistently — sometimes right after
+// the "N." marker, sometimes as a trailing number on the first line — so handle
+// both. Returns [{ qty, text }, …]; a product may wrap across several lines.
+function extractProducts(regionLines) {
+  const parts = regionLines.join('\n').split(/(?=^\s*\d+\.\s)/m);
+  const items = [];
+  for (const part of parts) {
+    if (!/^\s*\d+\.\s/.test(part)) continue; // skip header / non-item chunks
+    const ls = part
+      .replace(/^\s*\d+\.\s*/, '') // drop the "N." marker
+      .replace(/□/g, ' ') // drop checkbox glyphs
+      .split(/\n/).map((l) => l.trim()).filter(Boolean);
+    if (!ls.length) continue;
+
+    let qty = '1';
+    let first = ls[0];
+    let rest = ls.slice(1);
+    if (/^\d+$/.test(first)) {
+      qty = first; // "N. <qty>" then the product on following lines
+    } else {
+      const m = first.match(/\s(\d+)\s*$/); // trailing qty on the first line
+      if (m) { qty = m[1]; first = first.slice(0, first.length - m[0].length).trim(); }
+      rest = [first, ...rest];
+    }
+    const text = rest.join(' ').replace(/\s+/g, ' ').trim();
+    if (text) items.push({ qty, text });
+  }
+  return items;
+}
+
 function parseSingleOrder(block) {
   const idMatch = block.match(/ORDER\s*#\s*(\d+)/i);
   const orderId = idMatch ? idMatch[1] : '';
@@ -36,17 +67,17 @@ function parseSingleOrder(block) {
   }
   if (/united states/i.test(country)) country = 'US';
 
-  const productMatch = block.match(/1\.\s+([^\n]+(?:\n[^\n]+)?)(?=\s*\d|\s*□)/i);
-  let productText = '';
-  if (productMatch) {
-    productText = productMatch[1].replace(/\s+/g, ' ').trim();
-  }
+  // Products live above the Shipping Address block.
+  const items = extractProducts(lines.slice(0, startIdx));
+  const productLines = items.map((it) => `${it.qty} x ${it.text}`);
+  const productText = items.length ? items[0].text : '';
 
   return {
     source: 'k2',
     orderId,
     recipient: { name, line1: address, line2: '', city, state, postcode: zip, country, phone, email },
     productText,
+    productLines,
     rawText: block,
   };
 }
