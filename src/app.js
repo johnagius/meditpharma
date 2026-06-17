@@ -99,7 +99,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // via the Sync API URL box (saving an explicit value — including blank).
   const DEFAULT_API_BASE = 'https://pharmaconsulta-tracking.labrint.workers.dev';
   // Proportional column widths (%) aligned with TRACKING_HEADERS + Actions.
-  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 7, 5, 7, 6, 6, 6];
+  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 7, 5, 7, 6, 6, 6, 6, 5, 6];
 
   const headers = HEADER_ROW();
   let orders = [];
@@ -1471,7 +1471,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     const today = new Date();
     trackingRows = orders.map((o, idx) => {
       const row = buildTrackingRow(
-        { recipient: o.recipient, products: resolveProducts(o) },
+        { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant },
         idx,
         today
       );
@@ -1666,6 +1666,9 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       cell('totalValue', input(row.totalValue, 'w-md', (v) => { row.totalValue = v; }));
       cell('gapDdp', input(row.gapDdp, 'w-sm', (v) => { row.gapDdp = v; }));
       cell('boxDim', input(row.boxDim, 'w-md', (v) => { row.boxDim = v; }));
+      // "From Whom" pre-fills for Ph.Chic, blank elsewhere; both stay editable.
+      cell('fromWhom', input(row.fromWhom, 'w-md', (v) => { row.fromWhom = v; }));
+      cell('shippingCost', input(row.shippingCost, 'w-sm', (v) => { row.shippingCost = v; }));
 
       // Actions
       const actTd = document.createElement('td');

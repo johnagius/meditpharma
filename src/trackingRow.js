@@ -22,6 +22,8 @@ export const TRACKING_HEADERS = [
   'Total Value on invoice',
   'GAP/DDP',
   'Box Dim',
+  'From Whom',
+  'Shipping Cost',
 ];
 
 // Field keys in the same order as TRACKING_HEADERS.
@@ -45,6 +47,8 @@ export const TRACKING_KEYS = [
   'totalValue',
   'gapDdp',
   'boxDim',
+  'fromWhom',
+  'shippingCost',
 ];
 
 // Account dropdown options.
@@ -57,6 +61,13 @@ export const WEEKDAYS = [
 
 export function weekdayName(date) {
   return WEEKDAYS[date.getDay()];
+}
+
+// "From Whom" defaults to the shipper name for Ph.Chic orders; blank otherwise.
+// Stays editable in the UI for every merchant.
+export function fromWhomFor(merchant) {
+  const norm = String(merchant || '').toLowerCase().replace(/[^a-z]/g, '');
+  return norm.startsWith('phchi') ? 'Ph.Chi' : '';
 }
 
 function pad2(n) {
@@ -153,6 +164,8 @@ export function buildTrackingRow(order, rowIndex, date = new Date()) {
     totalValue: '',
     gapDdp: '',
     boxDim: '',
+    fromWhom: fromWhomFor(order.merchant),
+    shippingCost: '',
   };
 }
 

@@ -636,7 +636,7 @@ footer {
   </section>
 </main>
 <footer>
-  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 07:57 UTC
+  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 08:01 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -1084,6 +1084,8 @@ const TRACKING_HEADERS = [
   'Total Value on invoice',
   'GAP/DDP',
   'Box Dim',
+  'From Whom',
+  'Shipping Cost',
 ];
 
 // Field keys in the same order as TRACKING_HEADERS.
@@ -1107,6 +1109,8 @@ const TRACKING_KEYS = [
   'totalValue',
   'gapDdp',
   'boxDim',
+  'fromWhom',
+  'shippingCost',
 ];
 
 // Account dropdown options.
@@ -1119,6 +1123,13 @@ const WEEKDAYS = [
 
 function weekdayName(date) {
   return WEEKDAYS[date.getDay()];
+}
+
+// "From Whom" defaults to the shipper name for Ph.Chic orders; blank otherwise.
+// Stays editable in the UI for every merchant.
+function fromWhomFor(merchant) {
+  const norm = String(merchant || '').toLowerCase().replace(/[^a-z]/g, '');
+  return norm.startsWith('phchi') ? 'Ph.Chi' : '';
 }
 
 function pad2(n) {
@@ -1215,6 +1226,8 @@ function buildTrackingRow(order, rowIndex, date = new Date()) {
     totalValue: '',
     gapDdp: '',
     boxDim: '',
+    fromWhom: fromWhomFor(order.merchant),
+    shippingCost: '',
   };
 }
 
@@ -1223,7 +1236,7 @@ function trackingRowToCells(row) {
   return TRACKING_KEYS.map((k) => row[k] ?? '');
 }
 
-  return { weekdayName, formatDateDDMMYY, dateCompact, orderNumberFor, toISODate, fromISODate, setWeekdayWithinWeek, parseProductLines, buildTrackingRow, trackingRowToCells, TRACKING_HEADERS, TRACKING_KEYS, ACCOUNTS, WEEKDAYS };
+  return { weekdayName, fromWhomFor, formatDateDDMMYY, dateCompact, orderNumberFor, toISODate, fromISODate, setWeekdayWithinWeek, parseProductLines, buildTrackingRow, trackingRowToCells, TRACKING_HEADERS, TRACKING_KEYS, ACCOUNTS, WEEKDAYS };
 })();
 
 // === trackingStore.js ===
@@ -1243,7 +1256,8 @@ const TRACKING_FIELDS = [
   'day', 'date', 'isoDate', 'orderNumber', 'trackingNumber', 'product', 'quantity',
   'productDescription', 'destCity', 'destState', 'account', 'client',
   'deliveredOn', 'deliveredOnIso', 'comments', 'directionRemarks',
-  'supplier', 'pfi', 'totalValue', 'gapDdp', 'boxDim', 'dedupKey',
+  'supplier', 'pfi', 'totalValue', 'gapDdp', 'boxDim',
+  'fromWhom', 'shippingCost', 'dedupKey',
 ];
 
 const FEDEX_FIELDS = [
@@ -2055,7 +2069,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   // via the Sync API URL box (saving an explicit value — including blank).
   const DEFAULT_API_BASE = 'https://pharmaconsulta-tracking.labrint.workers.dev';
   // Proportional column widths (%) aligned with TRACKING_HEADERS + Actions.
-  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 7, 5, 7, 6, 6, 6];
+  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 7, 5, 7, 6, 6, 6, 6, 5, 6];
 
   const headers = HEADER_ROW();
   let orders = [];
@@ -3427,7 +3441,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     const today = new Date();
     trackingRows = orders.map((o, idx) => {
       const row = buildTrackingRow(
-        { recipient: o.recipient, products: resolveProducts(o) },
+        { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant },
         idx,
         today
       );
@@ -3622,6 +3636,9 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       cell('totalValue', input(row.totalValue, 'w-md', (v) => { row.totalValue = v; }));
       cell('gapDdp', input(row.gapDdp, 'w-sm', (v) => { row.gapDdp = v; }));
       cell('boxDim', input(row.boxDim, 'w-md', (v) => { row.boxDim = v; }));
+      // "From Whom" pre-fills for Ph.Chic, blank elsewhere; both stay editable.
+      cell('fromWhom', input(row.fromWhom, 'w-md', (v) => { row.fromWhom = v; }));
+      cell('shippingCost', input(row.shippingCost, 'w-sm', (v) => { row.shippingCost = v; }));
 
       // Actions
       const actTd = document.createElement('td');

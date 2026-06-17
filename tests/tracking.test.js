@@ -112,6 +112,13 @@ describe('buildTrackingRow', () => {
     expect(row.deliveredOn).toBe('');
   });
 
+  it('pre-fills "From Whom" with Ph.Chi for Ph.Chic, blank otherwise', () => {
+    expect(buildTrackingRow(order, 0, MONDAY).fromWhom).toBe('');
+    expect(buildTrackingRow({ ...order, merchant: 'PHCHIC' }, 0, MONDAY).fromWhom).toBe('Ph.Chi');
+    expect(buildTrackingRow({ ...order, merchant: 'Ph.Chic' }, 0, MONDAY).fromWhom).toBe('Ph.Chi');
+    expect(buildTrackingRow({ ...order, merchant: 'Activa' }, 0, MONDAY).fromWhom).toBe('');
+  });
+
   it('serialises to cells in header order', () => {
     const row = buildTrackingRow(order, 0, MONDAY);
     const cells = trackingRowToCells(row);

@@ -36,6 +36,8 @@ const RESOURCES = {
       ['totalValue', 'total_value'],
       ['gapDdp', 'gap_ddp'],
       ['boxDim', 'box_dim'],
+      ['fromWhom', 'from_whom'],
+      ['shippingCost', 'shipping_cost'],
       ['dedupKey', 'dedup_key'],
     ],
   },
