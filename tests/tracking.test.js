@@ -3,6 +3,8 @@ import {
   buildTrackingRow,
   trackingRowToCells,
   parseProductLines,
+  extractDose,
+  labelWithDose,
   formatDateDDMMYY,
   dateCompact,
   orderNumberFor,
@@ -60,6 +62,25 @@ describe('parseProductLines', () => {
 
   it('defaults quantity to 1 when no "x" prefix', () => {
     expect(parseProductLines('Ozempic 1mg')).toEqual([{ qty: '1', text: 'Ozempic 1mg' }]);
+  });
+});
+
+describe('dose extraction / labelling', () => {
+  it('extracts the dose token from a product line', () => {
+    expect(extractDose('BOTOX® 100u 100u 1 x 100u Vial*')).toBe('100u');
+    expect(extractDose('BOTOX® 50u 50u 1 x 50u Vial*')).toBe('50u');
+    expect(extractDose('XEO 100IU (ENG)')).toBe('100IU');
+    expect(extractDose('DYSPORT® 500u 2 vials')).toBe('500u');
+    expect(extractDose('Just a name with no dose')).toBe('');
+  });
+
+  it('appends the dose to the label, distinguishing same-product doses', () => {
+    expect(labelWithDose('Botox', 'BOTOX® 100u 100u 1 x 100u Vial*')).toBe('Botox 100u');
+    expect(labelWithDose('Botox', 'BOTOX® 50u 50u 1 x 50u Vial*')).toBe('Botox 50u');
+    // No dose found -> label unchanged.
+    expect(labelWithDose('Ozempic', 'Ozempic')).toBe('Ozempic');
+    // Label already carries the dose -> no duplication.
+    expect(labelWithDose('Botox 100u', 'BOTOX® 100u 1 x 100u Vial*')).toBe('Botox 100u');
   });
 });
 

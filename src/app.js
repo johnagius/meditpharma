@@ -11,6 +11,7 @@ import {
   buildTrackingRow,
   trackingRowToCells,
   parseProductLines,
+  labelWithDose,
   formatDateDDMMYY,
   weekdayName,
   dateCompact4,
@@ -1534,13 +1535,20 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     while (trackingStatus.children.length > 8) trackingStatus.removeChild(trackingStatus.firstChild);
   }
 
+  // Pull a dose/strength token from a product line, e.g. "100u", "50u",
+  // "100IU", "500u", "10mg". Used to tell same-product, different-dose line
+  // items apart (e.g. Botox 100u vs Botox 50u).
   function resolveProducts(order) {
     const lines = order.productLines && order.productLines.length
       ? order.productLines
       : (order.productText ? [order.productText] : []);
     return parseProductLines(lines).map((p) => {
       const detected = detectProduct(p.text);
-      return { qty: p.qty, label: detected ? detected.label : p.text, text: p.text, key: detected ? detected.key : '' };
+      // Append the dose so different doses of the same product are distinct
+      // (Botox 100u vs Botox 50u) across tracking and stock. Unknown products
+      // keep their raw text.
+      const label = detected ? labelWithDose(detected.label, p.text) : p.text;
+      return { qty: p.qty, label, text: p.text, key: detected ? detected.key : '' };
     });
   }
 

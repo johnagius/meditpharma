@@ -168,6 +168,27 @@ export function parseProductLines(lines) {
   return out;
 }
 
+// Pull a dose/strength token from a product line, e.g. "100u", "50u", "100IU",
+// "500u", "20mg". Lets same-product, different-dose line items be told apart
+// (Botox 100u vs Botox 50u) in the tracking sheet and stock movements.
+export function extractDose(text) {
+  const m = String(text || '').match(/\b(\d+(?:\.\d+)?)\s*(iu|ius|units?|mcg|mg|ml|u)\b/i);
+  if (!m) return '';
+  let unit = m[2].toLowerCase();
+  if (unit === 'iu' || unit === 'ius') unit = 'IU';
+  else if (unit === 'unit' || unit === 'units') unit = 'u';
+  return `${m[1]}${unit}`;
+}
+
+// Append a product's dose to its label unless the label already carries it, so
+// different doses are distinguishable: ("Botox", "BOTOX 100u") -> "Botox 100u".
+export function labelWithDose(baseLabel, text) {
+  const base = String(baseLabel || '');
+  const dose = extractDose(text);
+  if (!dose || base.toLowerCase().includes(dose.toLowerCase())) return base;
+  return `${base} ${dose}`;
+}
+
 // Build a fully-defaulted tracking row from a parsed order.
 //  order: { recipient: {...}, products: [{ qty, label }] }
 //  rowIndex: 0-based position (drives the rotating HS description + order seq)
