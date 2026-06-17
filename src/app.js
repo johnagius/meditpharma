@@ -5,6 +5,7 @@ import { buildFileName } from './excelExporter.js';
 import { HEADER_ROW, buildRow } from './buildRow.js';
 import {
   TRACKING_HEADERS,
+  TRACKING_KEYS,
   ACCOUNTS,
   WEEKDAYS,
   buildTrackingRow,
@@ -135,7 +136,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       setRows: (r) => { trackingRows = r; },
       filter: trackingFilter, saveBtn: trackSaveSel, copyBtn: trackCopySel,
       deleteBtn: trackDeleteSel, count: trackSelCount,
-      filterText: '', selectAll: null,
+      filterText: '', selectAll: null, sort: null, colFilters: {},
     },
     saved: {
       head: savedTrackHead, body: savedTrackBody, status: savedTrackStatus,
@@ -143,7 +144,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       setRows: (r) => { savedTrackingRows = r; },
       filter: savedTrackFilter, saveBtn: savedTrackSaveSel, copyBtn: savedTrackCopySel,
       deleteBtn: savedTrackDeleteSel, count: savedTrackSelCount,
-      filterText: '', selectAll: null,
+      filterText: '', selectAll: null, sort: null, colFilters: {},
     },
   };
 
@@ -1603,11 +1604,31 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     tr.appendChild(selTh);
     view.selectAll = selectAll;
 
-    for (const h of TRACKING_HEADERS) {
+    // Each column header is an Excel-style dropdown: click to sort and/or filter.
+    TRACKING_HEADERS.forEach((h, i) => {
+      const key = TRACKING_KEYS[i];
       const th = document.createElement('th');
-      th.textContent = h;
+      th.className = 'col-head';
+
+      const label = document.createElement('span');
+      label.className = 'col-label';
+      label.textContent = h;
+
+      const caret = document.createElement('span');
+      caret.className = 'col-caret';
+      const sorted = view.sort && view.sort.key === key;
+      const filtered = view.colFilters[key] && view.colFilters[key].size;
+      caret.textContent = sorted ? (view.sort.dir === 'desc' ? '▼' : '▲') : '▾';
+      if (sorted || filtered) th.classList.add('col-active');
+
+      th.appendChild(label);
+      th.appendChild(caret);
+      th.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openColumnMenu(view, key, th);
+      });
       tr.appendChild(th);
-    }
+    });
     headEl.appendChild(tr);
   }
 
@@ -1662,12 +1683,184 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     renderTrackingRows(TRACK_VIEWS.saved);
   }
 
-  // Rows matching the view's current filter text (matched across all cells).
-  function filteredRows(view) {
-    const rows = view.getRows();
-    const q = (view.filterText || '').trim().toLowerCase();
+  // The displayed text of a column cell (used for the toolbar filter + column
+  // filter checkboxes — matches what the user sees).
+  function cellText(row, key) {
+    return String(row[key] ?? '');
+  }
+
+  // The value a column sorts by. Dates sort chronologically via their ISO form.
+  function cellSortValue(row, key) {
+    if (key === 'date') return row.isoDate || '';
+    if (key === 'deliveredOn') return row.deliveredOnIso || '';
+    return cellText(row, key);
+  }
+
+  // Apply only the top toolbar's free-text filter (across all cells).
+  function globalFiltered(rows, filterText) {
+    const q = (filterText || '').trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((r) => trackingRowToCells(r).join(' ').toLowerCase().includes(q));
+  }
+
+  // Distinct values present in a column (after the global filter), for the
+  // column dropdown's checkbox list.
+  function columnValues(view, key) {
+    const set = new Set();
+    globalFiltered(view.getRows(), view.filterText).forEach((r) => set.add(cellText(r, key)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+  }
+
+  // Rows matching the view's toolbar filter + every active column filter, in the
+  // current sort order.
+  function filteredRows(view) {
+    let rows = globalFiltered(view.getRows(), view.filterText);
+    const cf = view.colFilters || {};
+    for (const key of Object.keys(cf)) {
+      const allowed = cf[key];
+      if (allowed && allowed.size) rows = rows.filter((r) => allowed.has(cellText(r, key)));
+    }
+    if (view.sort && view.sort.key) {
+      const { key, dir } = view.sort;
+      const factor = dir === 'desc' ? -1 : 1;
+      rows = rows.slice().sort((a, b) =>
+        factor * cellSortValue(a, key).localeCompare(cellSortValue(b, key), undefined, { numeric: true, sensitivity: 'base' }));
+    }
+    return rows;
+  }
+
+  // Re-render a view's header (to refresh sort arrows / active markers) and body.
+  function rerenderView(view) {
+    renderTrackingHeader(view);
+    renderTrackingRows(view);
+  }
+
+  // --- Excel-style column dropdown (sort + per-value filter) ---
+  let openColMenu = null;
+  function closeColumnMenu() {
+    if (openColMenu) {
+      if (openColMenu.parentNode) openColMenu.parentNode.removeChild(openColMenu);
+      document.removeEventListener('mousedown', onColMenuOutside, true);
+      openColMenu = null;
+    }
+  }
+  function onColMenuOutside(e) {
+    if (!openColMenu) return;
+    if (openColMenu.contains(e.target)) return;
+    // Let header clicks be handled by their own toggle logic.
+    if (e.target && typeof e.target.closest === 'function' && e.target.closest('.col-head')) return;
+    closeColumnMenu();
+  }
+  function menuButton(text, cls, onClick) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    if (cls) b.className = cls;
+    b.textContent = text;
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function openColumnMenu(view, key, anchor) {
+    const reopen = openColMenu && openColMenu.dataset.key === key && openColMenu.dataset.view === view.body.id;
+    closeColumnMenu();
+    if (reopen) return; // clicking the same header again closes it
+
+    const menu = document.createElement('div');
+    menu.className = 'col-menu';
+    menu.dataset.key = key;
+    menu.dataset.view = view.body.id;
+    menu.addEventListener('click', (e) => e.stopPropagation());
+
+    // Sort controls.
+    const sortRow = document.createElement('div');
+    sortRow.className = 'col-menu-sort';
+    sortRow.appendChild(menuButton('Sort ↑ A–Z', '', () => { view.sort = { key, dir: 'asc' }; closeColumnMenu(); rerenderView(view); }));
+    sortRow.appendChild(menuButton('Sort ↓ Z–A', '', () => { view.sort = { key, dir: 'desc' }; closeColumnMenu(); rerenderView(view); }));
+    menu.appendChild(sortRow);
+
+    // Search within the value list.
+    const search = document.createElement('input');
+    search.type = 'text';
+    search.className = 'col-menu-search';
+    search.placeholder = 'Search values…';
+    menu.appendChild(search);
+
+    // (Select all) + distinct value checkboxes.
+    const list = document.createElement('div');
+    list.className = 'col-menu-list';
+    const current = view.colFilters[key]; // Set, or undefined = "all selected"
+    const checks = [];
+
+    const allLabel = document.createElement('label');
+    allLabel.className = 'col-menu-item col-menu-all';
+    const allBox = document.createElement('input');
+    allBox.type = 'checkbox';
+    allBox.checked = !current;
+    allLabel.appendChild(allBox);
+    allLabel.appendChild(document.createTextNode('(Select all)'));
+    list.appendChild(allLabel);
+
+    columnValues(view, key).forEach((val) => {
+      const item = document.createElement('label');
+      item.className = 'col-menu-item';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !current || current.has(val);
+      cb.dataset.val = val;
+      item.appendChild(cb);
+      item.appendChild(document.createTextNode(val === '' ? '(blank)' : val));
+      list.appendChild(item);
+      checks.push(cb);
+    });
+    menu.appendChild(list);
+
+    allBox.addEventListener('change', () => { checks.forEach((cb) => { cb.checked = allBox.checked; }); });
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase();
+      list.querySelectorAll('.col-menu-item').forEach((el) => {
+        if (el === allLabel) return;
+        el.style.display = el.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+
+    // Footer: Apply / Clear.
+    const footer = document.createElement('div');
+    footer.className = 'col-menu-footer';
+    footer.appendChild(menuButton('Apply', 'primary', () => {
+      const allowed = new Set();
+      let allChecked = true;
+      checks.forEach((cb) => { if (cb.checked) allowed.add(cb.dataset.val); else allChecked = false; });
+      if (allChecked) delete view.colFilters[key];
+      else view.colFilters[key] = allowed;
+      closeColumnMenu();
+      rerenderView(view);
+    }));
+    footer.appendChild(menuButton('Clear', 'danger', () => {
+      delete view.colFilters[key];
+      if (view.sort && view.sort.key === key) view.sort = null;
+      closeColumnMenu();
+      rerenderView(view);
+    }));
+    menu.appendChild(footer);
+
+    document.body.appendChild(menu);
+    positionColumnMenu(menu, anchor);
+    openColMenu = menu;
+    window.setTimeout(() => document.addEventListener('mousedown', onColMenuOutside, true), 0);
+  }
+
+  function positionColumnMenu(menu, anchor) {
+    if (!anchor || typeof anchor.getBoundingClientRect !== 'function') return;
+    const r = anchor.getBoundingClientRect();
+    const sx = window.scrollX || 0;
+    const sy = window.scrollY || 0;
+    const vw = (window.innerWidth || document.documentElement.clientWidth || 0);
+    let left = r.left + sx;
+    const top = r.bottom + sy + 2;
+    const width = menu.offsetWidth || 220;
+    if (vw && left + width > sx + vw) left = Math.max(sx + 4, sx + vw - width - 4);
+    menu.style.left = `${Math.round(left)}px`;
+    menu.style.top = `${Math.round(top)}px`;
   }
 
   // Selected rows across the whole view (selection persists through filtering).

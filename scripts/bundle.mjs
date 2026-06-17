@@ -233,7 +233,7 @@ ${css}
 
     <section class="section-divider">
       <h2>Tracking sheet</h2>
-      <p>One row per order (all products listed together). Edit any cell, tick the rows you want, then use the buttons above the table to save, copy or delete them &mdash; like a spreadsheet.</p>
+      <p>One row per order (all products listed together). Edit any cell, tick the rows you want, then use the buttons above the table to save, copy or delete them &mdash; like a spreadsheet. Click any column header to sort or filter by that column.</p>
     </section>
     <div class="track-settings">
       <label class="autosave"><input type="checkbox" id="chk-track-autosave"> Autosave tracking rows</label>
@@ -269,7 +269,7 @@ ${css}
 
   <section class="panel" id="panel-tracking">
     <h2>Saved tracking rows</h2>
-    <p class="panel-hint">Tracking rows saved to the database. Edit a cell, tick the rows you want, then use the buttons to save, copy or delete them. Refresh to reload.</p>
+    <p class="panel-hint">Tracking rows saved to the database. Edit a cell, tick the rows you want, then use the buttons to save, copy or delete them. Click any column header to sort or filter. Refresh to reload.</p>
     <div class="actions track-toolbar">
       <input type="text" id="saved-track-filter" class="filter-input" placeholder="Filter rows&hellip;">
       <button id="btn-saved-track-save-sel" class="primary" type="button" disabled>Save selected</button>
