@@ -277,6 +277,7 @@ ${css}
       <button id="btn-saved-track-copy-sel" type="button" disabled>Copy selected</button>
       <button id="btn-saved-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
       <span id="saved-track-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-saved-track-paste" type="button">Paste from Excel</button>
       <button id="btn-saved-track-refresh" type="button">Refresh</button>
       <button id="btn-saved-track-download" type="button">Download all (xlsx)</button>
     </div>
@@ -309,6 +310,7 @@ ${css}
       <button id="btn-bm-copy-sel" type="button" disabled>Copy selected</button>
       <button id="btn-bm-delete-sel" class="danger" type="button" disabled>Delete selected</button>
       <span id="bm-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-bm-paste" type="button">Paste from Excel</button>
       <button id="btn-bm-download" type="button">Download (xlsx)</button>
     </div>
     <div id="bymerchant-status" aria-live="polite"></div>

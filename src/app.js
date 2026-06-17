@@ -12,6 +12,8 @@ import {
   trackingRowToCells,
   parseProductLines,
   labelWithDose,
+  parsePastedTable,
+  parseFlexibleDate,
   formatDateDDMMYY,
   weekdayName,
   dateCompact4,
@@ -58,6 +60,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const savedTrackCopySel = document.getElementById('btn-saved-track-copy-sel');
   const savedTrackDeleteSel = document.getElementById('btn-saved-track-delete-sel');
   const savedTrackSelCount = document.getElementById('saved-track-sel-count');
+  const savedTrackPaste = document.getElementById('btn-saved-track-paste');
 
   // By Merchant tab
   const bmHead = document.getElementById('bymerchant-head');
@@ -74,6 +77,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const bmDeleteSel = document.getElementById('btn-bm-delete-sel');
   const bmSelCount = document.getElementById('bm-sel-count');
   const bmDownload = document.getElementById('btn-bm-download');
+  const bmPaste = document.getElementById('btn-bm-paste');
 
   // Merchants tab
   const merchantNew = document.getElementById('merchant-new');
@@ -1666,6 +1670,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     };
     if (bmFrom) bmFrom.addEventListener('change', onRange);
     if (bmTo) bmTo.addEventListener('change', onRange);
+    if (bmPaste) bmPaste.addEventListener('click', () => openPasteModal(bmStatus));
     if (bmRefresh) bmRefresh.addEventListener('click', () => { loadSavedRows().then(renderMerchantSubtabs); });
     if (bmDownload) {
       bmDownload.addEventListener('click', () => {
@@ -1702,6 +1707,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         );
       });
     }
+    if (savedTrackPaste) savedTrackPaste.addEventListener('click', () => openPasteModal(savedTrackStatus));
     if (savedTrackRefresh) savedTrackRefresh.addEventListener('click', loadSavedRows);
     if (savedTrackDownload) {
       savedTrackDownload.addEventListener('click', () => {
@@ -2222,6 +2228,110 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     savedTrackingRows = savedTrackingRows.filter((r) => !selSet.has(r));
     setStatusInto(view.status, `Deleted ${sel.length} row(s).`, 'ok');
     renderAllTracking();
+  }
+
+  // --- Paste from Excel: upsert saved rows from a copied table ---
+  function blankTrackingRow() {
+    const r = {};
+    for (const k of TRACKING_KEYS) r[k] = '';
+    r.isoDate = '';
+    r.deliveredOnIso = '';
+    r.dedupKey = '';
+    r._origin = 'paste';
+    return r;
+  }
+
+  // Apply pasted date cells: re-derive isoDate/day from the Date cell and the
+  // delivered-on ISO from its cell, when they parse.
+  function applyPastedDates(row, fields) {
+    if ('date' in fields) {
+      const d = parseFlexibleDate(fields.date);
+      if (d && !Number.isNaN(d.getTime())) {
+        row.isoDate = toISODate(d);
+        row.date = formatDateDDMMYY(d);
+        row.day = weekdayName(d);
+      }
+    }
+    if ('deliveredOn' in fields) {
+      const d = parseFlexibleDate(fields.deliveredOn);
+      if (d && !Number.isNaN(d.getTime())) {
+        row.deliveredOnIso = toISODate(d);
+        row.deliveredOn = formatDateDDMMYY(d);
+      } else if (!String(fields.deliveredOn || '').trim()) {
+        row.deliveredOnIso = '';
+      }
+    }
+  }
+
+  // Parse a copied Excel table and upsert it into the saved rows, matching
+  // existing rows by Order number (others are added). Writes to the same store,
+  // so Saved Tracking and By Merchant both reflect the changes.
+  async function applyPaste(text, statusEl) {
+    const parsed = parsePastedTable(text);
+    if (!parsed.length) { setStatusInto(statusEl, 'Nothing to paste — copy the table from Excel first.', 'warn'); return; }
+    const store = makeStore('rows');
+    let updated = 0;
+    let added = 0;
+    let skipped = 0;
+    let failed = 0;
+    for (const fields of parsed) {
+      const on = String(fields.orderNumber || '').trim();
+      if (!on) { skipped += 1; continue; } // need a key to match/insert
+      let target = savedTrackingRows.find((r) => String(r.orderNumber || '').trim() === on);
+      if (target) { updated += 1; } else { target = blankTrackingRow(); savedTrackingRows.push(target); added += 1; }
+      Object.assign(target, fields);
+      applyPastedDates(target, fields);
+      try {
+        const saved = target.id ? await store.update(target.id, target) : await store.save(target); // eslint-disable-line no-await-in-loop
+        target.id = saved.id;
+      } catch { failed += 1; }
+    }
+    setStatusInto(
+      statusEl,
+      `Paste: updated ${updated}, added ${added}`
+        + `${skipped ? `, skipped ${skipped} (no order number)` : ''}`
+        + `${failed ? `, ${failed} failed` : ''}.`,
+      failed ? 'warn' : 'ok'
+    );
+    renderAllTracking();
+    renderMerchantSubtabs();
+  }
+
+  // Modal with a textarea for the user to paste the copied Excel table into.
+  function openPasteModal(statusEl) {
+    const overlay = document.createElement('div');
+    overlay.className = 'paste-overlay';
+    const box = document.createElement('div');
+    box.className = 'paste-box';
+    const h = document.createElement('h3');
+    h.textContent = 'Paste from Excel';
+    const p = document.createElement('p');
+    p.textContent = 'Copy the whole table in Excel (including the header row), click in the box below and paste (Ctrl/Cmd+V), then Apply. Rows are matched to existing ones by Order number; unknown order numbers are added.';
+    const ta = document.createElement('textarea');
+    ta.className = 'paste-textarea';
+    ta.setAttribute('aria-label', 'Pasted table');
+    const actions = document.createElement('div');
+    actions.className = 'paste-actions';
+    const apply = document.createElement('button');
+    apply.type = 'button';
+    apply.className = 'primary';
+    apply.textContent = 'Apply';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.textContent = 'Cancel';
+    const close = () => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+    apply.addEventListener('click', () => { const v = ta.value; close(); applyPaste(v, statusEl); });
+    cancel.addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+    actions.appendChild(apply);
+    actions.appendChild(cancel);
+    box.appendChild(h);
+    box.appendChild(p);
+    box.appendChild(ta);
+    box.appendChild(actions);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    ta.focus();
   }
 
   // Apply a new Date to a row, syncing day / date / order-number controls.

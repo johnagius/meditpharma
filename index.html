@@ -563,6 +563,41 @@ footer {
 .seg button + button { border-left: 1px solid var(--border); }
 .seg button.active { background: var(--accent); color: #0b1224; font-weight: 600; }
 
+/* Paste-from-Excel modal. */
+.paste-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 20, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.paste-box {
+  background: var(--panel-2, #141e3a);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  padding: 18px;
+  width: min(720px, 92vw);
+}
+.paste-box h3 { margin: 0 0 6px; }
+.paste-box p { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+.paste-textarea {
+  width: 100%;
+  min-height: 220px;
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+.paste-textarea:focus { outline: 2px solid var(--accent); }
+.paste-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
 </style>
 </head>
 <body>
@@ -662,6 +697,7 @@ footer {
       <button id="btn-saved-track-copy-sel" type="button" disabled>Copy selected</button>
       <button id="btn-saved-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
       <span id="saved-track-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-saved-track-paste" type="button">Paste from Excel</button>
       <button id="btn-saved-track-refresh" type="button">Refresh</button>
       <button id="btn-saved-track-download" type="button">Download all (xlsx)</button>
     </div>
@@ -694,6 +730,7 @@ footer {
       <button id="btn-bm-copy-sel" type="button" disabled>Copy selected</button>
       <button id="btn-bm-delete-sel" class="danger" type="button" disabled>Delete selected</button>
       <span id="bm-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-bm-paste" type="button">Paste from Excel</button>
       <button id="btn-bm-download" type="button">Download (xlsx)</button>
     </div>
     <div id="bymerchant-status" aria-live="polite"></div>
@@ -771,7 +808,7 @@ footer {
   </section>
 </main>
 <footer>
-  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 09:59 UTC
+  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 10:10 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -1387,6 +1424,63 @@ function labelWithDose(baseLabel, text) {
   return `${base} ${dose}`;
 }
 
+// Parse a date typed/pasted in any of the common shapes we emit or accept:
+// yyyy-mm-dd, dd.mm.yy(yy), dd/mm/yy(yy), dd-mm-yy(yy). Day-first (matches the
+// app's dd.mm.yy display). Returns a local Date or null.
+function parseFlexibleDate(value) {
+  const t = String(value || '').trim();
+  if (!t) return null;
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  m = t.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})$/);
+  if (m) {
+    let y = Number(m[3]);
+    if (y < 100) y += 2000;
+    return new Date(y, Number(m[2]) - 1, Number(m[1]));
+  }
+  return null;
+}
+
+// Parse a tab-separated table copied from Excel into an array of field objects
+// keyed by TRACKING_KEYS. If the first row's cells match TRACKING_HEADERS it's
+// treated as a header row and columns map by name (robust to reordering/subset);
+// otherwise columns map positionally to TRACKING_KEYS. Only columns present
+// appear in each object, so callers can merge without clobbering other fields.
+function parsePastedTable(text) {
+  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim().length);
+  if (!lines.length) return [];
+
+  const headerMap = {};
+  TRACKING_HEADERS.forEach((h, i) => { headerMap[h.trim().toLowerCase()] = TRACKING_KEYS[i]; });
+
+  const firstCells = lines[0].split('\t').map((c) => c.trim());
+  const recognised = firstCells.filter((c) => headerMap[c.toLowerCase()]).length;
+
+  let colKeys;
+  let dataLines;
+  if (recognised >= 2) {
+    colKeys = firstCells.map((c) => headerMap[c.toLowerCase()] || null);
+    dataLines = lines.slice(1);
+  } else {
+    colKeys = TRACKING_KEYS.slice();
+    dataLines = lines;
+  }
+
+  const out = [];
+  for (const line of dataLines) {
+    const cells = line.split('\t');
+    const obj = {};
+    let any = false;
+    colKeys.forEach((k, i) => {
+      if (!k) return;
+      obj[k] = (cells[i] == null ? '' : String(cells[i]).trim());
+      any = true;
+    });
+    if (any) out.push(obj);
+  }
+  return out;
+}
+
 // Build a fully-defaulted tracking row from a parsed order.
 //  order: { recipient: {...}, products: [{ qty, label }] }
 //  rowIndex: 0-based position (drives the rotating HS description + order seq)
@@ -1430,7 +1524,7 @@ function trackingRowToCells(row) {
   return TRACKING_KEYS.map((k) => row[k] ?? '');
 }
 
-  return { weekdayName, fromWhomFor, formatDateDDMMYY, dateCompact, orderNumberFor, dateCompact4, isActivaMerchant, isPdmsMerchant, isDatePrefixedMerchant, orderNumberForMerchant, toISODate, fromISODate, setWeekdayWithinWeek, parseProductLines, extractDose, labelWithDose, buildTrackingRow, trackingRowToCells, TRACKING_HEADERS, TRACKING_KEYS, ACCOUNTS, WEEKDAYS };
+  return { weekdayName, fromWhomFor, formatDateDDMMYY, dateCompact, orderNumberFor, dateCompact4, isActivaMerchant, isPdmsMerchant, isDatePrefixedMerchant, orderNumberForMerchant, toISODate, fromISODate, setWeekdayWithinWeek, parseProductLines, extractDose, labelWithDose, parseFlexibleDate, parsePastedTable, buildTrackingRow, trackingRowToCells, TRACKING_HEADERS, TRACKING_KEYS, ACCOUNTS, WEEKDAYS };
 })();
 
 // === trackingStore.js ===
@@ -2210,6 +2304,8 @@ const buildTrackingRow = ModTrackingRow.buildTrackingRow;
 const trackingRowToCells = ModTrackingRow.trackingRowToCells;
 const parseProductLines = ModTrackingRow.parseProductLines;
 const labelWithDose = ModTrackingRow.labelWithDose;
+const parsePastedTable = ModTrackingRow.parsePastedTable;
+const parseFlexibleDate = ModTrackingRow.parseFlexibleDate;
 const formatDateDDMMYY = ModTrackingRow.formatDateDDMMYY;
 const weekdayName = ModTrackingRow.weekdayName;
 const dateCompact4 = ModTrackingRow.dateCompact4;
@@ -2262,6 +2358,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   const savedTrackCopySel = document.getElementById('btn-saved-track-copy-sel');
   const savedTrackDeleteSel = document.getElementById('btn-saved-track-delete-sel');
   const savedTrackSelCount = document.getElementById('saved-track-sel-count');
+  const savedTrackPaste = document.getElementById('btn-saved-track-paste');
 
   // By Merchant tab
   const bmHead = document.getElementById('bymerchant-head');
@@ -2278,6 +2375,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   const bmDeleteSel = document.getElementById('btn-bm-delete-sel');
   const bmSelCount = document.getElementById('bm-sel-count');
   const bmDownload = document.getElementById('btn-bm-download');
+  const bmPaste = document.getElementById('btn-bm-paste');
 
   // Merchants tab
   const merchantNew = document.getElementById('merchant-new');
@@ -3870,6 +3968,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     };
     if (bmFrom) bmFrom.addEventListener('change', onRange);
     if (bmTo) bmTo.addEventListener('change', onRange);
+    if (bmPaste) bmPaste.addEventListener('click', () => openPasteModal(bmStatus));
     if (bmRefresh) bmRefresh.addEventListener('click', () => { loadSavedRows().then(renderMerchantSubtabs); });
     if (bmDownload) {
       bmDownload.addEventListener('click', () => {
@@ -3906,6 +4005,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         );
       });
     }
+    if (savedTrackPaste) savedTrackPaste.addEventListener('click', () => openPasteModal(savedTrackStatus));
     if (savedTrackRefresh) savedTrackRefresh.addEventListener('click', loadSavedRows);
     if (savedTrackDownload) {
       savedTrackDownload.addEventListener('click', () => {
@@ -4426,6 +4526,110 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     savedTrackingRows = savedTrackingRows.filter((r) => !selSet.has(r));
     setStatusInto(view.status, `Deleted ${sel.length} row(s).`, 'ok');
     renderAllTracking();
+  }
+
+  // --- Paste from Excel: upsert saved rows from a copied table ---
+  function blankTrackingRow() {
+    const r = {};
+    for (const k of TRACKING_KEYS) r[k] = '';
+    r.isoDate = '';
+    r.deliveredOnIso = '';
+    r.dedupKey = '';
+    r._origin = 'paste';
+    return r;
+  }
+
+  // Apply pasted date cells: re-derive isoDate/day from the Date cell and the
+  // delivered-on ISO from its cell, when they parse.
+  function applyPastedDates(row, fields) {
+    if ('date' in fields) {
+      const d = parseFlexibleDate(fields.date);
+      if (d && !Number.isNaN(d.getTime())) {
+        row.isoDate = toISODate(d);
+        row.date = formatDateDDMMYY(d);
+        row.day = weekdayName(d);
+      }
+    }
+    if ('deliveredOn' in fields) {
+      const d = parseFlexibleDate(fields.deliveredOn);
+      if (d && !Number.isNaN(d.getTime())) {
+        row.deliveredOnIso = toISODate(d);
+        row.deliveredOn = formatDateDDMMYY(d);
+      } else if (!String(fields.deliveredOn || '').trim()) {
+        row.deliveredOnIso = '';
+      }
+    }
+  }
+
+  // Parse a copied Excel table and upsert it into the saved rows, matching
+  // existing rows by Order number (others are added). Writes to the same store,
+  // so Saved Tracking and By Merchant both reflect the changes.
+  async function applyPaste(text, statusEl) {
+    const parsed = parsePastedTable(text);
+    if (!parsed.length) { setStatusInto(statusEl, 'Nothing to paste — copy the table from Excel first.', 'warn'); return; }
+    const store = makeStore('rows');
+    let updated = 0;
+    let added = 0;
+    let skipped = 0;
+    let failed = 0;
+    for (const fields of parsed) {
+      const on = String(fields.orderNumber || '').trim();
+      if (!on) { skipped += 1; continue; } // need a key to match/insert
+      let target = savedTrackingRows.find((r) => String(r.orderNumber || '').trim() === on);
+      if (target) { updated += 1; } else { target = blankTrackingRow(); savedTrackingRows.push(target); added += 1; }
+      Object.assign(target, fields);
+      applyPastedDates(target, fields);
+      try {
+        const saved = target.id ? await store.update(target.id, target) : await store.save(target); // eslint-disable-line no-await-in-loop
+        target.id = saved.id;
+      } catch { failed += 1; }
+    }
+    setStatusInto(
+      statusEl,
+      `Paste: updated ${updated}, added ${added}`
+        + `${skipped ? `, skipped ${skipped} (no order number)` : ''}`
+        + `${failed ? `, ${failed} failed` : ''}.`,
+      failed ? 'warn' : 'ok'
+    );
+    renderAllTracking();
+    renderMerchantSubtabs();
+  }
+
+  // Modal with a textarea for the user to paste the copied Excel table into.
+  function openPasteModal(statusEl) {
+    const overlay = document.createElement('div');
+    overlay.className = 'paste-overlay';
+    const box = document.createElement('div');
+    box.className = 'paste-box';
+    const h = document.createElement('h3');
+    h.textContent = 'Paste from Excel';
+    const p = document.createElement('p');
+    p.textContent = 'Copy the whole table in Excel (including the header row), click in the box below and paste (Ctrl/Cmd+V), then Apply. Rows are matched to existing ones by Order number; unknown order numbers are added.';
+    const ta = document.createElement('textarea');
+    ta.className = 'paste-textarea';
+    ta.setAttribute('aria-label', 'Pasted table');
+    const actions = document.createElement('div');
+    actions.className = 'paste-actions';
+    const apply = document.createElement('button');
+    apply.type = 'button';
+    apply.className = 'primary';
+    apply.textContent = 'Apply';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.textContent = 'Cancel';
+    const close = () => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+    apply.addEventListener('click', () => { const v = ta.value; close(); applyPaste(v, statusEl); });
+    cancel.addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+    actions.appendChild(apply);
+    actions.appendChild(cancel);
+    box.appendChild(h);
+    box.appendChild(p);
+    box.appendChild(ta);
+    box.appendChild(actions);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    ta.focus();
   }
 
   // Apply a new Date to a row, syncing day / date / order-number controls.

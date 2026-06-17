@@ -189,6 +189,63 @@ export function labelWithDose(baseLabel, text) {
   return `${base} ${dose}`;
 }
 
+// Parse a date typed/pasted in any of the common shapes we emit or accept:
+// yyyy-mm-dd, dd.mm.yy(yy), dd/mm/yy(yy), dd-mm-yy(yy). Day-first (matches the
+// app's dd.mm.yy display). Returns a local Date or null.
+export function parseFlexibleDate(value) {
+  const t = String(value || '').trim();
+  if (!t) return null;
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  m = t.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})$/);
+  if (m) {
+    let y = Number(m[3]);
+    if (y < 100) y += 2000;
+    return new Date(y, Number(m[2]) - 1, Number(m[1]));
+  }
+  return null;
+}
+
+// Parse a tab-separated table copied from Excel into an array of field objects
+// keyed by TRACKING_KEYS. If the first row's cells match TRACKING_HEADERS it's
+// treated as a header row and columns map by name (robust to reordering/subset);
+// otherwise columns map positionally to TRACKING_KEYS. Only columns present
+// appear in each object, so callers can merge without clobbering other fields.
+export function parsePastedTable(text) {
+  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim().length);
+  if (!lines.length) return [];
+
+  const headerMap = {};
+  TRACKING_HEADERS.forEach((h, i) => { headerMap[h.trim().toLowerCase()] = TRACKING_KEYS[i]; });
+
+  const firstCells = lines[0].split('\t').map((c) => c.trim());
+  const recognised = firstCells.filter((c) => headerMap[c.toLowerCase()]).length;
+
+  let colKeys;
+  let dataLines;
+  if (recognised >= 2) {
+    colKeys = firstCells.map((c) => headerMap[c.toLowerCase()] || null);
+    dataLines = lines.slice(1);
+  } else {
+    colKeys = TRACKING_KEYS.slice();
+    dataLines = lines;
+  }
+
+  const out = [];
+  for (const line of dataLines) {
+    const cells = line.split('\t');
+    const obj = {};
+    let any = false;
+    colKeys.forEach((k, i) => {
+      if (!k) return;
+      obj[k] = (cells[i] == null ? '' : String(cells[i]).trim());
+      any = true;
+    });
+    if (any) out.push(obj);
+  }
+  return out;
+}
+
 // Build a fully-defaulted tracking row from a parsed order.
 //  order: { recipient: {...}, products: [{ qty, label }] }
 //  rowIndex: 0-based position (drives the rotating HS description + order seq)

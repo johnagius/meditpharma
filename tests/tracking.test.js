@@ -5,6 +5,8 @@ import {
   parseProductLines,
   extractDose,
   labelWithDose,
+  parsePastedTable,
+  parseFlexibleDate,
   formatDateDDMMYY,
   dateCompact,
   orderNumberFor,
@@ -62,6 +64,42 @@ describe('parseProductLines', () => {
 
   it('defaults quantity to 1 when no "x" prefix', () => {
     expect(parseProductLines('Ozempic 1mg')).toEqual([{ qty: '1', text: 'Ozempic 1mg' }]);
+  });
+});
+
+describe('parseFlexibleDate', () => {
+  it('parses the formats we emit/accept (day-first)', () => {
+    expect(formatDateDDMMYY(parseFlexibleDate('2026-06-17'))).toBe('17.06.26');
+    expect(formatDateDDMMYY(parseFlexibleDate('17.06.26'))).toBe('17.06.26');
+    expect(formatDateDDMMYY(parseFlexibleDate('17/06/2026'))).toBe('17.06.26');
+    expect(parseFlexibleDate('')).toBe(null);
+    expect(parseFlexibleDate('not a date')).toBe(null);
+  });
+});
+
+describe('parsePastedTable', () => {
+  it('maps columns by header name (subset / reordered ok)', () => {
+    const text = [
+      'Order number\tClient\tSupplier',
+      '010626-1\tJohn Doe\tKrypton',
+      '10101988\tEllen Radeker\tAcme',
+    ].join('\n');
+    const rows = parsePastedTable(text);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toEqual({ orderNumber: '010626-1', client: 'John Doe', supplier: 'Krypton' });
+    expect(rows[1].client).toBe('Ellen Radeker');
+    // Only the present columns appear (so a merge won't clobber other fields).
+    expect('product' in rows[0]).toBe(false);
+  });
+
+  it('falls back to positional mapping when there is no header row', () => {
+    // day, Date, Order number, tracking number, Product, quantity, ...
+    const text = 'Monday\t01.06.26\t010626-1\t\tBotox 100u\t1';
+    const rows = parsePastedTable(text);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].orderNumber).toBe('010626-1');
+    expect(rows[0].product).toBe('Botox 100u');
+    expect(rows[0].quantity).toBe('1');
   });
 });
 
