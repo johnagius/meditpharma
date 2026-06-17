@@ -87,11 +87,21 @@ describe('buildTrackingRow', () => {
     expect(row.quantity).toBe('2,1');
   });
 
-  it('fills day/date/order-number from the date', () => {
+  it('fills day/date from the date', () => {
     const row = buildTrackingRow(order, 0, MONDAY);
     expect(row.day).toBe('Monday');
     expect(row.date).toBe('01.06.26');
-    expect(row.orderNumber).toBe('010626-1');
+  });
+
+  it('builds the order number per merchant strategy', () => {
+    // Activa: ddmmyyyy-<PDF order number>, date-linked.
+    expect(buildTrackingRow({ ...order, merchant: 'Activa', orderId: '7' }, 0, MONDAY).orderNumber)
+      .toBe('01062026-7');
+    // Other merchants: PDF order number verbatim, no date prefix.
+    expect(buildTrackingRow({ ...order, merchant: 'Krypton 2', orderId: '10101294' }, 0, MONDAY).orderNumber)
+      .toBe('10101294');
+    // No order number in the PDF -> blank for non-Activa.
+    expect(buildTrackingRow(order, 0, MONDAY).orderNumber).toBe('');
   });
 
   it('takes city + full state name + client from the order', () => {

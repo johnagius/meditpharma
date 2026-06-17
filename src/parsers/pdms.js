@@ -22,7 +22,9 @@ export function detect(text) {
 }
 
 function findValueAfter(text, label) {
-  const sameLine = new RegExp(`^\\s*${label}\\s{2,}([^\\n]+)$`, 'im');
+  // The live pdfReader collapses runs of spaces to a single space, so a
+  // same-line "Label value" pair is separated by one space (not many).
+  const sameLine = new RegExp(`^\\s*${label}\\s+([^\\n]+)$`, 'im');
   const m1 = text.match(sameLine);
   if (m1 && m1[1].trim()) return m1[1].trim();
   const nextLines = new RegExp(`${label}\\s*\\n+\\s*([^\\n]+)`, 'i');

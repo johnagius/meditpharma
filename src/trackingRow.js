@@ -91,6 +91,28 @@ export function orderNumberFor(date, seq) {
   return `${dateCompact(date)}-${seq}`;
 }
 
+// "01062026" — compact date with a 4-digit year, for order-number prefixes.
+export function dateCompact4(date) {
+  return `${pad2(date.getDate())}${pad2(date.getMonth() + 1)}${date.getFullYear()}`;
+}
+
+export function isActivaMerchant(merchant) {
+  return String(merchant || '').trim().toLowerCase() === 'activa';
+}
+
+// Order-number strategy by merchant:
+//  - Activa:  ddmmyyyy-<PDF order number>  (date-linked; updates with the Date)
+//  - others:  <PDF order number>           (no date prefix)
+// When the PDF carries no order number, Activa falls back to just the date and
+// other merchants to an empty string (filled in manually).
+export function orderNumberForMerchant(merchant, orderId, date) {
+  const id = String(orderId || '').trim();
+  if (isActivaMerchant(merchant)) {
+    return id ? `${dateCompact4(date)}-${id}` : dateCompact4(date);
+  }
+  return id;
+}
+
 // yyyy-mm-dd for <input type="date">
 export function toISODate(date) {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
@@ -148,7 +170,7 @@ export function buildTrackingRow(order, rowIndex, date = new Date()) {
     day: weekdayName(date),
     date: formatDateDDMMYY(date),
     isoDate: toISODate(date),
-    orderNumber: orderNumberFor(date, rowIndex + 1),
+    orderNumber: orderNumberForMerchant(order.merchant, order.orderId, date),
     trackingNumber: '',
     product: products.map((p) => p.label).join(', '),
     quantity: products.map((p) => p.qty).join(','),

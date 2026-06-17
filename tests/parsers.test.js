@@ -31,6 +31,7 @@ describe('PDF parsers', () => {
     expect(orders).toHaveLength(1);
     const o = orders[0];
     expect(o.source).toBe('activa');
+    expect(o.orderId).toBe('1'); // "ORDER 1" in the PDF
     expect(o.recipient.name).toBe('Desire Layfield');
     expect(o.recipient.line1).toBe('5422 Cumming Hwy NE');
     expect(o.recipient.line2).toBe('Ste 104');
@@ -61,6 +62,7 @@ describe('PDF parsers', () => {
     expect(orders.length).toBeGreaterThanOrEqual(2);
     const kevin = orders.find((o) => o.recipient.name === 'Kevin Reilly');
     expect(kevin).toBeDefined();
+    expect(kevin.orderId).toBe('10101294'); // "ORDER #10101294"
     expect(kevin.recipient.line1).toBe('42 HUNTTING AVE');
     expect(kevin.recipient.city).toBe('EAST HAMPTON');
     expect(kevin.recipient.state).toBe('NY');
@@ -87,6 +89,29 @@ describe('PDF parsers', () => {
     expect(o.recipient.state).toBe('NE');
     expect(o.recipient.postcode).toBe('68803-1061');
     expect(o.productText).toMatch(/Orencia/i);
+    expect(detectProduct(o.productText).key).toBe('orencia');
+  });
+
+  it('parses a PDMS address with single-spaced labels (live renderer output)', () => {
+    // The real pdfReader collapses runs of spaces to one, so "Address value"
+    // arrives single-spaced — this is the case that was dropping the city/state.
+    const text = [
+      'PRESCRIPTION',
+      'Patient Details: Date: 3/30/2026',
+      'Name',
+      'Monica Reilly',
+      'DOB 5/4/1968',
+      'Address 4197 VERMONT AVE, GRAND ISLAND, NE 68803-1061',
+      'Drug Name: Brand (Generic)',
+      'Orencia (Abatacept)',
+    ].join('\n');
+    const orders = dispatch(text);
+    expect(orders).toHaveLength(1);
+    const o = orders[0];
+    expect(o.recipient.name).toBe('Monica Reilly');
+    expect(o.recipient.city).toBe('GRAND ISLAND');
+    expect(o.recipient.state).toBe('NE');
+    expect(o.recipient.postcode).toBe('68803-1061');
     expect(detectProduct(o.productText).key).toBe('orencia');
   });
 

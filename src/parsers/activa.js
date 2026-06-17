@@ -27,6 +27,10 @@ export function parse(text) {
   const start = lines.findIndex((l) => /^Shipping Address:/i.test(l));
   if (start === -1) return null;
 
+  // Order number printed in the PDF, e.g. "ORDER 1".
+  const idMatch = text.match(/^ORDER\s*#?\s*(\d+)\b/im);
+  const orderId = idMatch ? idMatch[1] : '';
+
   const block = [];
   for (let i = start + 1; i < lines.length; i++) {
     const line = lines[i];
@@ -81,7 +85,7 @@ export function parse(text) {
 
   return {
     source: 'activa',
-    orderId: '',
+    orderId,
     recipient: {
       name,
       line1,

@@ -39,7 +39,9 @@ describe('detectMerchant', () => {
   it('maps a recognised parser source to a seeded merchant', () => {
     expect(detectMerchant('any', { source: 'activa' })).toMatchObject({ merchant: 'Activa', via: 'format' });
     expect(detectMerchant('any', { source: 'dh' })).toMatchObject({ merchant: 'David Hitchen', via: 'format' });
-    expect(SOURCE_TO_MERCHANT.k2).toBeUndefined(); // learned, not seeded
+    // K2 / "ORDER #" format is Krypton 2 (formerly LWA).
+    expect(SOURCE_TO_MERCHANT.k2).toBe('Krypton 2');
+    expect(detectMerchant('any', { source: 'k2' })).toMatchObject({ merchant: 'Krypton 2', via: 'format' });
   });
 
   it('falls back to a learned pattern when the format is unknown', () => {

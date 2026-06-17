@@ -771,7 +771,7 @@ footer {
   </section>
 </main>
 <footer>
-  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 08:55 UTC
+  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 09:28 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -962,16 +962,17 @@ const ModMerchants = (function () {
 //      system (a new learned example is stored).
 
 const DEFAULT_MERCHANTS = [
-  'David Hitchen', 'Activa', 'Secil', 'LWA', 'PDMS', 'PHCHIC',
+  'David Hitchen', 'Activa', 'Secil', 'Krypton 2', 'PDMS', 'PHCHIC',
 ];
 
-// Seeded knowledge: parser source -> merchant. (k2 / "ORDER #" is intentionally
-// left out — it's learned from the first correction.)
+// Seeded knowledge: parser source -> merchant. The k2 / "ORDER #" format is
+// Krypton 2 (formerly "LWA"); its PDFs even print "Krypton 2.0".
 const SOURCE_TO_MERCHANT = {
   activa: 'Activa',
   dh: 'David Hitchen',
   pdms: 'PDMS',
   secil: 'Secil',
+  k2: 'Krypton 2',
 };
 
 // Only generic glue words are filtered — the template label words
@@ -1288,6 +1289,28 @@ function orderNumberFor(date, seq) {
   return `${dateCompact(date)}-${seq}`;
 }
 
+// "01062026" — compact date with a 4-digit year, for order-number prefixes.
+function dateCompact4(date) {
+  return `${pad2(date.getDate())}${pad2(date.getMonth() + 1)}${date.getFullYear()}`;
+}
+
+function isActivaMerchant(merchant) {
+  return String(merchant || '').trim().toLowerCase() === 'activa';
+}
+
+// Order-number strategy by merchant:
+//  - Activa:  ddmmyyyy-<PDF order number>  (date-linked; updates with the Date)
+//  - others:  <PDF order number>           (no date prefix)
+// When the PDF carries no order number, Activa falls back to just the date and
+// other merchants to an empty string (filled in manually).
+function orderNumberForMerchant(merchant, orderId, date) {
+  const id = String(orderId || '').trim();
+  if (isActivaMerchant(merchant)) {
+    return id ? `${dateCompact4(date)}-${id}` : dateCompact4(date);
+  }
+  return id;
+}
+
 // yyyy-mm-dd for <input type="date">
 function toISODate(date) {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
@@ -1345,7 +1368,7 @@ function buildTrackingRow(order, rowIndex, date = new Date()) {
     day: weekdayName(date),
     date: formatDateDDMMYY(date),
     isoDate: toISODate(date),
-    orderNumber: orderNumberFor(date, rowIndex + 1),
+    orderNumber: orderNumberForMerchant(order.merchant, order.orderId, date),
     trackingNumber: '',
     product: products.map((p) => p.label).join(', '),
     quantity: products.map((p) => p.qty).join(','),
@@ -1375,7 +1398,7 @@ function trackingRowToCells(row) {
   return TRACKING_KEYS.map((k) => row[k] ?? '');
 }
 
-  return { weekdayName, fromWhomFor, formatDateDDMMYY, dateCompact, orderNumberFor, toISODate, fromISODate, setWeekdayWithinWeek, parseProductLines, buildTrackingRow, trackingRowToCells, TRACKING_HEADERS, TRACKING_KEYS, ACCOUNTS, WEEKDAYS };
+  return { weekdayName, fromWhomFor, formatDateDDMMYY, dateCompact, orderNumberFor, dateCompact4, isActivaMerchant, orderNumberForMerchant, toISODate, fromISODate, setWeekdayWithinWeek, parseProductLines, buildTrackingRow, trackingRowToCells, TRACKING_HEADERS, TRACKING_KEYS, ACCOUNTS, WEEKDAYS };
 })();
 
 // === trackingStore.js ===
@@ -1645,6 +1668,10 @@ function parse(text) {
   const start = lines.findIndex((l) => /^Shipping Address:/i.test(l));
   if (start === -1) return null;
 
+  // Order number printed in the PDF, e.g. "ORDER 1".
+  const idMatch = text.match(/^ORDER\s*#?\s*(\d+)\b/im);
+  const orderId = idMatch ? idMatch[1] : '';
+
   const block = [];
   for (let i = start + 1; i < lines.length; i++) {
     const line = lines[i];
@@ -1699,7 +1726,7 @@ function parse(text) {
 
   return {
     source: 'activa',
-    orderId: '',
+    orderId,
     recipient: {
       name,
       line1,
@@ -1903,7 +1930,9 @@ function detect(text) {
 }
 
 function findValueAfter(text, label) {
-  const sameLine = new RegExp(`^\\s*${label}\\s{2,}([^\\n]+)$`, 'im');
+  // The live pdfReader collapses runs of spaces to a single space, so a
+  // same-line "Label value" pair is separated by one space (not many).
+  const sameLine = new RegExp(`^\\s*${label}\\s+([^\\n]+)$`, 'im');
   const m1 = text.match(sameLine);
   if (m1 && m1[1].trim()) return m1[1].trim();
   const nextLines = new RegExp(`${label}\\s*\\n+\\s*([^\\n]+)`, 'i');
@@ -2115,9 +2144,10 @@ const buildTrackingRow = ModTrackingRow.buildTrackingRow;
 const trackingRowToCells = ModTrackingRow.trackingRowToCells;
 const parseProductLines = ModTrackingRow.parseProductLines;
 const formatDateDDMMYY = ModTrackingRow.formatDateDDMMYY;
-const dateCompact = ModTrackingRow.dateCompact;
 const weekdayName = ModTrackingRow.weekdayName;
-const orderNumberFor = ModTrackingRow.orderNumberFor;
+const dateCompact4 = ModTrackingRow.dateCompact4;
+const isActivaMerchant = ModTrackingRow.isActivaMerchant;
+const orderNumberForMerchant = ModTrackingRow.orderNumberForMerchant;
 const setWeekdayWithinWeek = ModTrackingRow.setWeekdayWithinWeek;
 const toISODate = ModTrackingRow.toISODate;
 const fromISODate = ModTrackingRow.fromISODate;
@@ -2238,7 +2268,9 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   // per TRACKING_HEADERS entry (no per-row Actions column — actions live in the
   // toolbar above each table).
   const TRACKING_SELECT_WIDTH = 3;
-  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 7, 5, 7, 6, 6, 6, 5, 6];
+  // Widths align with TRACKING_HEADERS. "Delivered on" (index 11) is wider so the
+  // date is readable; the columns after it are a touch narrower to make room.
+  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 10, 7, 7, 6, 4, 6, 5, 5, 5, 4, 6];
 
   const headers = HEADER_ROW();
   let orders = [];
@@ -2387,17 +2419,12 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
           setStatus(`${file.name}: format not recognised.`, 'err');
           continue;
         }
-        // One order number per PDF: orders in the same file share it; a new
-        // file consumes the next daily number. Assigned lazily so a file whose
-        // orders are all duplicates doesn't burn a number.
-        let fileOrderNumber = null;
         for (const order of parsed) {
           const product = detectProduct(order.productText) || detectProduct(text);
           const md = detectMerchant(text, { source: order.source, learned: learnedPatterns });
           const dedupKey = `${hashText(text)}|${order.orderId || (order.recipient && order.recipient.name) || ''}`;
           // Skip an identical order already loaded this session (no dup cards).
           if (orders.some((o) => o.dedupKey === dedupKey)) { skipped += 1; continue; }
-          if (!fileOrderNumber) fileOrderNumber = orderNumberFor(today, nextOrderSeq(dateCompact(today)));
           orders.push({
             fileName: file.name,
             source: order.source,
@@ -2408,7 +2435,6 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
             orderId: order.orderId || '',
             text,
             dedupKey,
-            orderNumber: fileOrderNumber,
             merchant: md ? md.merchant : '',
             merchantVia: md ? md.via : '',
           });
@@ -2520,11 +2546,14 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       mEmpty.value = '';
       mEmpty.textContent = '— merchant —';
       merchSel.appendChild(mEmpty);
-      for (const m of merchantsList) {
+      const merchOptions = merchantsList.map((m) => m.name);
+      // Show the detected merchant even if it isn't in the saved list yet.
+      if (o.merchant && !merchOptions.includes(o.merchant)) merchOptions.push(o.merchant);
+      for (const name of merchOptions) {
         const opt = document.createElement('option');
-        opt.value = m.name;
-        opt.textContent = m.name;
-        if (o.merchant === m.name) opt.selected = true;
+        opt.value = name;
+        opt.textContent = name;
+        if (o.merchant === name) opt.selected = true;
         merchSel.appendChild(opt);
       }
       merchSel.addEventListener('change', () => {
@@ -2934,6 +2963,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       const list = await store.list();
       if (list && list.length) {
         merchantsList = list;
+        await ensureKrypton2(store);
       } else {
         // Seed the defaults into the store on first run.
         merchantsList = [];
@@ -2949,6 +2979,22 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     renderMerchants();
     renderRows();
     renderStock();
+  }
+
+  // "LWA" is the old name for Krypton 2. On an existing merchant list, rename it
+  // (or add Krypton 2 if neither is present) so detection + the dropdowns match.
+  async function ensureKrypton2(store) {
+    if (merchantsList.some((m) => m.name === 'Krypton 2')) return;
+    const lwa = merchantsList.find((m) => m.name === 'LWA');
+    try {
+      if (lwa) {
+        lwa.name = 'Krypton 2';
+        if (lwa.id) await store.update(lwa.id, { name: 'Krypton 2' });
+      } else {
+        const saved = await store.save({ name: 'Krypton 2' });
+        merchantsList.push(saved);
+      }
+    } catch {}
   }
 
   async function loadLearnedPatterns() {
@@ -3601,14 +3647,6 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     if (trackAutosave) trackAutosave.checked = autosaveOn('rows');
   }
 
-  // Persistent daily order-number counter (ddmmyy-N), shared via settings/D1,
-  // so each new PDF gets a distinct number for that day.
-  function nextOrderSeq(compact) {
-    const key = `orderseq_${compact}`;
-    const next = toNum(getSetting(key, '0')) + 1;
-    setSetting(key, String(next));
-    return next;
-  }
   // Debounced autosave timers keyed by the row/order object.
   const autosaveTimers = new WeakMap();
   function scheduleAutosave(obj, fn) {
@@ -3647,13 +3685,12 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     const today = new Date();
     trackingRows = orders.map((o, idx) => {
       const row = buildTrackingRow(
-        { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant },
+        { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant, orderId: o.orderId },
         idx,
         today
       );
       row._origin = 'order';
       row.dedupKey = o.dedupKey || '';
-      if (o.orderNumber) row.orderNumber = o.orderNumber; // keep the assigned daily number
       return row;
     });
   }
@@ -4286,13 +4323,17 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     row.isoDate = toISODate(date);
     row.date = formatDateDDMMYY(date);
     row.day = weekdayName(date);
-    // Re-derive the order number only if the user hasn't manually overridden it.
-    const seqMatch = String(row.orderNumber).match(/-(\d+)\s*$/);
-    const seq = seqMatch ? seqMatch[1] : '1';
-    row.orderNumber = orderNumberFor(date, seq);
+    // Only Activa order numbers carry a date prefix (ddmmyyyy-<id>), so only
+    // they re-derive when the Date changes. Other merchants use the PDF order
+    // number verbatim and are left untouched.
+    if (isActivaMerchant(row.merchant)) {
+      const dash = String(row.orderNumber).indexOf('-');
+      const suffix = dash >= 0 ? String(row.orderNumber).slice(dash + 1) : '';
+      row.orderNumber = suffix ? `${dateCompact4(date)}-${suffix}` : dateCompact4(date);
+      if (tdMap.orderNumber) tdMap.orderNumber.value = row.orderNumber;
+    }
     if (tdMap.day) tdMap.day.value = row.day;
     if (tdMap.date && !fromCalendar) tdMap.date.value = row.isoDate;
-    if (tdMap.orderNumber) tdMap.orderNumber.value = row.orderNumber;
   }
 
   async function saveRow(row, { silent = false } = {}) {

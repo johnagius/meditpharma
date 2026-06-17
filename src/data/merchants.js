@@ -8,16 +8,17 @@
 //      system (a new learned example is stored).
 
 export const DEFAULT_MERCHANTS = [
-  'David Hitchen', 'Activa', 'Secil', 'LWA', 'PDMS', 'PHCHIC',
+  'David Hitchen', 'Activa', 'Secil', 'Krypton 2', 'PDMS', 'PHCHIC',
 ];
 
-// Seeded knowledge: parser source -> merchant. (k2 / "ORDER #" is intentionally
-// left out — it's learned from the first correction.)
+// Seeded knowledge: parser source -> merchant. The k2 / "ORDER #" format is
+// Krypton 2 (formerly "LWA"); its PDFs even print "Krypton 2.0".
 export const SOURCE_TO_MERCHANT = {
   activa: 'Activa',
   dh: 'David Hitchen',
   pdms: 'PDMS',
   secil: 'Secil',
+  k2: 'Krypton 2',
 };
 
 // Only generic glue words are filtered — the template label words
