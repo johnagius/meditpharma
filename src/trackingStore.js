@@ -36,6 +36,7 @@ export const SETTINGS_FIELDS = ['key', 'value', 'dedupKey'];
 
 const FIELDS_BY_RESOURCE = {
   rows: TRACKING_FIELDS,
+  master: TRACKING_FIELDS,
   fedex: FEDEX_FIELDS,
   products: PRODUCT_FIELDS,
   hscodes: HSCODE_FIELDS,

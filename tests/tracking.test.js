@@ -308,4 +308,29 @@ describe('createStore (localStorage backend)', () => {
     await api.save({ cells });
     expect(calls[0].url).toBe('https://x.workers.dev/api/fedex');
   });
+
+  it('supports a separate master resource (same shape as tracking, own path)', async () => {
+    const storage = fakeStorage();
+    const master = createStore({ storage, resource: 'master' });
+    const saved = await master.save({ orderNumber: '010626-1', deliveryStatus: 'Delivered', dedupKey: 'm|1' });
+    expect(saved.id).toBe(1);
+    expect(saved.deliveryStatus).toBe('Delivered');
+    // Re-saving the same dedupKey updates (upsert), not duplicates.
+    await master.save({ orderNumber: '010626-1', client: 'Jane', dedupKey: 'm|1' });
+    const all = await master.list();
+    expect(all).toHaveLength(1);
+    expect(all[0].client).toBe('Jane');
+    // Tracking rows are a different bucket entirely.
+    const rows = createStore({ storage, resource: 'rows' });
+    expect(await rows.list()).toHaveLength(0);
+
+    const calls = [];
+    const api = createStore({
+      baseUrl: 'https://x.workers.dev',
+      fetchImpl: async (url) => { calls.push(url); return { ok: true, json: async () => ({ id: 9 }) }; },
+      resource: 'master',
+    });
+    await api.save({ orderNumber: 'x' });
+    expect(calls[0]).toBe('https://x.workers.dev/api/master');
+  });
 });

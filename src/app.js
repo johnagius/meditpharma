@@ -29,7 +29,7 @@ import {
   toISODate,
   fromISODate,
 } from './trackingRow.js';
-import { createStore } from './trackingStore.js';
+import { createStore, TRACKING_FIELDS } from './trackingStore.js';
 import { DEFAULT_MERCHANTS, SOURCE_TO_MERCHANT, detectMerchant, learnExample } from './data/merchants.js';
 import { currentStock, suggestItemId, movementDedupKey, movementsToRows, toNum } from './data/stock.js';
 
@@ -83,6 +83,31 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const bmSelCount = document.getElementById('bm-sel-count');
   const bmDownload = document.getElementById('btn-bm-download');
   const bmPaste = document.getElementById('btn-bm-paste');
+
+  // Today tab (today's tracking rows, promote to master)
+  const todayHead = document.getElementById('today-head');
+  const todayBody = document.getElementById('today-body');
+  const todayStatus = document.getElementById('today-status');
+  const todayFilter = document.getElementById('today-filter');
+  const todaySaveSel = document.getElementById('btn-today-save-sel');
+  const todayCopySel = document.getElementById('btn-today-copy-sel');
+  const todayDeleteSel = document.getElementById('btn-today-delete-sel');
+  const todaySelCount = document.getElementById('today-sel-count');
+  const todayRefresh = document.getElementById('btn-today-refresh');
+  const todayPromote = document.getElementById('btn-today-promote');
+
+  // Master List tab (separate master table)
+  const masterHead = document.getElementById('master-head');
+  const masterBody = document.getElementById('master-body');
+  const masterStatus = document.getElementById('master-status');
+  const masterFilter = document.getElementById('master-filter');
+  const masterSaveSel = document.getElementById('btn-master-save-sel');
+  const masterCopySel = document.getElementById('btn-master-copy-sel');
+  const masterDeleteSel = document.getElementById('btn-master-delete-sel');
+  const masterSelCount = document.getElementById('master-sel-count');
+  const masterRefresh = document.getElementById('btn-master-refresh');
+  const masterDownload = document.getElementById('btn-master-download');
+  const masterPaste = document.getElementById('btn-master-paste');
 
   // Catalog tab (products + HS codes)
   const productsHead = document.getElementById('products-head');
@@ -168,6 +193,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   let orders = [];
   let trackingRows = [];
   let savedTrackingRows = [];
+  let masterRows = [];
   let savedFedexRows = [];
   let merchantsList = DEFAULT_MERCHANTS.map((name) => ({ name }));
   let learnedPatterns = [];
@@ -209,6 +235,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // getter/setter for its row array, and its current filter text.
   const TRACK_VIEWS = {
     builder: {
+      resource: 'rows',
       head: trackingHead, body: trackingBody, status: trackingStatus,
       getRows: () => trackingRows,
       setRows: (r) => { trackingRows = r; },
@@ -218,6 +245,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
     },
     saved: {
+      resource: 'rows',
       head: savedTrackHead, body: savedTrackBody, status: savedTrackStatus,
       getRows: () => savedTrackingRows,
       setRows: (r) => { savedTrackingRows = r; },
@@ -230,6 +258,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     // and a date scope (today / all / range). Saving here hits the same store,
     // so the Saved Tracking tab stays in sync.
     bymerchant: {
+      resource: 'rows',
       head: bmHead, body: bmBody, status: bmStatus,
       getRows: () => savedTrackingRows,
       setRows: (r) => { savedTrackingRows = r; },
@@ -239,6 +268,29 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
       merchant: '', dateMode: 'all', rangeFrom: '', rangeTo: '',
       prefilter: (r) => bmRowMatches(TRACK_VIEWS.bymerchant, r),
+    },
+    // "Today": today's saved tracking rows (working set), promoted to master.
+    today: {
+      resource: 'rows',
+      head: todayHead, body: todayBody, status: todayStatus,
+      getRows: () => savedTrackingRows,
+      setRows: (r) => { savedTrackingRows = r; },
+      filter: todayFilter, saveBtn: todaySaveSel, copyBtn: todayCopySel,
+      deleteBtn: todayDeleteSel, count: todaySelCount,
+      dash: document.getElementById('today-dashboard'),
+      filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
+      prefilter: (r) => (r.isoDate || '') === toISODate(new Date()),
+    },
+    // "Master List": a separate, persistent table (its own store/resource).
+    master: {
+      resource: 'master',
+      head: masterHead, body: masterBody, status: masterStatus,
+      getRows: () => masterRows,
+      setRows: (r) => { masterRows = r; },
+      filter: masterFilter, saveBtn: masterSaveSel, copyBtn: masterCopySel,
+      deleteBtn: masterDeleteSel, count: masterSelCount,
+      dash: document.getElementById('master-dashboard'),
+      filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
     },
   };
 
@@ -744,6 +796,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     ['tab-fedex', 'panel-fedex'],
     ['tab-tracking', 'panel-tracking'],
     ['tab-bymerchant', 'panel-bymerchant'],
+    ['tab-today', 'panel-today'],
+    ['tab-master', 'panel-master'],
     ['tab-stock', 'panel-stock'],
     ['tab-catalog', 'panel-catalog'],
     ['tab-merchants', 'panel-merchants'],
@@ -759,6 +813,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (panelId === 'panel-fedex') loadSavedFedex();
     else if (panelId === 'panel-tracking') loadSavedRows();
     else if (panelId === 'panel-bymerchant') loadSavedRows().then(renderMerchantSubtabs);
+    else if (panelId === 'panel-today') loadSavedRows();
+    else if (panelId === 'panel-master') loadMaster();
     else if (panelId === 'panel-stock') loadStock();
     else if (panelId === 'panel-catalog') loadCatalog();
   }
@@ -1754,7 +1810,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     };
     if (bmFrom) bmFrom.addEventListener('change', onRange);
     if (bmTo) bmTo.addEventListener('change', onRange);
-    if (bmPaste) bmPaste.addEventListener('click', () => openPasteModal(bmStatus));
+    if (bmPaste) bmPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.bymerchant));
     if (bmRefresh) bmRefresh.addEventListener('click', () => { loadSavedRows().then(renderMerchantSubtabs); });
     if (bmDownload) {
       bmDownload.addEventListener('click', () => {
@@ -1776,6 +1832,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     wireTrackToolbar(TRACK_VIEWS.builder);
     wireTrackToolbar(TRACK_VIEWS.saved);
     initByMerchant();
+    initToday();
+    initMaster();
     if (trackApiUrl) trackApiUrl.value = getApiBase();
     updateBackendBadge();
     if (trackSaveUrl) {
@@ -1791,7 +1849,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         );
       });
     }
-    if (savedTrackPaste) savedTrackPaste.addEventListener('click', () => openPasteModal(savedTrackStatus));
+    if (savedTrackPaste) savedTrackPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.saved));
     if (savedTrackRefresh) savedTrackRefresh.addEventListener('click', loadSavedRows);
     if (savedTrackDownload) {
       savedTrackDownload.addEventListener('click', () => {
@@ -2035,6 +2093,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     renderTrackingRows(TRACK_VIEWS.builder);
     renderTrackingRows(TRACK_VIEWS.saved);
     renderTrackingRows(TRACK_VIEWS.bymerchant);
+    renderTrackingRows(TRACK_VIEWS.today);
+    renderTrackingRows(TRACK_VIEWS.master);
   }
 
   // The displayed text of a column cell (used for the toolbar filter + column
@@ -2418,7 +2478,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       // Ticking the select checkbox isn't an edit — don't trigger a save for it.
       const queueAutosave = (e) => {
         if (e && e.target && e.target.classList.contains('row-select')) return;
-        if (autosaveOn('rows')) scheduleAutosave(row, () => saveRow(row, { silent: true }));
+        if (autosaveOn('rows')) scheduleAutosave(row, () => saveRow(row, { silent: true, resource: view.resource || 'rows' }));
       };
       tr.addEventListener('input', queueAutosave);
       tr.addEventListener('change', queueAutosave);
@@ -2433,7 +2493,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   async function saveSelected(view) {
     const sel = selectedRows(view);
     if (!sel.length) return;
-    const store = makeStore('rows');
+    const store = makeStore(view.resource || 'rows');
     let ok = 0;
     let fail = 0;
     for (const row of sel) {
@@ -2469,13 +2529,17 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     const sel = selectedRows(view);
     if (!sel.length) return;
     if (typeof window.confirm === 'function' && !window.confirm(`Delete ${sel.length} selected row(s)?`)) return;
-    const store = makeStore('rows');
+    const store = makeStore(view.resource || 'rows');
     for (const row of sel) {
       if (row.id) { try { await store.remove(row.id); } catch {} } // eslint-disable-line no-await-in-loop
     }
     const selSet = new Set(sel);
-    trackingRows = trackingRows.filter((r) => !selSet.has(r));
-    savedTrackingRows = savedTrackingRows.filter((r) => !selSet.has(r));
+    if ((view.resource || 'rows') === 'master') {
+      masterRows = masterRows.filter((r) => !selSet.has(r));
+    } else {
+      trackingRows = trackingRows.filter((r) => !selSet.has(r));
+      savedTrackingRows = savedTrackingRows.filter((r) => !selSet.has(r));
+    }
     setStatusInto(view.status, `Deleted ${sel.length} row(s).`, 'ok');
     renderAllTracking();
   }
@@ -2513,13 +2577,15 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     }
   }
 
-  // Parse a copied Excel table and upsert it into the saved rows, matching
-  // existing rows by Order number (others are added). Writes to the same store,
-  // so Saved Tracking and By Merchant both reflect the changes.
-  async function applyPaste(text, statusEl) {
+  // Parse a copied Excel table and upsert it into the view's rows, matching
+  // existing rows by Order number (others are added). Writes to the view's own
+  // store/resource, so the right dataset is updated.
+  async function applyPaste(text, view) {
+    const statusEl = view.status;
     const parsed = parsePastedTable(text);
     if (!parsed.length) { setStatusInto(statusEl, 'Nothing to paste — copy the table from Excel first.', 'warn'); return; }
-    const store = makeStore('rows');
+    const store = makeStore(view.resource || 'rows');
+    const rows = view.getRows();
     let updated = 0;
     let added = 0;
     let skipped = 0;
@@ -2527,8 +2593,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     for (const fields of parsed) {
       const on = String(fields.orderNumber || '').trim();
       if (!on) { skipped += 1; continue; } // need a key to match/insert
-      let target = savedTrackingRows.find((r) => String(r.orderNumber || '').trim() === on);
-      if (target) { updated += 1; } else { target = blankTrackingRow(); savedTrackingRows.push(target); added += 1; }
+      let target = rows.find((r) => String(r.orderNumber || '').trim() === on);
+      if (target) { updated += 1; } else { target = blankTrackingRow(); rows.push(target); added += 1; }
       Object.assign(target, fields);
       applyPastedDates(target, fields);
       try {
@@ -2548,7 +2614,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   }
 
   // Modal with a textarea for the user to paste the copied Excel table into.
-  function openPasteModal(statusEl) {
+  function openPasteModal(view) {
     const overlay = document.createElement('div');
     overlay.className = 'paste-overlay';
     const box = document.createElement('div');
@@ -2570,7 +2636,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     cancel.type = 'button';
     cancel.textContent = 'Cancel';
     const close = () => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
-    apply.addEventListener('click', () => { const v = ta.value; close(); applyPaste(v, statusEl); });
+    apply.addEventListener('click', () => { const v = ta.value; close(); applyPaste(v, view); });
     cancel.addEventListener('click', close);
     overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
     actions.appendChild(apply);
@@ -2602,8 +2668,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (tdMap.date && !fromCalendar) tdMap.date.value = row.isoDate;
   }
 
-  async function saveRow(row, { silent = false } = {}) {
-    const store = makeStore('rows');
+  async function saveRow(row, { silent = false, resource = 'rows' } = {}) {
+    const store = makeStore(resource);
     try {
       if (!silent) setTrackStatus(row.id ? `Overwriting id ${row.id}…` : 'Saving…');
       const saved = row.id ? await store.update(row.id, row) : await store.save(row);
@@ -2639,6 +2705,74 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       renderAllTracking();
     } catch (err) {
       status(`Load failed: ${err.message}`, 'err');
+    }
+  }
+
+  // Loads the Master List (its own table) into memory.
+  async function loadMaster() {
+    const store = makeStore('master');
+    const status = (m, l) => setStatusInto(masterStatus, m, l);
+    try {
+      status(`Loading master list from ${store.backend === 'd1' ? 'D1' : 'this browser'}…`);
+      const rows = await store.list();
+      masterRows = rows.map((s) => ({
+        ...s, isoDate: s.isoDate || '', deliveredOnIso: s.deliveredOnIso || '', _origin: 'master',
+      }));
+      mergeStatusesFromRows(masterRows);
+      status(`Loaded ${masterRows.length} master row(s).`, 'ok');
+      renderAllTracking();
+    } catch (err) {
+      status(`Load failed: ${err.message}`, 'err');
+    }
+  }
+
+  // A stable per-order key for upserting into the master list, so re-promoting
+  // an order updates its master record instead of duplicating it.
+  function masterKeyFor(row) {
+    return String(row.dedupKey || `${row.orderNumber || ''}|${row.date || ''}`);
+  }
+
+  // Promote today's rows (or the current selection) into the master list. Only
+  // the promoted orders are upserted; previously promoted master rows are left
+  // untouched.
+  async function promoteToMaster() {
+    const view = TRACK_VIEWS.today;
+    const selected = selectedRows(view);
+    const rows = selected.length ? selected : filteredRows(view);
+    if (!rows.length) { setStatusInto(todayStatus, 'No today rows to promote.', 'warn'); return; }
+    if (typeof window.confirm === 'function'
+      && !window.confirm(`Update the master list with ${rows.length} order(s)? Existing master records for these orders are overwritten; all other master rows are untouched.`)) return;
+    const store = makeStore('master');
+    let ok = 0;
+    let fail = 0;
+    for (const row of rows) {
+      const record = {};
+      for (const k of TRACKING_FIELDS) record[k] = row[k] ?? '';
+      record.dedupKey = masterKeyFor(row); // upsert key
+      try { await store.save(record); ok += 1; } catch { fail += 1; } // eslint-disable-line no-await-in-loop
+    }
+    setStatusInto(todayStatus, `Promoted ${ok} order(s) to the master list${fail ? `, ${fail} failed` : ''}.`, fail ? 'warn' : 'ok');
+    await loadMaster();
+  }
+
+  function initToday() {
+    renderTrackingHeader(TRACK_VIEWS.today);
+    wireTrackToolbar(TRACK_VIEWS.today);
+    if (todayRefresh) todayRefresh.addEventListener('click', loadSavedRows);
+    if (todayPromote) todayPromote.addEventListener('click', promoteToMaster);
+  }
+
+  function initMaster() {
+    renderTrackingHeader(TRACK_VIEWS.master);
+    wireTrackToolbar(TRACK_VIEWS.master);
+    if (masterRefresh) masterRefresh.addEventListener('click', loadMaster);
+    if (masterPaste) masterPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.master));
+    if (masterDownload) {
+      masterDownload.addEventListener('click', () => {
+        if (!masterRows.length) { setStatusInto(masterStatus, 'Nothing to download — Refresh first.', 'warn'); return; }
+        const aoa = [TRACKING_HEADERS].concat(masterRows.map((r) => trackingRowToCells(r)));
+        downloadAoa(aoa, `Master_${dateStamp()}_${masterRows.length}rows.xlsx`, (m, l) => setStatusInto(masterStatus, m, l));
+      });
     }
   }
 

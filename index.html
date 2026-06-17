@@ -702,6 +702,8 @@ button.mini { padding: 4px 8px; font-size: 11px; }
     <button class="tab" id="tab-fedex" data-panel="panel-fedex" type="button">Saved FedEx</button>
     <button class="tab" id="tab-tracking" data-panel="panel-tracking" type="button">Saved Tracking</button>
     <button class="tab" id="tab-bymerchant" data-panel="panel-bymerchant" type="button">By Merchant</button>
+    <button class="tab" id="tab-today" data-panel="panel-today" type="button">Today</button>
+    <button class="tab" id="tab-master" data-panel="panel-master" type="button">Master List</button>
     <button class="tab" id="tab-stock" data-panel="panel-stock" type="button">Stock</button>
     <button class="tab" id="tab-catalog" data-panel="panel-catalog" type="button">Catalog</button>
     <button class="tab" id="tab-merchants" data-panel="panel-merchants" type="button">Merchants</button>
@@ -830,6 +832,51 @@ button.mini { padding: 4px 8px; font-size: 11px; }
     </div>
   </section>
 
+  <section class="panel" id="panel-today">
+    <h2>Today's orders</h2>
+    <p class="panel-hint">Today's saved tracking rows. Check and fill everything, then <strong>Update master list</strong> to copy them into the Master List. This only adds/updates today's orders &mdash; previously promoted master rows are never touched.</p>
+    <div id="today-dashboard" class="status-dash"></div>
+    <div class="actions track-toolbar">
+      <input type="text" id="today-filter" class="filter-input" placeholder="Filter rows&hellip;">
+      <button id="btn-today-save-sel" class="primary" type="button" disabled>Save selected</button>
+      <button id="btn-today-copy-sel" type="button" disabled>Copy selected</button>
+      <button id="btn-today-delete-sel" class="danger" type="button" disabled>Delete selected</button>
+      <span id="today-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-today-promote" class="primary" type="button">Update master list &rarr;</button>
+      <button id="btn-today-refresh" type="button">Refresh</button>
+    </div>
+    <div id="today-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table id="today-table" class="track-table" aria-label="Today's orders">
+        <thead id="today-head"></thead>
+        <tbody id="today-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-master">
+    <h2>Master list</h2>
+    <p class="panel-hint">The master record of all orders, stored separately from the live tracking rows. Promote today's orders from the Today tab. Edit a cell, tick rows, then save/copy/delete. Click a column header to sort or filter.</p>
+    <div id="master-dashboard" class="status-dash"></div>
+    <div class="actions track-toolbar">
+      <input type="text" id="master-filter" class="filter-input" placeholder="Filter rows&hellip;">
+      <button id="btn-master-save-sel" class="primary" type="button" disabled>Save selected</button>
+      <button id="btn-master-copy-sel" type="button" disabled>Copy selected</button>
+      <button id="btn-master-delete-sel" class="danger" type="button" disabled>Delete selected</button>
+      <span id="master-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-master-paste" type="button">Paste from Excel</button>
+      <button id="btn-master-refresh" type="button">Refresh</button>
+      <button id="btn-master-download" type="button">Download all (xlsx)</button>
+    </div>
+    <div id="master-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table id="master-table" class="track-table" aria-label="Master list">
+        <thead id="master-head"></thead>
+        <tbody id="master-body"></tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="panel" id="panel-catalog">
     <h2>Catalog</h2>
     <p class="panel-hint">Products and HS codes used for detection and the FedEx/tracking output. Seeded from the built-in list and stored in the database. Use <strong>status</strong> (active / inactive / hold / withdrawn) instead of deleting, so stock movements aren't orphaned. New products auto-detect by name + keywords.</p>
@@ -942,7 +989,7 @@ button.mini { padding: 4px 8px; font-size: 11px; }
   </section>
 </main>
 <footer>
-  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 12:33 UTC
+  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 12:47 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -1860,6 +1907,7 @@ const SETTINGS_FIELDS = ['key', 'value', 'dedupKey'];
 
 const FIELDS_BY_RESOURCE = {
   rows: TRACKING_FIELDS,
+  master: TRACKING_FIELDS,
   fedex: FEDEX_FIELDS,
   products: PRODUCT_FIELDS,
   hscodes: HSCODE_FIELDS,
@@ -2626,6 +2674,7 @@ const setWeekdayWithinWeek = ModTrackingRow.setWeekdayWithinWeek;
 const toISODate = ModTrackingRow.toISODate;
 const fromISODate = ModTrackingRow.fromISODate;
 const createStore = ModTrackingStore.createStore;
+const TRACKING_FIELDS = ModTrackingStore.TRACKING_FIELDS;
 const DEFAULT_MERCHANTS = ModMerchants.DEFAULT_MERCHANTS;
 const SOURCE_TO_MERCHANT = ModMerchants.SOURCE_TO_MERCHANT;
 const detectMerchant = ModMerchants.detectMerchant;
@@ -2686,6 +2735,31 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   const bmSelCount = document.getElementById('bm-sel-count');
   const bmDownload = document.getElementById('btn-bm-download');
   const bmPaste = document.getElementById('btn-bm-paste');
+
+  // Today tab (today's tracking rows, promote to master)
+  const todayHead = document.getElementById('today-head');
+  const todayBody = document.getElementById('today-body');
+  const todayStatus = document.getElementById('today-status');
+  const todayFilter = document.getElementById('today-filter');
+  const todaySaveSel = document.getElementById('btn-today-save-sel');
+  const todayCopySel = document.getElementById('btn-today-copy-sel');
+  const todayDeleteSel = document.getElementById('btn-today-delete-sel');
+  const todaySelCount = document.getElementById('today-sel-count');
+  const todayRefresh = document.getElementById('btn-today-refresh');
+  const todayPromote = document.getElementById('btn-today-promote');
+
+  // Master List tab (separate master table)
+  const masterHead = document.getElementById('master-head');
+  const masterBody = document.getElementById('master-body');
+  const masterStatus = document.getElementById('master-status');
+  const masterFilter = document.getElementById('master-filter');
+  const masterSaveSel = document.getElementById('btn-master-save-sel');
+  const masterCopySel = document.getElementById('btn-master-copy-sel');
+  const masterDeleteSel = document.getElementById('btn-master-delete-sel');
+  const masterSelCount = document.getElementById('master-sel-count');
+  const masterRefresh = document.getElementById('btn-master-refresh');
+  const masterDownload = document.getElementById('btn-master-download');
+  const masterPaste = document.getElementById('btn-master-paste');
 
   // Catalog tab (products + HS codes)
   const productsHead = document.getElementById('products-head');
@@ -2771,6 +2845,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   let orders = [];
   let trackingRows = [];
   let savedTrackingRows = [];
+  let masterRows = [];
   let savedFedexRows = [];
   let merchantsList = DEFAULT_MERCHANTS.map((name) => ({ name }));
   let learnedPatterns = [];
@@ -2812,6 +2887,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   // getter/setter for its row array, and its current filter text.
   const TRACK_VIEWS = {
     builder: {
+      resource: 'rows',
       head: trackingHead, body: trackingBody, status: trackingStatus,
       getRows: () => trackingRows,
       setRows: (r) => { trackingRows = r; },
@@ -2821,6 +2897,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
     },
     saved: {
+      resource: 'rows',
       head: savedTrackHead, body: savedTrackBody, status: savedTrackStatus,
       getRows: () => savedTrackingRows,
       setRows: (r) => { savedTrackingRows = r; },
@@ -2833,6 +2910,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     // and a date scope (today / all / range). Saving here hits the same store,
     // so the Saved Tracking tab stays in sync.
     bymerchant: {
+      resource: 'rows',
       head: bmHead, body: bmBody, status: bmStatus,
       getRows: () => savedTrackingRows,
       setRows: (r) => { savedTrackingRows = r; },
@@ -2842,6 +2920,29 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
       merchant: '', dateMode: 'all', rangeFrom: '', rangeTo: '',
       prefilter: (r) => bmRowMatches(TRACK_VIEWS.bymerchant, r),
+    },
+    // "Today": today's saved tracking rows (working set), promoted to master.
+    today: {
+      resource: 'rows',
+      head: todayHead, body: todayBody, status: todayStatus,
+      getRows: () => savedTrackingRows,
+      setRows: (r) => { savedTrackingRows = r; },
+      filter: todayFilter, saveBtn: todaySaveSel, copyBtn: todayCopySel,
+      deleteBtn: todayDeleteSel, count: todaySelCount,
+      dash: document.getElementById('today-dashboard'),
+      filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
+      prefilter: (r) => (r.isoDate || '') === toISODate(new Date()),
+    },
+    // "Master List": a separate, persistent table (its own store/resource).
+    master: {
+      resource: 'master',
+      head: masterHead, body: masterBody, status: masterStatus,
+      getRows: () => masterRows,
+      setRows: (r) => { masterRows = r; },
+      filter: masterFilter, saveBtn: masterSaveSel, copyBtn: masterCopySel,
+      deleteBtn: masterDeleteSel, count: masterSelCount,
+      dash: document.getElementById('master-dashboard'),
+      filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
     },
   };
 
@@ -3347,6 +3448,8 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     ['tab-fedex', 'panel-fedex'],
     ['tab-tracking', 'panel-tracking'],
     ['tab-bymerchant', 'panel-bymerchant'],
+    ['tab-today', 'panel-today'],
+    ['tab-master', 'panel-master'],
     ['tab-stock', 'panel-stock'],
     ['tab-catalog', 'panel-catalog'],
     ['tab-merchants', 'panel-merchants'],
@@ -3362,6 +3465,8 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     if (panelId === 'panel-fedex') loadSavedFedex();
     else if (panelId === 'panel-tracking') loadSavedRows();
     else if (panelId === 'panel-bymerchant') loadSavedRows().then(renderMerchantSubtabs);
+    else if (panelId === 'panel-today') loadSavedRows();
+    else if (panelId === 'panel-master') loadMaster();
     else if (panelId === 'panel-stock') loadStock();
     else if (panelId === 'panel-catalog') loadCatalog();
   }
@@ -4357,7 +4462,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     };
     if (bmFrom) bmFrom.addEventListener('change', onRange);
     if (bmTo) bmTo.addEventListener('change', onRange);
-    if (bmPaste) bmPaste.addEventListener('click', () => openPasteModal(bmStatus));
+    if (bmPaste) bmPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.bymerchant));
     if (bmRefresh) bmRefresh.addEventListener('click', () => { loadSavedRows().then(renderMerchantSubtabs); });
     if (bmDownload) {
       bmDownload.addEventListener('click', () => {
@@ -4379,6 +4484,8 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     wireTrackToolbar(TRACK_VIEWS.builder);
     wireTrackToolbar(TRACK_VIEWS.saved);
     initByMerchant();
+    initToday();
+    initMaster();
     if (trackApiUrl) trackApiUrl.value = getApiBase();
     updateBackendBadge();
     if (trackSaveUrl) {
@@ -4394,7 +4501,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         );
       });
     }
-    if (savedTrackPaste) savedTrackPaste.addEventListener('click', () => openPasteModal(savedTrackStatus));
+    if (savedTrackPaste) savedTrackPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.saved));
     if (savedTrackRefresh) savedTrackRefresh.addEventListener('click', loadSavedRows);
     if (savedTrackDownload) {
       savedTrackDownload.addEventListener('click', () => {
@@ -4638,6 +4745,8 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     renderTrackingRows(TRACK_VIEWS.builder);
     renderTrackingRows(TRACK_VIEWS.saved);
     renderTrackingRows(TRACK_VIEWS.bymerchant);
+    renderTrackingRows(TRACK_VIEWS.today);
+    renderTrackingRows(TRACK_VIEWS.master);
   }
 
   // The displayed text of a column cell (used for the toolbar filter + column
@@ -5021,7 +5130,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       // Ticking the select checkbox isn't an edit — don't trigger a save for it.
       const queueAutosave = (e) => {
         if (e && e.target && e.target.classList.contains('row-select')) return;
-        if (autosaveOn('rows')) scheduleAutosave(row, () => saveRow(row, { silent: true }));
+        if (autosaveOn('rows')) scheduleAutosave(row, () => saveRow(row, { silent: true, resource: view.resource || 'rows' }));
       };
       tr.addEventListener('input', queueAutosave);
       tr.addEventListener('change', queueAutosave);
@@ -5036,7 +5145,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   async function saveSelected(view) {
     const sel = selectedRows(view);
     if (!sel.length) return;
-    const store = makeStore('rows');
+    const store = makeStore(view.resource || 'rows');
     let ok = 0;
     let fail = 0;
     for (const row of sel) {
@@ -5072,13 +5181,17 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     const sel = selectedRows(view);
     if (!sel.length) return;
     if (typeof window.confirm === 'function' && !window.confirm(`Delete ${sel.length} selected row(s)?`)) return;
-    const store = makeStore('rows');
+    const store = makeStore(view.resource || 'rows');
     for (const row of sel) {
       if (row.id) { try { await store.remove(row.id); } catch {} } // eslint-disable-line no-await-in-loop
     }
     const selSet = new Set(sel);
-    trackingRows = trackingRows.filter((r) => !selSet.has(r));
-    savedTrackingRows = savedTrackingRows.filter((r) => !selSet.has(r));
+    if ((view.resource || 'rows') === 'master') {
+      masterRows = masterRows.filter((r) => !selSet.has(r));
+    } else {
+      trackingRows = trackingRows.filter((r) => !selSet.has(r));
+      savedTrackingRows = savedTrackingRows.filter((r) => !selSet.has(r));
+    }
     setStatusInto(view.status, `Deleted ${sel.length} row(s).`, 'ok');
     renderAllTracking();
   }
@@ -5116,13 +5229,15 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     }
   }
 
-  // Parse a copied Excel table and upsert it into the saved rows, matching
-  // existing rows by Order number (others are added). Writes to the same store,
-  // so Saved Tracking and By Merchant both reflect the changes.
-  async function applyPaste(text, statusEl) {
+  // Parse a copied Excel table and upsert it into the view's rows, matching
+  // existing rows by Order number (others are added). Writes to the view's own
+  // store/resource, so the right dataset is updated.
+  async function applyPaste(text, view) {
+    const statusEl = view.status;
     const parsed = parsePastedTable(text);
     if (!parsed.length) { setStatusInto(statusEl, 'Nothing to paste — copy the table from Excel first.', 'warn'); return; }
-    const store = makeStore('rows');
+    const store = makeStore(view.resource || 'rows');
+    const rows = view.getRows();
     let updated = 0;
     let added = 0;
     let skipped = 0;
@@ -5130,8 +5245,8 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     for (const fields of parsed) {
       const on = String(fields.orderNumber || '').trim();
       if (!on) { skipped += 1; continue; } // need a key to match/insert
-      let target = savedTrackingRows.find((r) => String(r.orderNumber || '').trim() === on);
-      if (target) { updated += 1; } else { target = blankTrackingRow(); savedTrackingRows.push(target); added += 1; }
+      let target = rows.find((r) => String(r.orderNumber || '').trim() === on);
+      if (target) { updated += 1; } else { target = blankTrackingRow(); rows.push(target); added += 1; }
       Object.assign(target, fields);
       applyPastedDates(target, fields);
       try {
@@ -5151,7 +5266,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   }
 
   // Modal with a textarea for the user to paste the copied Excel table into.
-  function openPasteModal(statusEl) {
+  function openPasteModal(view) {
     const overlay = document.createElement('div');
     overlay.className = 'paste-overlay';
     const box = document.createElement('div');
@@ -5173,7 +5288,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     cancel.type = 'button';
     cancel.textContent = 'Cancel';
     const close = () => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
-    apply.addEventListener('click', () => { const v = ta.value; close(); applyPaste(v, statusEl); });
+    apply.addEventListener('click', () => { const v = ta.value; close(); applyPaste(v, view); });
     cancel.addEventListener('click', close);
     overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
     actions.appendChild(apply);
@@ -5205,8 +5320,8 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     if (tdMap.date && !fromCalendar) tdMap.date.value = row.isoDate;
   }
 
-  async function saveRow(row, { silent = false } = {}) {
-    const store = makeStore('rows');
+  async function saveRow(row, { silent = false, resource = 'rows' } = {}) {
+    const store = makeStore(resource);
     try {
       if (!silent) setTrackStatus(row.id ? `Overwriting id ${row.id}…` : 'Saving…');
       const saved = row.id ? await store.update(row.id, row) : await store.save(row);
@@ -5242,6 +5357,74 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       renderAllTracking();
     } catch (err) {
       status(`Load failed: ${err.message}`, 'err');
+    }
+  }
+
+  // Loads the Master List (its own table) into memory.
+  async function loadMaster() {
+    const store = makeStore('master');
+    const status = (m, l) => setStatusInto(masterStatus, m, l);
+    try {
+      status(`Loading master list from ${store.backend === 'd1' ? 'D1' : 'this browser'}…`);
+      const rows = await store.list();
+      masterRows = rows.map((s) => ({
+        ...s, isoDate: s.isoDate || '', deliveredOnIso: s.deliveredOnIso || '', _origin: 'master',
+      }));
+      mergeStatusesFromRows(masterRows);
+      status(`Loaded ${masterRows.length} master row(s).`, 'ok');
+      renderAllTracking();
+    } catch (err) {
+      status(`Load failed: ${err.message}`, 'err');
+    }
+  }
+
+  // A stable per-order key for upserting into the master list, so re-promoting
+  // an order updates its master record instead of duplicating it.
+  function masterKeyFor(row) {
+    return String(row.dedupKey || `${row.orderNumber || ''}|${row.date || ''}`);
+  }
+
+  // Promote today's rows (or the current selection) into the master list. Only
+  // the promoted orders are upserted; previously promoted master rows are left
+  // untouched.
+  async function promoteToMaster() {
+    const view = TRACK_VIEWS.today;
+    const selected = selectedRows(view);
+    const rows = selected.length ? selected : filteredRows(view);
+    if (!rows.length) { setStatusInto(todayStatus, 'No today rows to promote.', 'warn'); return; }
+    if (typeof window.confirm === 'function'
+      && !window.confirm(`Update the master list with ${rows.length} order(s)? Existing master records for these orders are overwritten; all other master rows are untouched.`)) return;
+    const store = makeStore('master');
+    let ok = 0;
+    let fail = 0;
+    for (const row of rows) {
+      const record = {};
+      for (const k of TRACKING_FIELDS) record[k] = row[k] ?? '';
+      record.dedupKey = masterKeyFor(row); // upsert key
+      try { await store.save(record); ok += 1; } catch { fail += 1; } // eslint-disable-line no-await-in-loop
+    }
+    setStatusInto(todayStatus, `Promoted ${ok} order(s) to the master list${fail ? `, ${fail} failed` : ''}.`, fail ? 'warn' : 'ok');
+    await loadMaster();
+  }
+
+  function initToday() {
+    renderTrackingHeader(TRACK_VIEWS.today);
+    wireTrackToolbar(TRACK_VIEWS.today);
+    if (todayRefresh) todayRefresh.addEventListener('click', loadSavedRows);
+    if (todayPromote) todayPromote.addEventListener('click', promoteToMaster);
+  }
+
+  function initMaster() {
+    renderTrackingHeader(TRACK_VIEWS.master);
+    wireTrackToolbar(TRACK_VIEWS.master);
+    if (masterRefresh) masterRefresh.addEventListener('click', loadMaster);
+    if (masterPaste) masterPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.master));
+    if (masterDownload) {
+      masterDownload.addEventListener('click', () => {
+        if (!masterRows.length) { setStatusInto(masterStatus, 'Nothing to download — Refresh first.', 'warn'); return; }
+        const aoa = [TRACKING_HEADERS].concat(masterRows.map((r) => trackingRowToCells(r)));
+        downloadAoa(aoa, `Master_${dateStamp()}_${masterRows.length}rows.xlsx`, (m, l) => setStatusInto(masterStatus, m, l));
+      });
     }
   }
 

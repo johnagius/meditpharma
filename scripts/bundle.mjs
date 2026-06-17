@@ -198,6 +198,8 @@ ${css}
     <button class="tab" id="tab-fedex" data-panel="panel-fedex" type="button">Saved FedEx</button>
     <button class="tab" id="tab-tracking" data-panel="panel-tracking" type="button">Saved Tracking</button>
     <button class="tab" id="tab-bymerchant" data-panel="panel-bymerchant" type="button">By Merchant</button>
+    <button class="tab" id="tab-today" data-panel="panel-today" type="button">Today</button>
+    <button class="tab" id="tab-master" data-panel="panel-master" type="button">Master List</button>
     <button class="tab" id="tab-stock" data-panel="panel-stock" type="button">Stock</button>
     <button class="tab" id="tab-catalog" data-panel="panel-catalog" type="button">Catalog</button>
     <button class="tab" id="tab-merchants" data-panel="panel-merchants" type="button">Merchants</button>
@@ -322,6 +324,51 @@ ${css}
       <table id="bymerchant-table" class="track-table" aria-label="Tracking by merchant">
         <thead id="bymerchant-head"></thead>
         <tbody id="bymerchant-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-today">
+    <h2>Today's orders</h2>
+    <p class="panel-hint">Today's saved tracking rows. Check and fill everything, then <strong>Update master list</strong> to copy them into the Master List. This only adds/updates today's orders &mdash; previously promoted master rows are never touched.</p>
+    <div id="today-dashboard" class="status-dash"></div>
+    <div class="actions track-toolbar">
+      <input type="text" id="today-filter" class="filter-input" placeholder="Filter rows&hellip;">
+      <button id="btn-today-save-sel" class="primary" type="button" disabled>Save selected</button>
+      <button id="btn-today-copy-sel" type="button" disabled>Copy selected</button>
+      <button id="btn-today-delete-sel" class="danger" type="button" disabled>Delete selected</button>
+      <span id="today-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-today-promote" class="primary" type="button">Update master list &rarr;</button>
+      <button id="btn-today-refresh" type="button">Refresh</button>
+    </div>
+    <div id="today-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table id="today-table" class="track-table" aria-label="Today's orders">
+        <thead id="today-head"></thead>
+        <tbody id="today-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-master">
+    <h2>Master list</h2>
+    <p class="panel-hint">The master record of all orders, stored separately from the live tracking rows. Promote today's orders from the Today tab. Edit a cell, tick rows, then save/copy/delete. Click a column header to sort or filter.</p>
+    <div id="master-dashboard" class="status-dash"></div>
+    <div class="actions track-toolbar">
+      <input type="text" id="master-filter" class="filter-input" placeholder="Filter rows&hellip;">
+      <button id="btn-master-save-sel" class="primary" type="button" disabled>Save selected</button>
+      <button id="btn-master-copy-sel" type="button" disabled>Copy selected</button>
+      <button id="btn-master-delete-sel" class="danger" type="button" disabled>Delete selected</button>
+      <span id="master-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-master-paste" type="button">Paste from Excel</button>
+      <button id="btn-master-refresh" type="button">Refresh</button>
+      <button id="btn-master-download" type="button">Download all (xlsx)</button>
+    </div>
+    <div id="master-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table id="master-table" class="track-table" aria-label="Master list">
+        <thead id="master-head"></thead>
+        <tbody id="master-body"></tbody>
       </table>
     </div>
   </section>
