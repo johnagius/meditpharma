@@ -589,3 +589,34 @@ footer {
 }
 .paste-textarea:focus { outline: 2px solid var(--accent); }
 .paste-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+/* Catalog tab. */
+button.mini { padding: 4px 8px; font-size: 11px; }
+.file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+.track-table tbody tr.row-inactive { opacity: 0.55; }
+.prod-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  margin: 8px 0;
+}
+.prod-field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+.prod-field input {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.prod-field input:focus { outline: 2px solid var(--accent); }

@@ -58,3 +58,59 @@ export function ciCommentForProduct(product) {
   if (!product || !product.mid) return '';
   return `MID: ${product.mid}`;
 }
+
+export const PRODUCT_STATUSES = ['active', 'inactive', 'hold', 'withdrawn'];
+
+// Seed rows for the D1 product catalog, derived from the built-in list. Built-in
+// products keep their regex patterns (looked up by key at runtime); DB-only
+// products detect by name + keywords.
+export function builtinSeedProducts() {
+  return PRODUCTS.map((p) => ({
+    key: p.key,
+    name: p.label,
+    mid: p.mid,
+    country: p.country,
+    description: '',
+    hsCode: '',
+    manufacturerName: '',
+    manufacturingCountry: p.country,
+    manufacturingAddress: '',
+    keywords: '',
+    status: 'active',
+  }));
+}
+
+// Build a runtime catalog: DB products merged with the built-in regex patterns
+// (by key) so seeded products keep their precise detection.
+export function buildCatalog(dbProducts) {
+  const patByKey = {};
+  for (const b of PRODUCTS) patByKey[b.key] = b.patterns;
+  return (dbProducts || []).map((p) => ({ ...p, patterns: patByKey[p.key] || null }));
+}
+
+function termMatches(text, term) {
+  const t = String(term || '').trim();
+  if (t.length < 2) return false;
+  const esc = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${esc}`, 'i').test(text);
+}
+
+// Detect a product from text against a runtime catalog. Only 'active' products
+// are considered. Built-in regex patterns win; otherwise the product name or any
+// of its comma-separated keywords must appear (word-start, case-insensitive).
+export function detectFromCatalog(text, catalog) {
+  if (!text || !catalog) return null;
+  for (const p of catalog) {
+    if (p.status && p.status !== 'active') continue;
+    if (p.patterns && p.patterns.length) {
+      for (const re of p.patterns) if (re.test(text)) return p;
+    }
+  }
+  // Name/keyword pass second so a precise regex on another product wins first.
+  for (const p of catalog) {
+    if (p.status && p.status !== 'active') continue;
+    const terms = [p.name, ...String(p.keywords || '').split(',')].map((s) => s.trim()).filter(Boolean);
+    for (const term of terms) if (termMatches(text, term)) return p;
+  }
+  return null;
+}

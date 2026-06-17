@@ -1,6 +1,10 @@
 import { dispatch } from './parsers/index.js';
 import { readPdfText } from './pdfReader.js';
-import { PRODUCTS, detectProduct, findProductByKey } from './data/midCodes.js';
+import {
+  PRODUCTS, detectProduct, findProductByKey,
+  PRODUCT_STATUSES, builtinSeedProducts, buildCatalog, detectFromCatalog,
+} from './data/midCodes.js';
+import { HS_CODES, builtinSeedHsCodes, activeHsList } from './data/hsCodes.js';
 import { buildFileName } from './excelExporter.js';
 import { HEADER_ROW, buildRow } from './buildRow.js';
 import {
@@ -13,6 +17,7 @@ import {
   parseProductLines,
   labelWithDose,
   parsePastedTable,
+  parseRecords,
   parseFlexibleDate,
   formatDateDDMMYY,
   weekdayName,
@@ -78,6 +83,23 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const bmSelCount = document.getElementById('bm-sel-count');
   const bmDownload = document.getElementById('btn-bm-download');
   const bmPaste = document.getElementById('btn-bm-paste');
+
+  // Catalog tab (products + HS codes)
+  const productsHead = document.getElementById('products-head');
+  const productsBody = document.getElementById('products-body');
+  const productStatus = document.getElementById('product-status');
+  const productAdd = document.getElementById('btn-product-add');
+  const productImport = document.getElementById('btn-product-import');
+  const productFile = document.getElementById('product-file');
+  const productRefresh = document.getElementById('btn-product-refresh');
+  const productStatusFilter = document.getElementById('product-status-filter');
+  const hsHead = document.getElementById('hs-head');
+  const hsBody = document.getElementById('hs-body');
+  const hsStatus = document.getElementById('hs-status');
+  const hsAdd = document.getElementById('btn-hs-add');
+  const hsImport = document.getElementById('btn-hs-import');
+  const hsFile = document.getElementById('hs-file');
+  const hsRefresh = document.getElementById('btn-hs-refresh');
 
   // Merchants tab
   const merchantNew = document.getElementById('merchant-new');
@@ -150,6 +172,31 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   let stockItems = [];
   let stockMoves = [];
   let stockMerchant = '';
+
+  // Product catalog + HS-code list (D1-backed, seeded from the built-ins).
+  // Kept in sync to a runtime catalog (with regex patterns) for detection and an
+  // active rotating HS list for buildRow / buildTrackingRow.
+  let productsList = builtinSeedProducts();
+  let hsList = builtinSeedHsCodes();
+  let productCatalog = buildCatalog(productsList);
+  let activeHs = activeHsList(hsList);
+
+  function rebuildCatalog() {
+    productCatalog = buildCatalog(productsList);
+    activeHs = activeHsList(hsList);
+  }
+  function activeCatalogProducts() {
+    return productCatalog.filter((p) => !p.status || p.status === 'active');
+  }
+  function catalogProductByKey(key) {
+    return productCatalog.find((p) => p.key === key) || findProductByKey(key);
+  }
+  // Detection over the live catalog. The catalog is always seeded (built-ins at
+  // startup, D1 once loaded), so this also honours status — a withdrawn product
+  // won't match even though its built-in regex still exists.
+  function detect(text) {
+    return detectFromCatalog(text, productCatalog);
+  }
 
   // The two tracking tables (the builder's live sheet and the Saved Tracking
   // tab) share rendering + toolbar logic. Each view bundles its DOM refs, a
@@ -288,7 +335,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
           continue;
         }
         for (const order of parsed) {
-          const product = detectProduct(order.productText) || detectProduct(text);
+          const product = detect(order.productText) || detect(text);
           const md = detectMerchant(text, { source: order.source, learned: learnedPatterns });
           const dedupKey = `${hashText(text)}|${order.orderId || (order.recipient && order.recipient.name) || ''}`;
           // Skip an identical order already loaded this session (no dup cards).
@@ -378,7 +425,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     orders.forEach((o, idx) => {
       // Keep an editable copy of the row so inline edits persist into both the
       // export and what gets saved to D1. Recomputed when the product changes.
-      if (!o.cells) o.cells = buildRow({ recipient: o.recipient, product: o.product }, idx);
+      if (!o.cells) o.cells = buildRow({ recipient: o.recipient, product: o.product }, idx, activeHs);
       const cells = o.cells;
       const hasResolvedProduct = !!o.product && !!o.product.mid;
 
@@ -437,22 +484,41 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       empty.value = '';
       empty.textContent = '— pick product —';
       sel.appendChild(empty);
-      for (const p of PRODUCTS) {
+      for (const p of activeCatalogProducts()) {
         const opt = document.createElement('option');
         opt.value = p.key;
-        opt.textContent = `${p.label}${p.mid ? ` (${p.mid})` : ''}`;
+        opt.textContent = `${p.name}${p.mid ? ` (${p.mid})` : ''}`;
         if (o.product && o.product.key === p.key) opt.selected = true;
         sel.appendChild(opt);
       }
       sel.addEventListener('change', () => {
-        orders[idx].product = findProductByKey(sel.value) || null;
-        orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product }, idx);
+        orders[idx].product = catalogProductByKey(sel.value) || null;
+        orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product }, idx, activeHs);
         renderRows();
         if (autosaveOn('fedex') && orders[idx].product && orders[idx].product.mid) {
           scheduleAutosave(orders[idx], () => saveFedexOrder(orders[idx], idx, { silent: true }));
         }
       });
       head.appendChild(sel);
+
+      // Quick-add this product to the catalog (prefilled with the parsed text).
+      const addProdBtn = document.createElement('button');
+      addProdBtn.type = 'button';
+      addProdBtn.className = 'mini';
+      addProdBtn.textContent = '+ new product';
+      addProdBtn.title = 'Add this product to the catalog';
+      addProdBtn.addEventListener('click', () => openProductModal(
+        { name: (o.productText || '').trim().slice(0, 80) },
+        (saved) => {
+          orders[idx].product = catalogProductByKey(saved.key) || saved;
+          orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product }, idx, activeHs);
+          renderRows();
+          if (autosaveOn('fedex') && orders[idx].product && orders[idx].product.mid) {
+            scheduleAutosave(orders[idx], () => saveFedexOrder(orders[idx], idx, { silent: true }));
+          }
+        }
+      ));
+      head.appendChild(addProdBtn);
 
       if (!hasResolvedProduct) {
         const warn = document.createElement('span');
@@ -667,6 +733,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     ['tab-tracking', 'panel-tracking'],
     ['tab-bymerchant', 'panel-bymerchant'],
     ['tab-stock', 'panel-stock'],
+    ['tab-catalog', 'panel-catalog'],
     ['tab-merchants', 'panel-merchants'],
   ];
   let tabEls = [];
@@ -681,6 +748,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     else if (panelId === 'panel-tracking') loadSavedRows();
     else if (panelId === 'panel-bymerchant') loadSavedRows().then(renderMerchantSubtabs);
     else if (panelId === 'panel-stock') loadStock();
+    else if (panelId === 'panel-catalog') loadCatalog();
   }
 
   function initTabs() {
@@ -1547,7 +1615,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       ? order.productLines
       : (order.productText ? [order.productText] : []);
     return parseProductLines(lines).map((p) => {
-      const detected = detectProduct(p.text);
+      const detected = detect(p.text);
       // Append the dose so different doses of the same product are distinct
       // (Botox 100u vs Botox 50u) across tracking and stock. Unknown products
       // keep their raw text.
@@ -1597,7 +1665,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       const row = buildTrackingRow(
         { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant, orderId },
         idx,
-        today
+        today,
+        activeHs
       );
       row._origin = 'order';
       row.dedupKey = o.dedupKey || '';
@@ -2447,17 +2516,331 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     }
   }
 
+  // ================= Catalog tab: products + HS codes =================
+  const PRODUCT_COLS = [
+    ['name', 'Name', 'w-md'], ['mid', 'MID', 'w-md'], ['country', 'Country', 'w-sm'],
+    ['description', 'Description', 'w-lg'], ['hsCode', 'HS code', 'w-md'],
+    ['manufacturerName', 'Manufacturer', 'w-md'], ['manufacturingCountry', 'Mfg country', 'w-sm'],
+    ['manufacturingAddress', 'Mfg address', 'w-lg'], ['keywords', 'Keywords', 'w-md'],
+  ];
+  const PRODUCT_ALIASES = {
+    'product name': 'name', name: 'name', product: 'name', key: 'key',
+    mid: 'mid', 'mid code': 'mid', country: 'country', origin: 'country',
+    description: 'description', desc: 'description',
+    'hs code': 'hsCode', hs: 'hsCode', hscode: 'hsCode', 'harmonized code': 'hsCode',
+    'manufacturer name': 'manufacturerName', manufacturer: 'manufacturerName',
+    'manufacturing country': 'manufacturingCountry', 'mfg country': 'manufacturingCountry',
+    'manufacturing address': 'manufacturingAddress', 'mfg address': 'manufacturingAddress', address: 'manufacturingAddress',
+    keywords: 'keywords', aliases: 'keywords', status: 'status',
+  };
+  const HS_ALIASES = {
+    description: 'description', desc: 'description', code: 'code', 'hs code': 'code',
+    hscode: 'code', 'harmonized code': 'code', status: 'status', position: 'position',
+  };
+
+  function slug(s) {
+    return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 40) || `p${Date.now()}`;
+  }
+  function blankProduct() {
+    return {
+      key: '', name: '', mid: '', country: '', description: '', hsCode: '',
+      manufacturerName: '', manufacturingCountry: '', manufacturingAddress: '',
+      keywords: '', status: 'active',
+    };
+  }
+
+  function renderHeadRow(headEl, labels) {
+    if (!headEl) return;
+    headEl.innerHTML = '';
+    const tr = document.createElement('tr');
+    for (const label of labels) { const th = document.createElement('th'); th.textContent = label; tr.appendChild(th); }
+    headEl.appendChild(tr);
+  }
+
+  function renderProductsTable() {
+    renderHeadRow(productsHead, PRODUCT_COLS.map(([, l]) => l).concat(['Status', '']));
+    if (!productsBody) return;
+    productsBody.innerHTML = '';
+    const filt = productStatusFilter ? productStatusFilter.value : 'active';
+    const rows = productsList.filter((p) => (filt === 'all' ? true : (p.status || 'active') === filt));
+    rows.forEach((p) => {
+      const tr = document.createElement('tr');
+      if ((p.status || 'active') !== 'active') tr.classList.add('row-inactive');
+      for (const [key, , cls] of PRODUCT_COLS) {
+        const td = document.createElement('td');
+        td.appendChild(input(p[key], cls || 'w-md', (v) => { p[key] = v; }));
+        tr.appendChild(td);
+      }
+      const stTd = document.createElement('td');
+      const stSel = document.createElement('select');
+      for (const s of PRODUCT_STATUSES) {
+        const o = document.createElement('option'); o.value = s; o.textContent = s;
+        if ((p.status || 'active') === s) o.selected = true; stSel.appendChild(o);
+      }
+      stSel.addEventListener('change', () => { p.status = stSel.value; saveProduct(p); });
+      stTd.appendChild(stSel); tr.appendChild(stTd);
+      const actTd = document.createElement('td');
+      const save = document.createElement('button'); save.type = 'button'; save.className = 'primary'; save.textContent = 'Save';
+      save.addEventListener('click', () => saveProduct(p));
+      actTd.appendChild(save); tr.appendChild(actTd);
+      productsBody.appendChild(tr);
+    });
+  }
+
+  async function saveProduct(p) {
+    const store = makeStore('products');
+    if (!p.key) p.key = slug(p.name);
+    p.dedupKey = `prod:${p.key}`;
+    try {
+      const saved = p.id ? await store.update(p.id, p) : await store.save(p);
+      p.id = saved.id;
+      rebuildCatalog(); renderRows();
+      setStatusInto(productStatus, `Saved ${p.name || p.key} (${p.status || 'active'}).`, 'ok');
+    } catch (e) { setStatusInto(productStatus, `Save failed: ${e.message}`, 'err'); }
+  }
+
+  function addProductRow() {
+    productsList.push(blankProduct());
+    if (productStatusFilter) productStatusFilter.value = 'all';
+    renderProductsTable();
+  }
+
+  async function importProducts(text) {
+    const recs = parseRecords(text, PRODUCT_ALIASES);
+    if (!recs.length) {
+      setStatusInto(productStatus, 'No rows recognised — include a header row with at least a "Product name" column.', 'warn');
+      return;
+    }
+    const store = makeStore('products');
+    let added = 0; let updated = 0; let failed = 0;
+    for (const rec of recs) {
+      if (!rec.name && !rec.key) continue;
+      const key = (rec.key && rec.key.trim()) || slug(rec.name);
+      let target = productsList.find((p) => p.key === key);
+      if (!target) { target = blankProduct(); productsList.push(target); added += 1; } else updated += 1;
+      Object.assign(target, rec, { key, status: rec.status || target.status || 'active', dedupKey: `prod:${key}` });
+      try {
+        const saved = target.id ? await store.update(target.id, target) : await store.save(target); // eslint-disable-line no-await-in-loop
+        target.id = saved.id;
+      } catch { failed += 1; }
+    }
+    rebuildCatalog(); renderProductsTable(); renderRows();
+    setStatusInto(productStatus, `Import: added ${added}, updated ${updated}${failed ? `, ${failed} failed` : ''}.`, failed ? 'warn' : 'ok');
+  }
+
+  // ---- HS codes ----
+  function renderHsTable() {
+    renderHeadRow(hsHead, ['Description', 'Code', 'Position', 'Status', '']);
+    if (!hsBody) return;
+    hsBody.innerHTML = '';
+    const rows = hsList.slice().sort((a, b) => (Number(a.position) || 0) - (Number(b.position) || 0));
+    rows.forEach((h) => {
+      const tr = document.createElement('tr');
+      if ((h.status || 'active') !== 'active') tr.classList.add('row-inactive');
+      tr.appendChild((() => { const td = document.createElement('td'); td.appendChild(input(h.description, 'w-xl', (v) => { h.description = v; })); return td; })());
+      tr.appendChild((() => { const td = document.createElement('td'); td.appendChild(input(h.code, 'w-md', (v) => { h.code = v; })); return td; })());
+      tr.appendChild((() => { const td = document.createElement('td'); td.appendChild(input(String(h.position ?? ''), 'w-sm', (v) => { h.position = v; })); return td; })());
+      const stTd = document.createElement('td');
+      const stSel = document.createElement('select');
+      for (const s of PRODUCT_STATUSES) { const o = document.createElement('option'); o.value = s; o.textContent = s; if ((h.status || 'active') === s) o.selected = true; stSel.appendChild(o); }
+      stSel.addEventListener('change', () => { h.status = stSel.value; saveHs(h); });
+      stTd.appendChild(stSel); tr.appendChild(stTd);
+      const actTd = document.createElement('td');
+      const save = document.createElement('button'); save.type = 'button'; save.className = 'primary'; save.textContent = 'Save';
+      save.addEventListener('click', () => saveHs(h));
+      actTd.appendChild(save); tr.appendChild(actTd);
+      hsBody.appendChild(tr);
+    });
+  }
+
+  async function saveHs(h) {
+    const store = makeStore('hscodes');
+    if (h.position === '' || h.position == null) h.position = hsList.length;
+    h.position = Number(h.position) || 0;
+    h.dedupKey = `hs:${h.position}`;
+    try {
+      const saved = h.id ? await store.update(h.id, h) : await store.save(h);
+      h.id = saved.id;
+      rebuildCatalog();
+      setStatusInto(hsStatus, `Saved HS code #${h.position}.`, 'ok');
+    } catch (e) { setStatusInto(hsStatus, `Save failed: ${e.message}`, 'err'); }
+  }
+
+  function addHsRow() {
+    const maxPos = hsList.reduce((m, h) => Math.max(m, Number(h.position) || 0), -1);
+    hsList.push({ description: '', code: '', status: 'active', position: maxPos + 1 });
+    renderHsTable();
+  }
+
+  async function importHs(text) {
+    const recs = parseRecords(text, HS_ALIASES);
+    if (!recs.length) { setStatusInto(hsStatus, 'No rows recognised — include a header row with a "Description" and/or "Code" column.', 'warn'); return; }
+    const store = makeStore('hscodes');
+    let added = 0; let updated = 0; let failed = 0;
+    let nextPos = hsList.reduce((m, h) => Math.max(m, Number(h.position) || 0), -1) + 1;
+    for (const rec of recs) {
+      const pos = (rec.position !== undefined && rec.position !== '') ? Number(rec.position) : (nextPos += 1, nextPos - 1);
+      let target = hsList.find((h) => Number(h.position) === pos);
+      if (!target) { target = { description: '', code: '', status: 'active', position: pos }; hsList.push(target); added += 1; } else updated += 1;
+      Object.assign(target, rec, { position: pos, status: rec.status || target.status || 'active', dedupKey: `hs:${pos}` });
+      try {
+        const saved = target.id ? await store.update(target.id, target) : await store.save(target); // eslint-disable-line no-await-in-loop
+        target.id = saved.id;
+      } catch { failed += 1; }
+    }
+    rebuildCatalog(); renderHsTable();
+    setStatusInto(hsStatus, `Import: added ${added}, updated ${updated}${failed ? `, ${failed} failed` : ''}.`, failed ? 'warn' : 'ok');
+  }
+
+  // ---- Catalog load / seed ----
+  async function loadCatalog() {
+    const pStore = makeStore('products');
+    const hStore = makeStore('hscodes');
+    try {
+      let products = await pStore.list();
+      if (!products.length) {
+        for (const s of builtinSeedProducts()) { await pStore.save({ ...s, dedupKey: `prod:${s.key}` }); } // eslint-disable-line no-await-in-loop
+        products = await pStore.list();
+      }
+      if (products.length) productsList = products;
+    } catch { /* keep built-in seed */ }
+    try {
+      let hs = await hStore.list();
+      if (!hs.length) {
+        for (const s of builtinSeedHsCodes()) { await hStore.save({ ...s, dedupKey: `hs:${s.position}` }); } // eslint-disable-line no-await-in-loop
+        hs = await hStore.list();
+      }
+      if (hs.length) hsList = hs;
+    } catch { /* keep built-in seed */ }
+    rebuildCatalog();
+    renderProductsTable();
+    renderHsTable();
+    renderRows();
+  }
+
+  // ---- File + modal helpers ----
+  async function handleCatalogFile(fileInput, applyFn, statusEl) {
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    if (!file) return;
+    try {
+      const name = (file.name || '').toLowerCase();
+      let text;
+      if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        text = XLSX.utils.sheet_to_csv(ws);
+      } else {
+        text = await file.text();
+      }
+      await applyFn(text);
+    } catch (e) {
+      setStatusInto(statusEl, `File import failed: ${e.message}`, 'err');
+    }
+    fileInput.value = '';
+  }
+
+  // Generic paste-text modal (used by catalog imports).
+  function openTextModal(title, hint, onApply) {
+    const overlay = document.createElement('div');
+    overlay.className = 'paste-overlay';
+    const box = document.createElement('div');
+    box.className = 'paste-box';
+    const h = document.createElement('h3'); h.textContent = title;
+    const p = document.createElement('p'); p.textContent = hint;
+    const ta = document.createElement('textarea'); ta.className = 'paste-textarea';
+    const actions = document.createElement('div'); actions.className = 'paste-actions';
+    const apply = document.createElement('button'); apply.type = 'button'; apply.className = 'primary'; apply.textContent = 'Apply';
+    const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancel';
+    const close = () => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+    apply.addEventListener('click', () => { const v = ta.value; close(); onApply(v); });
+    cancel.addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+    actions.appendChild(apply); actions.appendChild(cancel);
+    box.appendChild(h); box.appendChild(p); box.appendChild(ta); box.appendChild(actions);
+    overlay.appendChild(box); document.body.appendChild(overlay); ta.focus();
+  }
+
+  // Single-product add/edit modal (used by the builder quick-add).
+  function openProductModal(prefill, onSaved) {
+    const p = { ...blankProduct(), ...(prefill || {}) };
+    const overlay = document.createElement('div');
+    overlay.className = 'paste-overlay';
+    const box = document.createElement('div');
+    box.className = 'paste-box';
+    const h = document.createElement('h3'); h.textContent = 'Add product to catalog';
+    box.appendChild(h);
+    const grid = document.createElement('div'); grid.className = 'prod-form';
+    const fields = [
+      ['name', 'Product name'], ['mid', 'MID code'], ['country', 'Country'],
+      ['description', 'Description'], ['hsCode', 'HS code'],
+      ['manufacturerName', 'Manufacturer name'], ['manufacturingCountry', 'Manufacturing country'],
+      ['manufacturingAddress', 'Manufacturing address'], ['keywords', 'Keywords (comma-separated)'],
+    ];
+    for (const [key, label] of fields) {
+      const wrap = document.createElement('label'); wrap.className = 'prod-field';
+      const span = document.createElement('span'); span.textContent = label;
+      const inp = document.createElement('input'); inp.type = 'text'; inp.value = p[key] || '';
+      inp.addEventListener('input', () => { p[key] = inp.value; });
+      wrap.appendChild(span); wrap.appendChild(inp); grid.appendChild(wrap);
+    }
+    box.appendChild(grid);
+    const actions = document.createElement('div'); actions.className = 'paste-actions';
+    const save = document.createElement('button'); save.type = 'button'; save.className = 'primary'; save.textContent = 'Save product';
+    const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancel';
+    const close = () => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+    save.addEventListener('click', async () => {
+      if (!p.name.trim()) return;
+      p.key = slug(p.name);
+      if (!p.manufacturingCountry) p.manufacturingCountry = p.country;
+      productsList.push(p);
+      await saveProduct(p);
+      renderProductsTable();
+      close();
+      if (typeof onSaved === 'function') onSaved(p);
+    });
+    cancel.addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+    actions.appendChild(save); actions.appendChild(cancel);
+    box.appendChild(actions);
+    overlay.appendChild(box); document.body.appendChild(overlay);
+  }
+
+  function initCatalog() {
+    renderHeadRow(productsHead, PRODUCT_COLS.map(([, l]) => l).concat(['Status', '']));
+    renderHeadRow(hsHead, ['Description', 'Code', 'Position', 'Status', '']);
+    if (productAdd) productAdd.addEventListener('click', addProductRow);
+    if (productImport) productImport.addEventListener('click', () => openTextModal(
+      'Import products',
+      'Paste rows (CSV or tab-separated) with a header row. Columns: Product name, MID, Country, Description, HS code, Manufacturer name, Manufacturing country, Manufacturing address, Keywords, Status. Matched/updated by name.',
+      importProducts,
+    ));
+    if (productFile) productFile.addEventListener('change', () => handleCatalogFile(productFile, importProducts, productStatus));
+    if (productRefresh) productRefresh.addEventListener('click', loadCatalog);
+    if (productStatusFilter) productStatusFilter.addEventListener('change', renderProductsTable);
+    if (hsAdd) hsAdd.addEventListener('click', addHsRow);
+    if (hsImport) hsImport.addEventListener('click', () => openTextModal(
+      'Import HS codes',
+      'Paste rows (CSV or tab-separated) with a header row. Columns: Description, Code, Position, Status. Matched/updated by Position.',
+      importHs,
+    ));
+    if (hsFile) hsFile.addEventListener('change', () => handleCatalogFile(hsFile, importHs, hsStatus));
+    if (hsRefresh) hsRefresh.addEventListener('click', loadCatalog);
+  }
+
   // Initialise the save/tracking sections last and defensively: a failure here
   // must never prevent the upload listeners above from being wired up.
   try {
     initTabs();
     initFedex();
     initTracking();
+    initCatalog();
     initMerchants();
     initStock();
     // Load settings (autosave toggles) + merchants + learned patterns (async).
     loadSettings().catch(() => {});
     loadLearnedPatterns().then(loadMerchants).catch(() => {});
+    loadCatalog().catch(() => {});
   } catch (err) {
     setTrackStatus(`Save sections failed to initialise: ${err.message}`, 'err');
     if (window.console) window.console.error(err);

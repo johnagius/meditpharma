@@ -13,3 +13,18 @@ export const HS_CODES = [
   { description: 'Cosmetics second base everyday concealer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304991000' },
   { description: 'Intense hydrating facial moisturizer cream, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304991000' },
 ];
+
+// Seed rows for the D1 HS-code list (the rotating cosmetic descriptions).
+export function builtinSeedHsCodes() {
+  return HS_CODES.map((h, i) => ({ description: h.description, code: h.code, status: 'active', position: i }));
+}
+
+// Active rotating list from D1 rows (ordered by position); falls back to the
+// built-in list when nothing usable is provided.
+export function activeHsList(dbRows) {
+  const rows = (dbRows || []).filter((r) => r && (!r.status || r.status === 'active') && (r.description || r.code));
+  if (!rows.length) return HS_CODES;
+  return rows.slice()
+    .sort((a, b) => (Number(a.position) || 0) - (Number(b.position) || 0))
+    .map((r) => ({ description: r.description || '', code: r.code || '' }));
+}

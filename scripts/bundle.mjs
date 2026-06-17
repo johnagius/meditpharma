@@ -199,6 +199,7 @@ ${css}
     <button class="tab" id="tab-tracking" data-panel="panel-tracking" type="button">Saved Tracking</button>
     <button class="tab" id="tab-bymerchant" data-panel="panel-bymerchant" type="button">By Merchant</button>
     <button class="tab" id="tab-stock" data-panel="panel-stock" type="button">Stock</button>
+    <button class="tab" id="tab-catalog" data-panel="panel-catalog" type="button">Catalog</button>
     <button class="tab" id="tab-merchants" data-panel="panel-merchants" type="button">Merchants</button>
     <button class="tab tab-gear" id="btn-settings" type="button" title="Sync settings" aria-label="Sync settings">&#9881;</button>
   </nav>
@@ -318,6 +319,50 @@ ${css}
       <table id="bymerchant-table" class="track-table" aria-label="Tracking by merchant">
         <thead id="bymerchant-head"></thead>
         <tbody id="bymerchant-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-catalog">
+    <h2>Catalog</h2>
+    <p class="panel-hint">Products and HS codes used for detection and the FedEx/tracking output. Seeded from the built-in list and stored in the database. Use <strong>status</strong> (active / inactive / hold / withdrawn) instead of deleting, so stock movements aren't orphaned. New products auto-detect by name + keywords.</p>
+
+    <h3 class="sub-head">Products</h3>
+    <div class="actions">
+      <button id="btn-product-add" class="primary" type="button">+ Add product</button>
+      <button id="btn-product-import" type="button">Import (paste)</button>
+      <label class="file-btn">Upload CSV/XLSX<input type="file" id="product-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
+      <label class="inline-field">Show
+        <select id="product-status-filter">
+          <option value="active">Active</option>
+          <option value="all">All</option>
+          <option value="inactive">Inactive</option>
+          <option value="hold">Hold</option>
+          <option value="withdrawn">Withdrawn</option>
+        </select>
+      </label>
+      <button id="btn-product-refresh" type="button">Refresh</button>
+    </div>
+    <div id="product-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table class="track-table" aria-label="Products">
+        <thead id="products-head"></thead>
+        <tbody id="products-body"></tbody>
+      </table>
+    </div>
+
+    <h3 class="sub-head">HS codes (rotating cosmetic list)</h3>
+    <div class="actions">
+      <button id="btn-hs-add" class="primary" type="button">+ Add HS code</button>
+      <button id="btn-hs-import" type="button">Import (paste)</button>
+      <label class="file-btn">Upload CSV/XLSX<input type="file" id="hs-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
+      <button id="btn-hs-refresh" type="button">Refresh</button>
+    </div>
+    <div id="hs-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table class="track-table" aria-label="HS codes">
+        <thead id="hs-head"></thead>
+        <tbody id="hs-body"></tbody>
       </table>
     </div>
   </section>

@@ -246,14 +246,59 @@ export function parsePastedTable(text) {
   return out;
 }
 
+// Split one delimited line, honouring CSV double-quoting; tabs split plainly.
+function splitDelimited(line, delim) {
+  if (delim === '\t') return line.split('\t');
+  const out = [];
+  let cur = '';
+  let q = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const c = line[i];
+    if (q) {
+      if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i += 1; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === delim) { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+// Parse a CSV/TSV table (paste or file) into field objects. The first row must
+// be headers; each is mapped through aliasMap (lowercased) to a field key.
+// Unrecognised columns are ignored; only present columns appear per object.
+export function parseRecords(text, aliasMap) {
+  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n').filter((l) => l.trim().length);
+  if (!lines.length) return [];
+  const delim = lines[0].includes('\t') ? '\t' : ',';
+  const headers = splitDelimited(lines[0], delim).map((h) => h.trim().toLowerCase());
+  const keys = headers.map((h) => aliasMap[h] || null);
+  if (!keys.some(Boolean)) return [];
+  const out = [];
+  for (const line of lines.slice(1)) {
+    const cells = splitDelimited(line, delim);
+    const obj = {};
+    let any = false;
+    keys.forEach((k, i) => {
+      if (!k) return;
+      obj[k] = (cells[i] == null ? '' : String(cells[i]).trim());
+      any = true;
+    });
+    if (any && Object.values(obj).some((v) => v !== '')) out.push(obj);
+  }
+  return out;
+}
+
 // Build a fully-defaulted tracking row from a parsed order.
 //  order: { recipient: {...}, products: [{ qty, label }] }
 //  rowIndex: 0-based position (drives the rotating HS description + order seq)
 //  date: JS Date used for day/date/order-number defaults
-export function buildTrackingRow(order, rowIndex, date = new Date()) {
+export function buildTrackingRow(order, rowIndex, date = new Date(), hsCodes = HS_CODES) {
   const recipient = order.recipient || {};
   const products = order.products || [];
-  const hs = HS_CODES[rowIndex % HS_CODES.length];
+  const list = (hsCodes && hsCodes.length) ? hsCodes : HS_CODES;
+  const hs = list[rowIndex % list.length];
 
   return {
     day: weekdayName(date),

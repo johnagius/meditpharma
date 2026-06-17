@@ -21,6 +21,13 @@ export const FEDEX_FIELDS = [
   'fileName', 'source', 'productKey', 'productMid', 'recipientName', 'cells', 'dedupKey',
 ];
 
+export const PRODUCT_FIELDS = [
+  'key', 'name', 'mid', 'country', 'description', 'hsCode',
+  'manufacturerName', 'manufacturingCountry', 'manufacturingAddress',
+  'keywords', 'status', 'dedupKey',
+];
+export const HSCODE_FIELDS = ['description', 'code', 'status', 'position', 'dedupKey'];
+
 export const MERCHANT_FIELDS = ['name'];
 export const PATTERN_FIELDS = ['merchant', 'tokens', 'label'];
 export const STOCKITEM_FIELDS = ['merchant', 'name', 'section', 'country', 'batch', 'expiry', 'opening', 'matchKey'];
@@ -30,6 +37,8 @@ export const SETTINGS_FIELDS = ['key', 'value', 'dedupKey'];
 const FIELDS_BY_RESOURCE = {
   rows: TRACKING_FIELDS,
   fedex: FEDEX_FIELDS,
+  products: PRODUCT_FIELDS,
+  hscodes: HSCODE_FIELDS,
   merchants: MERCHANT_FIELDS,
   patterns: PATTERN_FIELDS,
   stockitems: STOCKITEM_FIELDS,

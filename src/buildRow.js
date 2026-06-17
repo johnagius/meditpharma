@@ -3,9 +3,10 @@ import { SENDERS } from './data/senders.js';
 import { HS_CODES } from './data/hsCodes.js';
 import { ciCommentForProduct } from './data/midCodes.js';
 
-export function buildRow({ recipient, product }, rowIndex) {
+export function buildRow({ recipient, product }, rowIndex, hsCodes = HS_CODES) {
   const sender = SENDERS[rowIndex % SENDERS.length];
-  const hs = HS_CODES[rowIndex % HS_CODES.length];
+  const list = (hsCodes && hsCodes.length) ? hsCodes : HS_CODES;
+  const hs = list[rowIndex % list.length];
 
   const row = {
     ...ROW_CONSTANTS,
