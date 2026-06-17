@@ -59,6 +59,9 @@ export function parse(text) {
   const lines = text.split(/\r?\n/).map((l) => l.trim());
   const productsIdx = lines.findIndex((l) => /^Products Ordered:/i.test(l));
   if (productsIdx === -1) return null;
+  // Order number printed in the PDF header, e.g. "Order-236".
+  const orderHeader = lines.find((l) => isOrderHeader(l));
+  const orderId = orderHeader ? ((orderHeader.match(/(\d+)/) || [])[1] || '') : '';
   const header = lines.slice(0, productsIdx).filter((l) => l && !isDate(l) && !isOrderHeader(l));
 
   let name = '', phone = '', email = '', city = '', state = '', zip = '';
@@ -79,7 +82,7 @@ export function parse(text) {
 
   return {
     source: 'secil',
-    orderId: '',
+    orderId,
     recipient: {
       name,
       line1: addressLines[0] || '',

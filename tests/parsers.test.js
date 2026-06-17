@@ -120,6 +120,7 @@ describe('PDF parsers', () => {
     expect(orders).toHaveLength(1);
     const o = orders[0];
     expect(o.source).toBe('secil');
+    expect(o.orderId).toBe('236'); // "Order-236" in the PDF
     expect(o.recipient.name).toBe('Elizabeth VanderPloeg');
     expect(o.recipient.line1).toBe('2783 Creekview Trl');
     expect(o.recipient.city).toBe('Palo');
