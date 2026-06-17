@@ -447,6 +447,10 @@ footer {
   vertical-align: top;
 }
 .track-table tbody tr.saved { background: rgba(74, 222, 128, 0.06); }
+.track-table tbody tr.row-selected { background: rgba(56, 189, 248, 0.14); }
+.track-table input.row-select,
+.track-table thead th input.row-select { width: auto; min-width: 0; cursor: pointer; }
+.track-table thead th { vertical-align: middle; }
 .track-table input,
 .track-table select {
   background: #0b1224;
@@ -463,3 +467,17 @@ footer {
 .track-table .row-actions { display: flex; flex-wrap: wrap; gap: 4px; }
 .track-table .row-actions button { padding: 4px 6px; font-size: 11px; flex: 1 1 auto; }
 #tracking-status { font-size: 12px; color: var(--muted); margin: 8px 0; min-height: 18px; }
+
+/* Excel-style tracking toolbar: filter + bulk actions on selected rows. */
+.track-toolbar { align-items: center; }
+.track-toolbar .filter-input {
+  background: #0b1224;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  min-width: 200px;
+}
+.track-toolbar .filter-input:focus { outline: 2px solid var(--accent); }
+.track-toolbar .sel-count { font-size: 12px; color: var(--muted); margin-left: 2px; }

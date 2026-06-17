@@ -233,10 +233,17 @@ ${css}
 
     <section class="section-divider">
       <h2>Tracking sheet</h2>
-      <p>One row per order (all products listed together). Edit any cell, then save a line to the database or copy it for pasting into a spreadsheet.</p>
+      <p>One row per order (all products listed together). Edit any cell, tick the rows you want, then use the buttons above the table to save, copy or delete them &mdash; like a spreadsheet.</p>
     </section>
     <div class="track-settings">
       <label class="autosave"><input type="checkbox" id="chk-track-autosave"> Autosave tracking rows</label>
+    </div>
+    <div class="actions track-toolbar">
+      <input type="text" id="tracking-filter" class="filter-input" placeholder="Filter rows&hellip;">
+      <button id="btn-track-save-sel" class="primary" type="button" disabled>Save selected</button>
+      <button id="btn-track-copy-sel" type="button" disabled>Copy selected</button>
+      <button id="btn-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
+      <span id="track-sel-count" class="sel-count">0 selected</span>
     </div>
     <div id="tracking-status" aria-live="polite"></div>
     <div class="scroll-box">
@@ -262,9 +269,14 @@ ${css}
 
   <section class="panel" id="panel-tracking">
     <h2>Saved tracking rows</h2>
-    <p class="panel-hint">Tracking rows saved to the database. Edit a cell and Overwrite to update, or Refresh to reload.</p>
-    <div class="actions">
-      <button id="btn-saved-track-refresh" class="primary" type="button">Refresh</button>
+    <p class="panel-hint">Tracking rows saved to the database. Edit a cell, tick the rows you want, then use the buttons to save, copy or delete them. Refresh to reload.</p>
+    <div class="actions track-toolbar">
+      <input type="text" id="saved-track-filter" class="filter-input" placeholder="Filter rows&hellip;">
+      <button id="btn-saved-track-save-sel" class="primary" type="button" disabled>Save selected</button>
+      <button id="btn-saved-track-copy-sel" type="button" disabled>Copy selected</button>
+      <button id="btn-saved-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
+      <span id="saved-track-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-saved-track-refresh" type="button">Refresh</button>
       <button id="btn-saved-track-download" type="button">Download all (xlsx)</button>
     </div>
     <div id="saved-track-status" aria-live="polite"></div>

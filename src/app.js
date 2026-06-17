@@ -49,6 +49,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const savedTrackStatus = document.getElementById('saved-track-status');
   const savedTrackRefresh = document.getElementById('btn-saved-track-refresh');
   const savedTrackDownload = document.getElementById('btn-saved-track-download');
+  const savedTrackFilter = document.getElementById('saved-track-filter');
+  const savedTrackSaveSel = document.getElementById('btn-saved-track-save-sel');
+  const savedTrackCopySel = document.getElementById('btn-saved-track-copy-sel');
+  const savedTrackDeleteSel = document.getElementById('btn-saved-track-delete-sel');
+  const savedTrackSelCount = document.getElementById('saved-track-sel-count');
 
   // Merchants tab
   const merchantNew = document.getElementById('merchant-new');
@@ -88,6 +93,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const trackingHead = document.getElementById('tracking-head');
   const trackingBody = document.getElementById('tracking-body');
   const trackingStatus = document.getElementById('tracking-status');
+  const trackingFilter = document.getElementById('tracking-filter');
+  const trackSaveSel = document.getElementById('btn-track-save-sel');
+  const trackCopySel = document.getElementById('btn-track-copy-sel');
+  const trackDeleteSel = document.getElementById('btn-track-delete-sel');
+  const trackSelCount = document.getElementById('track-sel-count');
 
   const AUTOSAVE_KEYS = {
     fedex: 'pharmaconsulta_autosave_fedex',
@@ -98,8 +108,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // Default Cloudflare Worker (D1) endpoint. Used unless the user overrides it
   // via the Sync API URL box (saving an explicit value — including blank).
   const DEFAULT_API_BASE = 'https://pharmaconsulta-tracking.labrint.workers.dev';
-  // Proportional column widths (%) aligned with TRACKING_HEADERS + Actions.
-  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 7, 5, 7, 6, 6, 6, 6, 5, 6];
+  // Proportional column widths (%): a leading select checkbox column, then one
+  // per TRACKING_HEADERS entry (no per-row Actions column — actions live in the
+  // toolbar above each table).
+  const TRACKING_SELECT_WIDTH = 3;
+  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 7, 5, 7, 6, 6, 6, 5];
 
   const headers = HEADER_ROW();
   let orders = [];
@@ -111,6 +124,28 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   let stockItems = [];
   let stockMoves = [];
   let stockMerchant = '';
+
+  // The two tracking tables (the builder's live sheet and the Saved Tracking
+  // tab) share rendering + toolbar logic. Each view bundles its DOM refs, a
+  // getter/setter for its row array, and its current filter text.
+  const TRACK_VIEWS = {
+    builder: {
+      head: trackingHead, body: trackingBody, status: trackingStatus,
+      getRows: () => trackingRows,
+      setRows: (r) => { trackingRows = r; },
+      filter: trackingFilter, saveBtn: trackSaveSel, copyBtn: trackCopySel,
+      deleteBtn: trackDeleteSel, count: trackSelCount,
+      filterText: '', selectAll: null,
+    },
+    saved: {
+      head: savedTrackHead, body: savedTrackBody, status: savedTrackStatus,
+      getRows: () => savedTrackingRows,
+      setRows: (r) => { savedTrackingRows = r; },
+      filter: savedTrackFilter, saveBtn: savedTrackSaveSel, copyBtn: savedTrackCopySel,
+      deleteBtn: savedTrackDeleteSel, count: savedTrackSelCount,
+      filterText: '', selectAll: null,
+    },
+  };
 
   renderRows();
 
@@ -1482,9 +1517,24 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     });
   }
 
+  // Wire a view's toolbar: filter box + selected-row action buttons.
+  function wireTrackToolbar(view) {
+    if (view.filter) {
+      view.filter.addEventListener('input', () => {
+        view.filterText = view.filter.value;
+        renderTrackingRows(view);
+      });
+    }
+    if (view.saveBtn) view.saveBtn.addEventListener('click', () => saveSelected(view));
+    if (view.copyBtn) view.copyBtn.addEventListener('click', () => copySelected(view));
+    if (view.deleteBtn) view.deleteBtn.addEventListener('click', () => deleteSelected(view));
+  }
+
   function initTracking() {
-    renderTrackingHeader(trackingHead);
-    renderTrackingHeader(savedTrackHead);
+    renderTrackingHeader(TRACK_VIEWS.builder);
+    renderTrackingHeader(TRACK_VIEWS.saved);
+    wireTrackToolbar(TRACK_VIEWS.builder);
+    wireTrackToolbar(TRACK_VIEWS.saved);
     if (trackApiUrl) trackApiUrl.value = getApiBase();
     updateBackendBadge();
     if (trackSaveUrl) {
@@ -1521,13 +1571,14 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     renderAllTracking();
   }
 
-  function renderTrackingHeader(headEl) {
+  function renderTrackingHeader(view) {
+    const headEl = view && view.head;
     if (!headEl) return;
     const table = headEl.parentElement;
     const oldCols = table.querySelector('colgroup');
     if (oldCols) oldCols.remove();
     const colgroup = document.createElement('colgroup');
-    TRACKING_COL_WIDTHS.forEach((w) => {
+    [TRACKING_SELECT_WIDTH].concat(TRACKING_COL_WIDTHS).forEach((w) => {
       const col = document.createElement('col');
       col.style.width = `${w}%`;
       colgroup.appendChild(col);
@@ -1536,7 +1587,23 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
     headEl.innerHTML = '';
     const tr = document.createElement('tr');
-    for (const h of TRACKING_HEADERS.concat(['Actions'])) {
+
+    // Leading "select all" checkbox (Excel-style header toggle).
+    const selTh = document.createElement('th');
+    const selectAll = document.createElement('input');
+    selectAll.type = 'checkbox';
+    selectAll.className = 'row-select';
+    selectAll.title = 'Select all rows';
+    selectAll.addEventListener('change', () => {
+      const visible = filteredRows(view);
+      visible.forEach((r) => { r._selected = selectAll.checked; });
+      renderTrackingRows(view);
+    });
+    selTh.appendChild(selectAll);
+    tr.appendChild(selTh);
+    view.selectAll = selectAll;
+
+    for (const h of TRACKING_HEADERS) {
       const th = document.createElement('th');
       th.textContent = h;
       tr.appendChild(th);
@@ -1591,16 +1658,47 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   }
 
   function renderAllTracking() {
-    renderTrackingRows(trackingBody, trackingRows);
-    renderTrackingRows(savedTrackBody, savedTrackingRows);
+    renderTrackingRows(TRACK_VIEWS.builder);
+    renderTrackingRows(TRACK_VIEWS.saved);
   }
 
-  function renderTrackingRows(tbody, rows) {
+  // Rows matching the view's current filter text (matched across all cells).
+  function filteredRows(view) {
+    const rows = view.getRows();
+    const q = (view.filterText || '').trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) => trackingRowToCells(r).join(' ').toLowerCase().includes(q));
+  }
+
+  // Selected rows across the whole view (selection persists through filtering).
+  function selectedRows(view) {
+    return view.getRows().filter((r) => r._selected);
+  }
+
+  // Sync the toolbar's selected-count + the header "select all" checkbox state.
+  function updateTrackToolbar(view) {
+    const selected = selectedRows(view);
+    const n = selected.length;
+    if (view.count) view.count.textContent = `${n} selected`;
+    for (const btn of [view.saveBtn, view.copyBtn, view.deleteBtn]) {
+      if (btn) btn.disabled = n === 0;
+    }
+    if (view.selectAll) {
+      const visible = filteredRows(view);
+      const visSel = visible.filter((r) => r._selected).length;
+      view.selectAll.checked = visible.length > 0 && visSel === visible.length;
+      view.selectAll.indeterminate = visSel > 0 && visSel < visible.length;
+    }
+  }
+
+  function renderTrackingRows(view) {
+    const tbody = view && view.body;
     if (!tbody) return;
     tbody.innerHTML = '';
-    rows.forEach((row) => {
+    filteredRows(view).forEach((row) => {
       const tr = document.createElement('tr');
       if (row.id) tr.classList.add('saved');
+      if (row._selected) tr.classList.add('row-selected');
 
       const tdMap = {};
       const cell = (key, node) => {
@@ -1609,6 +1707,20 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         tr.appendChild(td);
         tdMap[key] = node;
       };
+
+      // Leading select checkbox — drives the toolbar actions.
+      const selTd = document.createElement('td');
+      const selBox = document.createElement('input');
+      selBox.type = 'checkbox';
+      selBox.className = 'row-select';
+      selBox.checked = !!row._selected;
+      selBox.addEventListener('change', () => {
+        row._selected = selBox.checked;
+        tr.classList.toggle('row-selected', selBox.checked);
+        updateTrackToolbar(view);
+      });
+      selTd.appendChild(selBox);
+      tr.appendChild(selTd);
 
       // day (dropdown) — linked to date + order number
       const daySel = document.createElement('select');
@@ -1670,36 +1782,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       cell('fromWhom', input(row.fromWhom, 'w-md', (v) => { row.fromWhom = v; }));
       cell('shippingCost', input(row.shippingCost, 'w-sm', (v) => { row.shippingCost = v; }));
 
-      // Actions
-      const actTd = document.createElement('td');
-      const actions = document.createElement('div');
-      actions.className = 'row-actions';
-
-      const saveBtn = document.createElement('button');
-      saveBtn.type = 'button';
-      saveBtn.className = 'primary';
-      saveBtn.textContent = row.id ? 'Overwrite' : 'Save';
-      saveBtn.addEventListener('click', () => saveRow(row));
-      actions.appendChild(saveBtn);
-
-      const copyBtn = document.createElement('button');
-      copyBtn.type = 'button';
-      copyBtn.textContent = 'Copy';
-      copyBtn.addEventListener('click', () => copyRow(row));
-      actions.appendChild(copyBtn);
-
-      const delBtn = document.createElement('button');
-      delBtn.type = 'button';
-      delBtn.className = 'danger';
-      delBtn.textContent = 'Delete';
-      delBtn.addEventListener('click', () => removeRow(row));
-      actions.appendChild(delBtn);
-
-      actTd.appendChild(actions);
-      tr.appendChild(actTd);
-
       // Autosave: any edit (typing or dropdown/date change) within the row.
-      const queueAutosave = () => {
+      // Ticking the select checkbox isn't an edit — don't trigger a save for it.
+      const queueAutosave = (e) => {
+        if (e && e.target && e.target.classList.contains('row-select')) return;
         if (autosaveOn('rows')) scheduleAutosave(row, () => saveRow(row, { silent: true }));
       };
       tr.addEventListener('input', queueAutosave);
@@ -1707,6 +1793,58 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
       tbody.appendChild(tr);
     });
+    updateTrackToolbar(view);
+  }
+
+  // --- Toolbar actions: operate on the view's selected rows ---
+  async function saveSelected(view) {
+    const sel = selectedRows(view);
+    if (!sel.length) return;
+    const store = makeStore('rows');
+    let ok = 0;
+    let fail = 0;
+    for (const row of sel) {
+      try {
+        const saved = row.id ? await store.update(row.id, row) : await store.save(row); // eslint-disable-line no-await-in-loop
+        row.id = saved.id;
+        ok += 1;
+      } catch {
+        fail += 1;
+      }
+    }
+    setStatusInto(
+      view.status,
+      `Saved ${ok} row(s)${fail ? `, ${fail} failed` : ''} to ${store.backend === 'd1' ? 'D1' : 'this browser'}.`,
+      fail ? 'warn' : 'ok'
+    );
+    renderAllTracking();
+  }
+
+  async function copySelected(view) {
+    const sel = selectedRows(view);
+    if (!sel.length) return;
+    const text = sel.map((r) => trackingRowToCells(r).join('\t')).join('\n');
+    try {
+      await window.navigator.clipboard.writeText(text);
+      setStatusInto(view.status, `Copied ${sel.length} row(s) to clipboard (tab-separated).`, 'ok');
+    } catch {
+      setStatusInto(view.status, `Copy unavailable here.\n${text}`, 'warn');
+    }
+  }
+
+  async function deleteSelected(view) {
+    const sel = selectedRows(view);
+    if (!sel.length) return;
+    if (typeof window.confirm === 'function' && !window.confirm(`Delete ${sel.length} selected row(s)?`)) return;
+    const store = makeStore('rows');
+    for (const row of sel) {
+      if (row.id) { try { await store.remove(row.id); } catch {} } // eslint-disable-line no-await-in-loop
+    }
+    const selSet = new Set(sel);
+    trackingRows = trackingRows.filter((r) => !selSet.has(r));
+    savedTrackingRows = savedTrackingRows.filter((r) => !selSet.has(r));
+    setStatusInto(view.status, `Deleted ${sel.length} row(s).`, 'ok');
+    renderAllTracking();
   }
 
   // Apply a new Date to a row, syncing day / date / order-number controls.
@@ -1739,33 +1877,6 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     } catch (err) {
       setTrackStatus(`Save failed: ${err.message}`, 'err');
     }
-  }
-
-  async function copyRow(row) {
-    const text = trackingRowToCells(row).join('\t');
-    try {
-      await window.navigator.clipboard.writeText(text);
-      setTrackStatus(`Copied order ${row.orderNumber} to clipboard (tab-separated).`, 'ok');
-    } catch {
-      setTrackStatus(`Copy unavailable here. Row:\n${text}`, 'warn');
-    }
-  }
-
-  async function removeRow(row) {
-    if (row.id) {
-      const store = makeStore('rows');
-      try {
-        await store.remove(row.id);
-      } catch (err) {
-        setTrackStatus(`Delete failed: ${err.message}`, 'err');
-        return;
-      }
-    }
-    trackingRows = trackingRows.filter((r) => r !== row);
-    savedTrackingRows = savedTrackingRows.filter((r) => r !== row);
-    setTrackStatus('Row removed.', 'ok');
-    renderAllTracking();
-    await deleteLinkedByDedup('fedex', row.dedupKey);
   }
 
   // Loads saved tracking rows into the "Saved Tracking" tab.
