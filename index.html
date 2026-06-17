@@ -156,6 +156,18 @@ button.flash {
 .status-line.err { color: var(--err); }
 .status-line.warn { color: var(--warn); }
 .status-line.ok { color: var(--ok); }
+/* Status logs: keep recent activity visible but cap at ~2 rows with scroll. */
+[aria-live="polite"] {
+  max-height: 2.8em;
+  overflow-y: auto;
+  font-size: 11px;
+  line-height: 1.35;
+}
+[aria-live="polite"] .status-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .scroll-box {
   overflow: auto;
   border: 1px solid var(--border);
@@ -930,7 +942,7 @@ button.mini { padding: 4px 8px; font-size: 11px; }
   </section>
 </main>
 <footer>
-  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 12:29 UTC
+  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 12:33 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -2913,6 +2925,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     line.textContent = msg;
     statusEl.appendChild(line);
     while (statusEl.children.length > 12) statusEl.removeChild(statusEl.firstChild);
+    statusEl.scrollTop = statusEl.scrollHeight;
   }
 
   async function ingestFiles(fileList) {
@@ -3217,6 +3230,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     line.textContent = msg;
     fedexStatus.appendChild(line);
     while (fedexStatus.children.length > 8) fedexStatus.removeChild(fedexStatus.firstChild);
+    fedexStatus.scrollTop = fedexStatus.scrollHeight;
   }
 
   function updateFedexBackend() {
@@ -3324,6 +3338,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     line.textContent = msg;
     el.appendChild(line);
     while (el.children.length > 8) el.removeChild(el.firstChild);
+    el.scrollTop = el.scrollHeight;
   }
 
   // ---- Tabs ----
@@ -4205,6 +4220,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     line.textContent = msg;
     trackingStatus.appendChild(line);
     while (trackingStatus.children.length > 8) trackingStatus.removeChild(trackingStatus.firstChild);
+    trackingStatus.scrollTop = trackingStatus.scrollHeight;
   }
 
   // Pull a dose/strength token from a product line, e.g. "100u", "50u",

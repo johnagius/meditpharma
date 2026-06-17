@@ -322,6 +322,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     line.textContent = msg;
     statusEl.appendChild(line);
     while (statusEl.children.length > 12) statusEl.removeChild(statusEl.firstChild);
+    statusEl.scrollTop = statusEl.scrollHeight;
   }
 
   async function ingestFiles(fileList) {
@@ -626,6 +627,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     line.textContent = msg;
     fedexStatus.appendChild(line);
     while (fedexStatus.children.length > 8) fedexStatus.removeChild(fedexStatus.firstChild);
+    fedexStatus.scrollTop = fedexStatus.scrollHeight;
   }
 
   function updateFedexBackend() {
@@ -733,6 +735,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     line.textContent = msg;
     el.appendChild(line);
     while (el.children.length > 8) el.removeChild(el.firstChild);
+    el.scrollTop = el.scrollHeight;
   }
 
   // ---- Tabs ----
@@ -1614,6 +1617,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     line.textContent = msg;
     trackingStatus.appendChild(line);
     while (trackingStatus.children.length > 8) trackingStatus.removeChild(trackingStatus.firstChild);
+    trackingStatus.scrollTop = trackingStatus.scrollHeight;
   }
 
   // Pull a dose/strength token from a product line, e.g. "100u", "50u",

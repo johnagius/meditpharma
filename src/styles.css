@@ -148,6 +148,18 @@ button.flash {
 .status-line.err { color: var(--err); }
 .status-line.warn { color: var(--warn); }
 .status-line.ok { color: var(--ok); }
+/* Status logs: keep recent activity visible but cap at ~2 rows with scroll. */
+[aria-live="polite"] {
+  max-height: 2.8em;
+  overflow-y: auto;
+  font-size: 11px;
+  line-height: 1.35;
+}
+[aria-live="polite"] .status-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .scroll-box {
   overflow: auto;
   border: 1px solid var(--border);
