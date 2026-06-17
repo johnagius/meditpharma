@@ -4,6 +4,7 @@ import {
   trackingRowToCells,
   parseProductLines,
   extractDose,
+  extractCountryTag,
   labelWithDose,
   parsePastedTable,
   parseFlexibleDate,
@@ -119,6 +120,24 @@ describe('dose extraction / labelling', () => {
     expect(labelWithDose('Ozempic', 'Ozempic')).toBe('Ozempic');
     // Label already carries the dose -> no duplication.
     expect(labelWithDose('Botox 100u', 'BOTOX® 100u 1 x 100u Vial*')).toBe('Botox 100u');
+  });
+
+  it('extracts only ALL-CAPS parenthesised country/language tags', () => {
+    expect(extractCountryTag('BOT 50IU (ENG)')).toBe('(ENG)');
+    expect(extractCountryTag('BOT 100IU (NON-ENG)')).toBe('(NON-ENG)');
+    // Generic parentheticals are ignored.
+    expect(extractCountryTag('Orencia (Abatacept)')).toBe('');
+    expect(extractCountryTag('Ozempic 1mg (4mg/3mL) (1 pens qty)')).toBe('');
+    expect(extractCountryTag('Lucrin Depot x 2 boxes')).toBe('');
+  });
+
+  it('builds name + dose + country, in that order', () => {
+    expect(labelWithDose('Botox', '2 x BOT 50IU (ENG)')).toBe('Botox 50IU (ENG)');
+    expect(labelWithDose('Botox', '4 x BOT 100IU (NON-ENG)')).toBe('Botox 100IU (NON-ENG)');
+    // Country with no dose still appends.
+    expect(labelWithDose('Botox', 'BOTOX (ENG)')).toBe('Botox (ENG)');
+    // No tag for generic parens.
+    expect(labelWithDose('Orencia', 'Orencia (Abatacept)')).toBe('Orencia');
   });
 });
 

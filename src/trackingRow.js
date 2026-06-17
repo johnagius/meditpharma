@@ -180,14 +180,25 @@ export function extractDose(text) {
   return `${m[1]}${unit}`;
 }
 
-// Append a product's dose to its label unless the label already carries it, so
-// different doses are distinguishable: ("Botox", "BOTOX 100u") -> "Botox 100u".
+// Pull a parenthesised language/country marker like "(ENG)", "(NON-ENG)",
+// "(ITA)". Only ALL-CAPS tokens (with -, /, space) count, so generic
+// parentheticals such as "(Abatacept)", "(4mg/3mL)" or "(2 boxes)" are ignored.
+export function extractCountryTag(text) {
+  const m = String(text || '').match(/\(\s*([A-Z][A-Z\-/ ]*[A-Z]|[A-Z]{2,})\s*\)/);
+  return m ? `(${m[1].replace(/\s+/g, ' ').trim()})` : '';
+}
+
+// Build a product label: "<name> [dose] [(COUNTRY)]" — dose and country are
+// appended only when present in the text and not already in the label. Never
+// produces a dose/tag-only label from an empty base.
 export function labelWithDose(baseLabel, text) {
-  const base = String(baseLabel || '').trim();
-  if (!base) return base; // never produce a dose-only label (" 100u")
+  let out = String(baseLabel || '').trim();
+  if (!out) return out;
   const dose = extractDose(text);
-  if (!dose || base.toLowerCase().includes(dose.toLowerCase())) return base;
-  return `${base} ${dose}`;
+  if (dose && !out.toLowerCase().includes(dose.toLowerCase())) out += ` ${dose}`;
+  const tag = extractCountryTag(text);
+  if (tag && !out.toUpperCase().includes(tag.toUpperCase())) out += ` ${tag}`;
+  return out;
 }
 
 // Parse a date typed/pasted in any of the common shapes we emit or accept:

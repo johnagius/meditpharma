@@ -36,7 +36,7 @@ describe('product catalog detection', () => {
     expect(d.name).toBe('Botox');
     expect(d.label).toBeUndefined();
     const base = d.name || d.label || '';
-    expect(labelWithDose(base, '2 x BOT 50IU (ENG)')).toBe('Botox 50IU');
+    expect(labelWithDose(base, '2 x BOT 50IU (ENG)')).toBe('Botox 50IU (ENG)');
   });
 
   it('labelWithDose never emits a dose-only label for an empty base', () => {
