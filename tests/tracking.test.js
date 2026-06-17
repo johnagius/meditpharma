@@ -119,6 +119,11 @@ describe('buildTrackingRow', () => {
     expect(buildTrackingRow({ ...order, merchant: 'Activa' }, 0, MONDAY).fromWhom).toBe('');
   });
 
+  it('stores the owning merchant (for the By Merchant tab), blank when unset', () => {
+    expect(buildTrackingRow(order, 0, MONDAY).merchant).toBe('');
+    expect(buildTrackingRow({ ...order, merchant: 'Activa' }, 0, MONDAY).merchant).toBe('Activa');
+  });
+
   it('serialises to cells in header order', () => {
     const row = buildTrackingRow(order, 0, MONDAY);
     const cells = trackingRowToCells(row);

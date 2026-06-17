@@ -56,6 +56,22 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const savedTrackDeleteSel = document.getElementById('btn-saved-track-delete-sel');
   const savedTrackSelCount = document.getElementById('saved-track-sel-count');
 
+  // By Merchant tab
+  const bmHead = document.getElementById('bymerchant-head');
+  const bmBody = document.getElementById('bymerchant-body');
+  const bmStatus = document.getElementById('bymerchant-status');
+  const bmSubtabs = document.getElementById('bymerchant-subtabs');
+  const bmDateMode = document.getElementById('bm-datemode');
+  const bmFrom = document.getElementById('bm-from');
+  const bmTo = document.getElementById('bm-to');
+  const bmRefresh = document.getElementById('btn-bm-refresh');
+  const bmFilter = document.getElementById('bm-filter');
+  const bmSaveSel = document.getElementById('btn-bm-save-sel');
+  const bmCopySel = document.getElementById('btn-bm-copy-sel');
+  const bmDeleteSel = document.getElementById('btn-bm-delete-sel');
+  const bmSelCount = document.getElementById('bm-sel-count');
+  const bmDownload = document.getElementById('btn-bm-download');
+
   // Merchants tab
   const merchantNew = document.getElementById('merchant-new');
   const merchantAdd = document.getElementById('btn-merchant-add');
@@ -113,7 +129,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // per TRACKING_HEADERS entry (no per-row Actions column — actions live in the
   // toolbar above each table).
   const TRACKING_SELECT_WIDTH = 3;
-  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 7, 5, 7, 6, 6, 6, 5];
+  const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 6, 8, 8, 7, 5, 7, 6, 6, 6, 5, 6];
 
   const headers = HEADER_ROW();
   let orders = [];
@@ -145,6 +161,19 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       filter: savedTrackFilter, saveBtn: savedTrackSaveSel, copyBtn: savedTrackCopySel,
       deleteBtn: savedTrackDeleteSel, count: savedTrackSelCount,
       filterText: '', selectAll: null, sort: null, colFilters: {},
+    },
+    // "By Merchant" reads the SAME saved rows, narrowed by a selected merchant
+    // and a date scope (today / all / range). Saving here hits the same store,
+    // so the Saved Tracking tab stays in sync.
+    bymerchant: {
+      head: bmHead, body: bmBody, status: bmStatus,
+      getRows: () => savedTrackingRows,
+      setRows: (r) => { savedTrackingRows = r; },
+      filter: bmFilter, saveBtn: bmSaveSel, copyBtn: bmCopySel,
+      deleteBtn: bmDeleteSel, count: bmSelCount,
+      filterText: '', selectAll: null, sort: null, colFilters: {},
+      merchant: '', dateMode: 'all', rangeFrom: '', rangeTo: '',
+      prefilter: (r) => bmRowMatches(TRACK_VIEWS.bymerchant, r),
     },
   };
 
@@ -630,6 +659,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     ['tab-builder', 'panel-builder'],
     ['tab-fedex', 'panel-fedex'],
     ['tab-tracking', 'panel-tracking'],
+    ['tab-bymerchant', 'panel-bymerchant'],
     ['tab-stock', 'panel-stock'],
     ['tab-merchants', 'panel-merchants'],
   ];
@@ -643,6 +673,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     });
     if (panelId === 'panel-fedex') loadSavedFedex();
     else if (panelId === 'panel-tracking') loadSavedRows();
+    else if (panelId === 'panel-bymerchant') loadSavedRows().then(renderMerchantSubtabs);
     else if (panelId === 'panel-stock') loadStock();
   }
 
@@ -1531,11 +1562,79 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (view.deleteBtn) view.deleteBtn.addEventListener('click', () => deleteSelected(view));
   }
 
+  // Build the merchant sub-tabs ("All" + one per merchant) for the By Merchant
+  // view. Merchants come from the merchant list plus any seen in the data.
+  function renderMerchantSubtabs() {
+    if (!bmSubtabs) return;
+    const view = TRACK_VIEWS.bymerchant;
+    const names = new Set(merchantNames());
+    savedTrackingRows.forEach((r) => { if (r.merchant) names.add(r.merchant); });
+    const tabs = ['', ...Array.from(names).sort((a, b) => a.localeCompare(b))];
+    bmSubtabs.innerHTML = '';
+    for (const name of tabs) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `subtab${view.merchant === name ? ' active' : ''}`;
+      const count = savedTrackingRows.filter((r) => (name ? String(r.merchant || '') === name : true)).length;
+      btn.textContent = `${name || 'All'} (${count})`;
+      btn.addEventListener('click', () => {
+        view.merchant = name;
+        renderMerchantSubtabs();
+        rerenderView(view);
+      });
+      bmSubtabs.appendChild(btn);
+    }
+  }
+
+  function bmModeButtons() {
+    if (bmDateMode && typeof bmDateMode.querySelectorAll === 'function') {
+      return Array.from(bmDateMode.querySelectorAll('button'));
+    }
+    return [];
+  }
+
+  function setBmDateMode(mode) {
+    const view = TRACK_VIEWS.bymerchant;
+    view.dateMode = mode;
+    bmModeButtons().forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
+    rerenderView(view);
+  }
+
+  function initByMerchant() {
+    renderTrackingHeader(TRACK_VIEWS.bymerchant);
+    wireTrackToolbar(TRACK_VIEWS.bymerchant);
+    bmModeButtons().forEach((b) => {
+      b.addEventListener('click', () => setBmDateMode(b.dataset.mode));
+    });
+    const onRange = () => {
+      const view = TRACK_VIEWS.bymerchant;
+      view.rangeFrom = bmFrom ? bmFrom.value : '';
+      view.rangeTo = bmTo ? bmTo.value : '';
+      if (view.dateMode !== 'range') setBmDateMode('range'); else rerenderView(view);
+    };
+    if (bmFrom) bmFrom.addEventListener('change', onRange);
+    if (bmTo) bmTo.addEventListener('change', onRange);
+    if (bmRefresh) bmRefresh.addEventListener('click', () => { loadSavedRows().then(renderMerchantSubtabs); });
+    if (bmDownload) {
+      bmDownload.addEventListener('click', () => {
+        const rows = filteredRows(TRACK_VIEWS.bymerchant);
+        if (!rows.length) {
+          setStatusInto(bmStatus, 'Nothing to download for this selection.', 'warn');
+          return;
+        }
+        const who = TRACK_VIEWS.bymerchant.merchant || 'all';
+        const aoa = [TRACKING_HEADERS].concat(rows.map((r) => trackingRowToCells(r)));
+        downloadAoa(aoa, `Tracking_${who}_${dateStamp()}_${rows.length}rows.xlsx`, (m, l) => setStatusInto(bmStatus, m, l));
+      });
+    }
+  }
+
   function initTracking() {
     renderTrackingHeader(TRACK_VIEWS.builder);
     renderTrackingHeader(TRACK_VIEWS.saved);
     wireTrackToolbar(TRACK_VIEWS.builder);
     wireTrackToolbar(TRACK_VIEWS.saved);
+    initByMerchant();
     if (trackApiUrl) trackApiUrl.value = getApiBase();
     updateBackendBadge();
     if (trackSaveUrl) {
@@ -1681,6 +1780,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   function renderAllTracking() {
     renderTrackingRows(TRACK_VIEWS.builder);
     renderTrackingRows(TRACK_VIEWS.saved);
+    renderTrackingRows(TRACK_VIEWS.bymerchant);
   }
 
   // The displayed text of a column cell (used for the toolbar filter + column
@@ -1706,15 +1806,32 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // Distinct values present in a column (after the global filter), for the
   // column dropdown's checkbox list.
   function columnValues(view, key) {
+    let base = view.getRows();
+    if (view.prefilter) base = base.filter(view.prefilter);
     const set = new Set();
-    globalFiltered(view.getRows(), view.filterText).forEach((r) => set.add(cellText(r, key)));
+    globalFiltered(base, view.filterText).forEach((r) => set.add(cellText(r, key)));
     return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
   }
 
   // Rows matching the view's toolbar filter + every active column filter, in the
   // current sort order.
+  // True if a row passes the By Merchant view's merchant + date scope.
+  function bmRowMatches(view, row) {
+    if (view.merchant && String(row.merchant || '') !== view.merchant) return false;
+    const iso = row.isoDate || '';
+    if (view.dateMode === 'today') return iso === toISODate(new Date());
+    if (view.dateMode === 'range') {
+      if (view.rangeFrom && (!iso || iso < view.rangeFrom)) return false;
+      if (view.rangeTo && (!iso || iso > view.rangeTo)) return false;
+      return true;
+    }
+    return true; // 'all'
+  }
+
   function filteredRows(view) {
-    let rows = globalFiltered(view.getRows(), view.filterText);
+    let rows = view.getRows();
+    if (view.prefilter) rows = rows.filter(view.prefilter);
+    rows = globalFiltered(rows, view.filterText);
     const cf = view.colFilters || {};
     for (const key of Object.keys(cf)) {
       const allowed = cf[key];
@@ -1974,6 +2091,21 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       // "From Whom" pre-fills for Ph.Chic, blank elsewhere; both stay editable.
       cell('fromWhom', input(row.fromWhom, 'w-md', (v) => { row.fromWhom = v; }));
       cell('shippingCost', input(row.shippingCost, 'w-sm', (v) => { row.shippingCost = v; }));
+
+      // Merchant dropdown — drives the By Merchant tab; editable to re-file a row.
+      const merchSel = document.createElement('select');
+      const names = merchantNames();
+      const opts = [''].concat(names);
+      if (row.merchant && !names.includes(row.merchant)) opts.push(row.merchant);
+      for (const m of opts) {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m || '— merchant —';
+        if (m === (row.merchant || '')) opt.selected = true;
+        merchSel.appendChild(opt);
+      }
+      merchSel.addEventListener('change', () => { row.merchant = merchSel.value; });
+      cell('merchant', merchSel);
 
       // Autosave: any edit (typing or dropdown/date change) within the row.
       // Ticking the select checkbox isn't an edit — don't trigger a save for it.

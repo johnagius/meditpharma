@@ -197,6 +197,7 @@ ${css}
     <button class="tab active" id="tab-builder" data-panel="panel-builder" type="button">Builder</button>
     <button class="tab" id="tab-fedex" data-panel="panel-fedex" type="button">Saved FedEx</button>
     <button class="tab" id="tab-tracking" data-panel="panel-tracking" type="button">Saved Tracking</button>
+    <button class="tab" id="tab-bymerchant" data-panel="panel-bymerchant" type="button">By Merchant</button>
     <button class="tab" id="tab-stock" data-panel="panel-stock" type="button">Stock</button>
     <button class="tab" id="tab-merchants" data-panel="panel-merchants" type="button">Merchants</button>
     <button class="tab tab-gear" id="btn-settings" type="button" title="Sync settings" aria-label="Sync settings">&#9881;</button>
@@ -284,6 +285,37 @@ ${css}
       <table id="saved-track-table" class="track-table" aria-label="Saved tracking rows">
         <thead id="saved-track-head"></thead>
         <tbody id="saved-track-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-bymerchant">
+    <h2>Tracking by merchant</h2>
+    <p class="panel-hint">The same saved tracking rows as Saved Tracking, split per merchant. Pick a merchant tab and a date scope (today, all, or a date range). Editing, saving or deleting here writes to the same database, so Saved Tracking stays in sync.</p>
+    <div id="bymerchant-subtabs" class="subtabs" role="tablist"></div>
+    <div class="actions bm-daterange">
+      <div class="seg" id="bm-datemode">
+        <button data-mode="today" type="button">Today</button>
+        <button data-mode="all" class="active" type="button">All</button>
+        <button data-mode="range" type="button">Date range</button>
+      </div>
+      <label class="inline-field">From <input type="date" id="bm-from"></label>
+      <label class="inline-field">To <input type="date" id="bm-to"></label>
+      <button id="btn-bm-refresh" type="button">Refresh</button>
+    </div>
+    <div class="actions track-toolbar">
+      <input type="text" id="bm-filter" class="filter-input" placeholder="Filter rows&hellip;">
+      <button id="btn-bm-save-sel" class="primary" type="button" disabled>Save selected</button>
+      <button id="btn-bm-copy-sel" type="button" disabled>Copy selected</button>
+      <button id="btn-bm-delete-sel" class="danger" type="button" disabled>Delete selected</button>
+      <span id="bm-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-bm-download" type="button">Download (xlsx)</button>
+    </div>
+    <div id="bymerchant-status" aria-live="polite"></div>
+    <div class="scroll-box">
+      <table id="bymerchant-table" class="track-table" aria-label="Tracking by merchant">
+        <thead id="bymerchant-head"></thead>
+        <tbody id="bymerchant-body"></tbody>
       </table>
     </div>
   </section>

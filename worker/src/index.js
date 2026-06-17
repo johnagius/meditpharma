@@ -38,6 +38,7 @@ const RESOURCES = {
       ['boxDim', 'box_dim'],
       ['fromWhom', 'from_whom'],
       ['shippingCost', 'shipping_cost'],
+      ['merchant', 'merchant'],
       ['dedupKey', 'dedup_key'],
     ],
   },

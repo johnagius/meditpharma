@@ -539,3 +539,18 @@ footer {
 .col-menu-all { border-bottom: 1px solid var(--border); margin-bottom: 2px; font-weight: 600; }
 .col-menu-footer { display: flex; gap: 6px; }
 .col-menu-footer button { flex: 1 1 auto; padding: 5px 6px; font-size: 11px; }
+
+/* By Merchant tab: merchant sub-tabs + date-scope segmented control. */
+.subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.subtabs .subtab { padding: 6px 12px; font-size: 12px; border-radius: 999px; }
+.subtabs .subtab.active {
+  background: var(--accent);
+  color: #0b1224;
+  border-color: transparent;
+  font-weight: 600;
+}
+.bm-daterange { align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 7px 12px; font-size: 12px; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button.active { background: var(--accent); color: #0b1224; font-weight: 600; }

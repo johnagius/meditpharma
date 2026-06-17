@@ -24,6 +24,7 @@ export const TRACKING_HEADERS = [
   'Box Dim',
   'From Whom',
   'Shipping Cost',
+  'Merchant',
 ];
 
 // Field keys in the same order as TRACKING_HEADERS.
@@ -49,6 +50,7 @@ export const TRACKING_KEYS = [
   'boxDim',
   'fromWhom',
   'shippingCost',
+  'merchant',
 ];
 
 // Account dropdown options.
@@ -166,6 +168,8 @@ export function buildTrackingRow(order, rowIndex, date = new Date()) {
     boxDim: '',
     fromWhom: fromWhomFor(order.merchant),
     shippingCost: '',
+    // Owning merchant — drives the "By Merchant" tab's segregation. Editable.
+    merchant: order.merchant || '',
   };
 }
 
