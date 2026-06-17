@@ -2217,11 +2217,37 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         deliveredOnIso: s.deliveredOnIso || '',
         _origin: 'db',
       }));
-      status(`Loaded ${savedTrackingRows.length} saved row(s).`, 'ok');
+      const filled = await backfillMerchants();
+      status(`Loaded ${savedTrackingRows.length} saved row(s)${filled ? `, detected merchant for ${filled}` : ''}.`, 'ok');
       renderAllTracking();
     } catch (err) {
       status(`Load failed: ${err.message}`, 'err');
     }
+  }
+
+  // Legacy rows (saved before the merchant column existed) have no merchant.
+  // Recover it the same way detection does — from the parser source — by
+  // matching each row to its saved FedEx shipment via the shared dedupKey and
+  // mapping source -> merchant. In-memory only; persists when the row is saved.
+  async function backfillMerchants() {
+    if (!savedTrackingRows.some((r) => !r.merchant && r.dedupKey)) return 0;
+    let fedexRows = savedFedexRows;
+    if (!fedexRows || !fedexRows.length) {
+      try { fedexRows = await makeStore('fedex').list(); } catch { fedexRows = []; }
+    }
+    const merchantByDedup = new Map();
+    for (const f of (fedexRows || [])) {
+      const m = f && f.source ? SOURCE_TO_MERCHANT[f.source] : '';
+      if (f && f.dedupKey && m) merchantByDedup.set(String(f.dedupKey), m);
+    }
+    let filled = 0;
+    savedTrackingRows.forEach((r) => {
+      if (!r.merchant && r.dedupKey && merchantByDedup.has(String(r.dedupKey))) {
+        r.merchant = merchantByDedup.get(String(r.dedupKey));
+        filled += 1;
+      }
+    });
+    return filled;
   }
 
   async function readDataTransfer(dt) {

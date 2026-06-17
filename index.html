@@ -771,7 +771,7 @@ footer {
   </section>
 </main>
 <footer>
-  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 08:46 UTC
+  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 08:55 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -4326,11 +4326,37 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         deliveredOnIso: s.deliveredOnIso || '',
         _origin: 'db',
       }));
-      status(`Loaded ${savedTrackingRows.length} saved row(s).`, 'ok');
+      const filled = await backfillMerchants();
+      status(`Loaded ${savedTrackingRows.length} saved row(s)${filled ? `, detected merchant for ${filled}` : ''}.`, 'ok');
       renderAllTracking();
     } catch (err) {
       status(`Load failed: ${err.message}`, 'err');
     }
+  }
+
+  // Legacy rows (saved before the merchant column existed) have no merchant.
+  // Recover it the same way detection does — from the parser source — by
+  // matching each row to its saved FedEx shipment via the shared dedupKey and
+  // mapping source -> merchant. In-memory only; persists when the row is saved.
+  async function backfillMerchants() {
+    if (!savedTrackingRows.some((r) => !r.merchant && r.dedupKey)) return 0;
+    let fedexRows = savedFedexRows;
+    if (!fedexRows || !fedexRows.length) {
+      try { fedexRows = await makeStore('fedex').list(); } catch { fedexRows = []; }
+    }
+    const merchantByDedup = new Map();
+    for (const f of (fedexRows || [])) {
+      const m = f && f.source ? SOURCE_TO_MERCHANT[f.source] : '';
+      if (f && f.dedupKey && m) merchantByDedup.set(String(f.dedupKey), m);
+    }
+    let filled = 0;
+    savedTrackingRows.forEach((r) => {
+      if (!r.merchant && r.dedupKey && merchantByDedup.has(String(r.dedupKey))) {
+        r.merchant = merchantByDedup.get(String(r.dedupKey));
+        filled += 1;
+      }
+    });
+    return filled;
   }
 
   async function readDataTransfer(dt) {
