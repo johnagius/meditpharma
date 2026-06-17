@@ -45,9 +45,21 @@ describe('detectMerchant', () => {
   });
 
   it('falls back to a learned pattern when the format is unknown', () => {
-    const learned = [learnExample(fixture('k2.txt'), 'LWA', 'sample')];
-    const got = detectMerchant(fixture('k2.txt'), { learned });
+    // Use a brand-free fixture so explicit-name detection doesn't pre-empt it.
+    const learned = [learnExample(fixture('activa-multi.txt'), 'LWA', 'sample')];
+    const got = detectMerchant(fixture('activa-multi.txt'), { learned });
     expect(got).toMatchObject({ merchant: 'LWA', via: 'learned' });
+  });
+
+  it('an explicit brand name beats the shared 2.0 format / learned guess', () => {
+    const krypton = fixture('k2.txt'); // prints "Krypton 2.0"
+    const phchic = krypton.replace(/Krypton 2\.0/gi, 'PhChic 2.0');
+    // Same k2 format + a learned Krypton example, but the text says PhChic.
+    const learned = [learnExample(krypton, 'Krypton 2', 'sample')];
+    expect(detectMerchant(phchic, { source: 'k2', learned })).toMatchObject({ merchant: 'PHCHIC', via: 'name' });
+    expect(detectMerchant(krypton, { source: 'k2', learned })).toMatchObject({ merchant: 'Krypton 2', via: 'name' });
+    // Prefers an existing merchant name when provided.
+    expect(detectMerchant(phchic, { merchants: ['PHCHIC', 'Krypton 2'] }).merchant).toBe('PHCHIC');
   });
 
   it('returns null when nothing matches', () => {

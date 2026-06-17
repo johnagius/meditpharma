@@ -345,7 +345,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         }
         for (const order of parsed) {
           const product = detect(order.productText) || detect(text);
-          const md = detectMerchant(text, { source: order.source, learned: learnedPatterns });
+          const md = detectMerchant(text, { source: order.source, learned: learnedPatterns, merchants: merchantNames() });
           const dedupKey = `${hashText(text)}|${order.orderId || (order.recipient && order.recipient.name) || ''}`;
           // Skip an identical order already loaded this session (no dup cards).
           if (orders.some((o) => o.dedupKey === dedupKey)) { skipped += 1; continue; }

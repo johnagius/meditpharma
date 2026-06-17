@@ -56,8 +56,35 @@ export function similarity(a, b) {
   return inter / (A.size + B.size - inter);
 }
 
+// Brand names that share the same "2.0" order template (k2 parser). The format
+// alone can't tell them apart, so an explicitly printed brand name wins.
+const BRAND_RULES = [
+  { re: /\bph[\s.]*chic/i, key: 'phchic', fallback: 'PHCHIC' },
+  { re: /\bkrypton\b/i, key: 'krypton', fallback: 'Krypton 2' },
+];
+
+function normName(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// If the text explicitly names a known brand, return the matching merchant
+// (preferring one already in `merchants`, else a canonical fallback). This
+// keeps "PhChic 2.0" from being mislabelled Krypton just because of "2.0".
+export function detectExplicitMerchant(text, merchants = []) {
+  for (const b of BRAND_RULES) {
+    if (b.re.test(text)) {
+      const match = (merchants || []).find((n) => normName(n).includes(b.key));
+      return match || b.fallback;
+    }
+  }
+  return null;
+}
+
 // learned: [{ merchant, tokens: [...] }, ...]
-export function detectMerchant(text, { source, learned = [], threshold = 0.5 } = {}) {
+export function detectMerchant(text, { source, learned = [], merchants = [], threshold = 0.5 } = {}) {
+  // An explicitly printed brand name beats format/learned matching.
+  const explicit = detectExplicitMerchant(text, merchants);
+  if (explicit) return { merchant: explicit, via: 'name', score: 1 };
   if (source && SOURCE_TO_MERCHANT[source]) {
     return { merchant: SOURCE_TO_MERCHANT[source], via: 'format', score: 1 };
   }

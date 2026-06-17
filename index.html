@@ -930,7 +930,7 @@ button.mini { padding: 4px 8px; font-size: 11px; }
   </section>
 </main>
 <footer>
-  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 11:36 UTC
+  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build 2026-06-17 12:29 UTC
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -1184,8 +1184,35 @@ function similarity(a, b) {
   return inter / (A.size + B.size - inter);
 }
 
+// Brand names that share the same "2.0" order template (k2 parser). The format
+// alone can't tell them apart, so an explicitly printed brand name wins.
+const BRAND_RULES = [
+  { re: /\bph[\s.]*chic/i, key: 'phchic', fallback: 'PHCHIC' },
+  { re: /\bkrypton\b/i, key: 'krypton', fallback: 'Krypton 2' },
+];
+
+function normName(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// If the text explicitly names a known brand, return the matching merchant
+// (preferring one already in `merchants`, else a canonical fallback). This
+// keeps "PhChic 2.0" from being mislabelled Krypton just because of "2.0".
+function detectExplicitMerchant(text, merchants = []) {
+  for (const b of BRAND_RULES) {
+    if (b.re.test(text)) {
+      const match = (merchants || []).find((n) => normName(n).includes(b.key));
+      return match || b.fallback;
+    }
+  }
+  return null;
+}
+
 // learned: [{ merchant, tokens: [...] }, ...]
-function detectMerchant(text, { source, learned = [], threshold = 0.5 } = {}) {
+function detectMerchant(text, { source, learned = [], merchants = [], threshold = 0.5 } = {}) {
+  // An explicitly printed brand name beats format/learned matching.
+  const explicit = detectExplicitMerchant(text, merchants);
+  if (explicit) return { merchant: explicit, via: 'name', score: 1 };
   if (source && SOURCE_TO_MERCHANT[source]) {
     return { merchant: SOURCE_TO_MERCHANT[source], via: 'format', score: 1 };
   }
@@ -1204,7 +1231,7 @@ function learnExample(text, merchant, label = '') {
   return { merchant, tokens: fingerprint(text), label };
 }
 
-  return { fingerprint, similarity, detectMerchant, learnExample, DEFAULT_MERCHANTS, SOURCE_TO_MERCHANT };
+  return { fingerprint, similarity, detectExplicitMerchant, detectMerchant, learnExample, DEFAULT_MERCHANTS, SOURCE_TO_MERCHANT };
 })();
 
 // === data/stock.js ===
@@ -2909,7 +2936,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         }
         for (const order of parsed) {
           const product = detect(order.productText) || detect(text);
-          const md = detectMerchant(text, { source: order.source, learned: learnedPatterns });
+          const md = detectMerchant(text, { source: order.source, learned: learnedPatterns, merchants: merchantNames() });
           const dedupKey = `${hashText(text)}|${order.orderId || (order.recipient && order.recipient.name) || ''}`;
           // Skip an identical order already loaded this session (no dup cards).
           if (orders.some((o) => o.dedupKey === dedupKey)) { skipped += 1; continue; }
