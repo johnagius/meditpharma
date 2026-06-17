@@ -283,6 +283,8 @@ ${css}
       <button id="btn-saved-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
       <span id="saved-track-sel-count" class="sel-count">0 selected</span>
       <button id="btn-saved-track-paste" type="button">Paste from Excel</button>
+      <label class="file-btn">Upload Excel/CSV<input type="file" id="saved-track-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
+      <button id="btn-saved-track-template" type="button">Template</button>
       <button id="btn-saved-track-refresh" type="button">Refresh</button>
       <button id="btn-saved-track-download" type="button">Download all (xlsx)</button>
     </div>
@@ -317,6 +319,8 @@ ${css}
       <button id="btn-bm-delete-sel" class="danger" type="button" disabled>Delete selected</button>
       <span id="bm-sel-count" class="sel-count">0 selected</span>
       <button id="btn-bm-paste" type="button">Paste from Excel</button>
+      <label class="file-btn">Upload Excel/CSV<input type="file" id="bm-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
+      <button id="btn-bm-template" type="button">Template</button>
       <button id="btn-bm-download" type="button">Download (xlsx)</button>
     </div>
     <div id="bymerchant-status" aria-live="polite"></div>
@@ -338,6 +342,10 @@ ${css}
       <button id="btn-today-copy-sel" type="button" disabled>Copy selected</button>
       <button id="btn-today-delete-sel" class="danger" type="button" disabled>Delete selected</button>
       <span id="today-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-today-paste" type="button">Paste from Excel</button>
+      <label class="file-btn">Upload Excel/CSV<input type="file" id="today-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
+      <button id="btn-today-template" type="button">Template</button>
+      <button id="btn-today-download" type="button">Download (xlsx)</button>
       <button id="btn-today-promote" class="primary" type="button">Update master list &rarr;</button>
       <button id="btn-today-refresh" type="button">Refresh</button>
     </div>
@@ -361,6 +369,8 @@ ${css}
       <button id="btn-master-delete-sel" class="danger" type="button" disabled>Delete selected</button>
       <span id="master-sel-count" class="sel-count">0 selected</span>
       <button id="btn-master-paste" type="button">Paste from Excel</button>
+      <label class="file-btn">Upload Excel/CSV<input type="file" id="master-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
+      <button id="btn-master-template" type="button">Template</button>
       <button id="btn-master-refresh" type="button">Refresh</button>
       <button id="btn-master-download" type="button">Download all (xlsx)</button>
     </div>

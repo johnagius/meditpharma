@@ -66,6 +66,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const savedTrackDeleteSel = document.getElementById('btn-saved-track-delete-sel');
   const savedTrackSelCount = document.getElementById('saved-track-sel-count');
   const savedTrackPaste = document.getElementById('btn-saved-track-paste');
+  const savedTrackFile = document.getElementById('saved-track-file');
+  const savedTrackTemplate = document.getElementById('btn-saved-track-template');
 
   // By Merchant tab
   const bmHead = document.getElementById('bymerchant-head');
@@ -83,6 +85,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const bmSelCount = document.getElementById('bm-sel-count');
   const bmDownload = document.getElementById('btn-bm-download');
   const bmPaste = document.getElementById('btn-bm-paste');
+  const bmFile = document.getElementById('bm-file');
+  const bmTemplate = document.getElementById('btn-bm-template');
 
   // Today tab (today's tracking rows, promote to master)
   const todayHead = document.getElementById('today-head');
@@ -95,6 +99,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const todaySelCount = document.getElementById('today-sel-count');
   const todayRefresh = document.getElementById('btn-today-refresh');
   const todayPromote = document.getElementById('btn-today-promote');
+  const todayPaste = document.getElementById('btn-today-paste');
+  const todayFile = document.getElementById('today-file');
+  const todayTemplate = document.getElementById('btn-today-template');
+  const todayDownload = document.getElementById('btn-today-download');
 
   // Master List tab (separate master table)
   const masterHead = document.getElementById('master-head');
@@ -108,6 +116,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const masterRefresh = document.getElementById('btn-master-refresh');
   const masterDownload = document.getElementById('btn-master-download');
   const masterPaste = document.getElementById('btn-master-paste');
+  const masterFile = document.getElementById('master-file');
+  const masterTemplate = document.getElementById('btn-master-template');
 
   // Catalog tab (products + HS codes)
   const productsHead = document.getElementById('products-head');
@@ -1811,6 +1821,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (bmFrom) bmFrom.addEventListener('change', onRange);
     if (bmTo) bmTo.addEventListener('change', onRange);
     if (bmPaste) bmPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.bymerchant));
+    if (bmFile) bmFile.addEventListener('change', () => uploadTrackingFile(bmFile, TRACK_VIEWS.bymerchant));
+    if (bmTemplate) bmTemplate.addEventListener('click', () => downloadTrackingTemplate(bmStatus));
     if (bmRefresh) bmRefresh.addEventListener('click', () => { loadSavedRows().then(renderMerchantSubtabs); });
     if (bmDownload) {
       bmDownload.addEventListener('click', () => {
@@ -1850,6 +1862,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       });
     }
     if (savedTrackPaste) savedTrackPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.saved));
+    if (savedTrackFile) savedTrackFile.addEventListener('change', () => uploadTrackingFile(savedTrackFile, TRACK_VIEWS.saved));
+    if (savedTrackTemplate) savedTrackTemplate.addEventListener('click', () => downloadTrackingTemplate(savedTrackStatus));
     if (savedTrackRefresh) savedTrackRefresh.addEventListener('click', loadSavedRows);
     if (savedTrackDownload) {
       savedTrackDownload.addEventListener('click', () => {
@@ -2613,6 +2627,29 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     renderMerchantSubtabs();
   }
 
+  // Read an uploaded .xlsx/.csv file and upsert it into the view (same logic as
+  // paste). Reuses the catalog file reader (xlsx -> CSV via SheetJS).
+  function uploadTrackingFile(fileInput, view) {
+    return handleCatalogFile(fileInput, (text) => applyPaste(text, view), view.status);
+  }
+
+  // Example row for the downloadable Excel template, so the format is obvious.
+  const TRACKING_EXAMPLE = {
+    day: 'Monday', date: '01.06.26', orderNumber: '010626-1', trackingNumber: '794600000000',
+    product: 'Botox 100u (ENG)', quantity: '1',
+    productDescription: 'Advanced formulation for aesthetic applications',
+    destCity: 'Charlotte', destState: 'North Carolina', account: 'Fedex', client: 'Jane Doe',
+    deliveredOn: '', deliveryStatus: 'Pending', comments: '', directionRemarks: '',
+    supplier: '', pfi: '', totalValue: '', gapDdp: '', boxDim: '', fromWhom: '', shippingCost: '',
+    merchant: 'Krypton 2',
+  };
+
+  // Download an .xlsx template: the exact header row + one example row to fill.
+  function downloadTrackingTemplate(statusEl) {
+    const example = TRACKING_KEYS.map((k) => TRACKING_EXAMPLE[k] ?? '');
+    downloadAoa([TRACKING_HEADERS, example], 'Tracking_template.xlsx', (m, l) => setStatusInto(statusEl, m, l));
+  }
+
   // Modal with a textarea for the user to paste the copied Excel table into.
   function openPasteModal(view) {
     const overlay = document.createElement('div');
@@ -2760,6 +2797,17 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     wireTrackToolbar(TRACK_VIEWS.today);
     if (todayRefresh) todayRefresh.addEventListener('click', loadSavedRows);
     if (todayPromote) todayPromote.addEventListener('click', promoteToMaster);
+    if (todayPaste) todayPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.today));
+    if (todayFile) todayFile.addEventListener('change', () => uploadTrackingFile(todayFile, TRACK_VIEWS.today));
+    if (todayTemplate) todayTemplate.addEventListener('click', () => downloadTrackingTemplate(todayStatus));
+    if (todayDownload) {
+      todayDownload.addEventListener('click', () => {
+        const rows = filteredRows(TRACK_VIEWS.today);
+        if (!rows.length) { setStatusInto(todayStatus, 'No today rows to download.', 'warn'); return; }
+        const aoa = [TRACKING_HEADERS].concat(rows.map((r) => trackingRowToCells(r)));
+        downloadAoa(aoa, `Today_${dateStamp()}_${rows.length}rows.xlsx`, (m, l) => setStatusInto(todayStatus, m, l));
+      });
+    }
   }
 
   function initMaster() {
@@ -2767,6 +2815,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     wireTrackToolbar(TRACK_VIEWS.master);
     if (masterRefresh) masterRefresh.addEventListener('click', loadMaster);
     if (masterPaste) masterPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.master));
+    if (masterFile) masterFile.addEventListener('change', () => uploadTrackingFile(masterFile, TRACK_VIEWS.master));
+    if (masterTemplate) masterTemplate.addEventListener('click', () => downloadTrackingTemplate(masterStatus));
     if (masterDownload) {
       masterDownload.addEventListener('click', () => {
         if (!masterRows.length) { setStatusInto(masterStatus, 'Nothing to download — Refresh first.', 'warn'); return; }
