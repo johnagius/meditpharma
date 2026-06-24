@@ -182,238 +182,206 @@ ${css}
 </head>
 <body>
 <div id="app-shell">
+<!-- ── COMPACT HEADER ──────────────────────────────────────────────────── -->
 <header>
   <div class="brand">
     <div class="brand-mark" aria-hidden="true">MP</div>
     <div class="brand-text">
-      <h1>Meditpharma</h1>
-      <span class="brand-sub">Shipment &amp; Order Management</span>
+      <div style="font-weight:800;font-size:14px;line-height:1">Meditpharma Pro</div>
+      <div style="font-size:9px;color:var(--muted);line-height:1;margin-top:1px;text-transform:uppercase;letter-spacing:.06em">Daily Shipment Workflow</div>
     </div>
   </div>
   <div class="brand-status">
-    <div class="hstat"><strong id="hs-orders" style="color:var(--accent)">—</strong><span>Batch</span></div>
-    <div class="hstat"><strong id="hs-today" style="color:var(--tok)">—</strong><span>Today</span></div>
-    <div class="hstat"><strong id="hs-transit" style="color:var(--twarn)">—</strong><span>Transit</span></div>
-    <div class="hstat"><strong id="hs-total" style="color:var(--tacc)">—</strong><span>All-Time</span></div>
+    <div class="hstat"><strong id="hs-orders" style="color:var(--accent)">0</strong><span>Batch</span></div>
+    <div class="hstat"><strong id="hs-today" style="color:var(--tok)">0</strong><span>Today</span></div>
+    <div class="hstat"><strong id="hs-transit" style="color:var(--twarn)">0</strong><span>Transit</span></div>
+    <div class="hstat"><strong id="hs-total" style="color:var(--tacc)">0</strong><span>All-Time</span></div>
+    <button id="btn-download" style="background:var(--grn);color:#fff;border:none;padding:6px 14px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px" disabled>⬇ FedEx Excel</button>
+    <button id="btn-settings" type="button" title="Sync settings" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 10px;border-radius:5px;font-size:14px;cursor:pointer">⚙</button>
   </div>
 </header>
+
+<!-- ── GLOBAL SETTINGS (hidden by default) ───────────────────────────────── -->
+<div class="global-settings hidden" id="global-settings">
+  <label for="track-api-url">Sync API URL (Cloudflare Worker):</label>
+  <input type="text" id="track-api-url" placeholder="https://your-worker.workers.dev (leave blank to use this browser)">
+  <button id="btn-track-save-url" type="button">Save URL</button>
+  <span>Saving to: <span id="track-backend" class="backend-badge local">this browser (localStorage)</span></span>
+</div>
+
 <main>
-  <nav class="tabs" role="tablist">
-    <button class="tab active" id="tab-builder" data-panel="panel-builder" type="button">Builder</button>
-    <button class="tab" id="tab-fedex" data-panel="panel-fedex" type="button">Saved FedEx</button>
-    <button class="tab" id="tab-tracking" data-panel="panel-tracking" type="button">Saved Tracking</button>
-    <button class="tab" id="tab-bymerchant" data-panel="panel-bymerchant" type="button">By Merchant</button>
-    <button class="tab" id="tab-today" data-panel="panel-today" type="button">Today</button>
-    <button class="tab" id="tab-master" data-panel="panel-master" type="button">Master List</button>
-    <button class="tab" id="tab-stock" data-panel="panel-stock" type="button">Stock</button>
-    <button class="tab" id="tab-catalog" data-panel="panel-catalog" type="button">Catalog</button>
-    <button class="tab" id="tab-merchants" data-panel="panel-merchants" type="button">Merchants</button>
-    <button class="tab" id="tab-awb" data-panel="panel-awb" type="button">AWB Checklist</button>
-    <button class="tab" id="tab-reports" data-panel="panel-reports" type="button">Reports</button>
-    <button class="tab tab-gear" id="btn-settings" type="button" title="Sync settings" aria-label="Sync settings">&#9881;</button>
-  </nav>
 
-  <div class="global-settings hidden" id="global-settings">
-    <label for="track-api-url">Sync API URL (Cloudflare Worker):</label>
-    <input type="text" id="track-api-url" placeholder="https://your-worker.workers.dev (leave blank to use this browser)">
-    <button id="btn-track-save-url" type="button">Save URL</button>
-    <span>Saving to: <span id="track-backend" class="backend-badge local">this browser (localStorage)</span></span>
+<!-- ── WORKFLOW NAV (5 steps) ─────────────────────────────────────────────── -->
+<nav id="wf-nav" role="tablist">
+  <button class="wf-tab active" id="tab-builder" data-panel="panel-builder" data-step="1" type="button">
+    <span class="step-dot">1</span>Order Intake &amp; FedEx Batch
+    <span class="step-badge" id="badge-batch">0</span>
+  </button>
+  <div class="wf-sep"></div>
+  <button class="wf-tab" id="tab-awb" data-panel="panel-awb" data-step="2" type="button">
+    <span class="step-dot">2</span>AWB &amp; Invoice Checklist
+    <span class="step-badge" id="awb-badge">0</span>
+  </button>
+  <div class="wf-sep"></div>
+  <button class="wf-tab" id="tab-today" data-panel="panel-today" data-step="3" type="button">
+    <span class="step-dot">3</span>Today&apos;s Dispatch
+    <span class="step-badge" id="dis-badge">0</span>
+  </button>
+  <div class="wf-sep"></div>
+  <button class="wf-tab" id="tab-tracking" data-panel="panel-tracking" data-step="4" type="button">
+    <span class="step-dot">4</span>Track &amp; Update
+    <span class="step-badge" id="trk-badge">0</span>
+  </button>
+  <div class="wf-sep"></div>
+  <button class="wf-tab" id="tab-master" data-panel="panel-master" data-step="5" type="button">
+    <span class="step-dot">5</span>Master &amp; Reports
+  </button>
+</nav>
+
+<!-- ── SECONDARY TABS (sub-tabs per step, contextually shown) ────────────── -->
+<div id="sec-tabs">
+  <!-- Step 1 sub-tabs -->
+  <div class="sec-group" id="sg-1">
+    <button class="sec-tab active" data-panel="panel-builder" type="button">📦 Process Orders</button>
+    <button class="sec-tab" id="tab-fedex" data-panel="panel-fedex" type="button">💾 Saved FedEx</button>
+    <button class="sec-tab" id="tab-catalog" data-panel="panel-catalog" type="button">🏷 Catalog / MID</button>
+    <button class="sec-tab" id="tab-merchants" data-panel="panel-merchants" type="button">🏪 Merchants</button>
+    <button class="sec-tab" id="tab-stock" data-panel="panel-stock" type="button">📦 Stock</button>
   </div>
+  <!-- Step 2 sub-tabs (none needed) -->
+  <!-- Step 3 sub-tabs (none needed) -->
+  <!-- Step 4 sub-tabs -->
+  <div class="sec-group hidden" id="sg-4">
+    <button class="sec-tab active" data-panel="panel-tracking" type="button">📋 Saved Tracking</button>
+    <button class="sec-tab" id="tab-bymerchant" data-panel="panel-bymerchant" type="button">🏪 By Merchant</button>
+  </div>
+  <!-- Step 5 sub-tabs -->
+  <div class="sec-group hidden" id="sg-5">
+    <button class="sec-tab active" data-panel="panel-master" type="button">📋 Master List</button>
+    <button class="sec-tab" id="tab-reports" data-panel="panel-reports" type="button">📊 Reports</button>
+  </div>
+</div>
 
-  <section class="panel active" id="panel-builder">
-    <div id="drop-zone" tabindex="0" role="button" aria-label="Upload PDF files">
-      <strong>Drop PDFs or folders here</strong>
-      <small>&hellip; or click to pick files</small>
-      <input type="file" id="file-picker" accept="application/pdf" multiple class="hidden">
-      <input type="file" id="folder-picker" webkitdirectory directory multiple class="hidden">
-    </div>
-    <div class="actions">
-      <button id="btn-add-folder" type="button">Add folder</button>
-      <button id="btn-clear" class="danger" type="button">Clear</button>
-      <button id="btn-download" class="primary" type="button" disabled>Download xlsx</button>
-      <button id="btn-fedex-saveall" type="button">Save all to D1</button>
-      <button id="btn-add-to-stock" class="flash hidden" type="button">Update Stock Movement Sheet</button>
-      <label class="autosave"><input type="checkbox" id="chk-fedex-autosave"> Autosave to D1</label>
-    </div>
-    <div class="row-summary" id="summary">Drop PDFs above to begin.</div>
-    <div id="status" aria-live="polite"></div>
-    <div id="fedex-status" aria-live="polite"></div>
-    <div class="scroll-box">
-      <div id="cards" class="cards" aria-label="Shipments preview"></div>
-    </div>
+<!-- ── PANELS ──────────────────────────────────────────────────────────────── -->
 
-    <section class="section-divider">
-      <h2>Tracking sheet</h2>
-      <p>One row per order (all products listed together). Edit any cell, tick the rows you want, then use the buttons above the table to save, copy or delete them &mdash; like a spreadsheet. Click any column header to sort or filter by that column.</p>
-    </section>
-    <div class="track-settings">
-      <label class="autosave"><input type="checkbox" id="chk-track-autosave"> Autosave tracking rows</label>
-    </div>
-    <div id="tracking-dashboard" class="status-dash"></div>
-    <div class="actions track-toolbar">
-      <input type="text" id="tracking-filter" class="filter-input" placeholder="Filter rows&hellip;">
-      <button id="btn-track-save-sel" class="primary" type="button" disabled>Save selected</button>
-      <button id="btn-track-copy-sel" type="button" disabled>Copy selected</button>
-      <button id="btn-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
-      <span id="track-sel-count" class="sel-count">0 selected</span>
-    </div>
-    <div id="tracking-status" aria-live="polite"></div>
-    <div class="scroll-box">
-      <table id="tracking-table" class="track-table" aria-label="Tracking sheet">
-        <thead id="tracking-head"></thead>
-        <tbody id="tracking-body"></tbody>
-      </table>
-    </div>
-  </section>
+<!-- STEP 1: ORDER INTAKE / FEDEX BATCH -->
+<section class="panel active" id="panel-builder">
+  <div class="builder-layout">
 
-  <section class="panel" id="panel-fedex">
-    <h2>Saved FedEx shipments</h2>
-    <p class="panel-hint">Shipments saved to the database. Click a card to view/edit all fields; Overwrite saves changes back. Download one or all as xlsx.</p>
-    <div class="actions">
-      <button id="btn-saved-fedex-refresh" class="primary" type="button">Refresh</button>
-      <button id="btn-saved-fedex-download" type="button">Download all (xlsx)</button>
-    </div>
-    <div id="saved-fedex-status" aria-live="polite"></div>
-    <div class="scroll-box">
-      <div id="saved-fedex-cards" class="cards" aria-label="Saved FedEx shipments"></div>
-    </div>
-  </section>
-
-  <section class="panel" id="panel-tracking">
-    <h2>Saved tracking rows</h2>
-    <p class="panel-hint">Tracking rows saved to the database. Edit a cell, tick the rows you want, then use the buttons to save, copy or delete them. Click any column header to sort or filter, or a status total below to filter by delivery status. Refresh to reload.</p>
-    <div id="saved-track-dashboard" class="status-dash"></div>
-    <div class="actions track-toolbar">
-      <input type="text" id="saved-track-filter" class="filter-input" placeholder="Filter rows&hellip;">
-      <button id="btn-saved-track-save-sel" class="primary" type="button" disabled>Save selected</button>
-      <button id="btn-saved-track-copy-sel" type="button" disabled>Copy selected</button>
-      <button id="btn-saved-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
-      <span id="saved-track-sel-count" class="sel-count">0 selected</span>
-      <button id="btn-saved-track-paste" type="button">Paste from Excel</button>
-      <label class="file-btn">Upload Excel/CSV<input type="file" id="saved-track-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
-      <button id="btn-saved-track-template" type="button">Template</button>
-      <button id="btn-saved-track-refresh" type="button">Refresh</button>
-      <button id="btn-saved-track-download" type="button">Download all (xlsx)</button>
-    </div>
-    <div id="saved-track-status" aria-live="polite"></div>
-    <div class="scroll-box">
-      <table id="saved-track-table" class="track-table" aria-label="Saved tracking rows">
-        <thead id="saved-track-head"></thead>
-        <tbody id="saved-track-body"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="panel" id="panel-bymerchant">
-    <h2>Tracking by merchant</h2>
-    <p class="panel-hint">The same saved tracking rows as Saved Tracking, split per merchant. Pick a merchant tab and a date scope (today, all, or a date range). Editing, saving or deleting here writes to the same database, so Saved Tracking stays in sync.</p>
-    <div id="bymerchant-subtabs" class="subtabs" role="tablist"></div>
-    <div class="actions bm-daterange">
-      <div class="seg" id="bm-datemode">
-        <button data-mode="today" type="button">Today</button>
-        <button data-mode="all" class="active" type="button">All</button>
-        <button data-mode="range" type="button">Date range</button>
+    <!-- LEFT SIDEBAR -->
+    <div class="builder-sidebar">
+      <!-- Step 1: Upload -->
+      <div class="sidebar-card">
+        <div class="sidebar-step-label" style="color:var(--accent)">📁 Step 1 — Upload Files</div>
+        <div id="drop-zone" tabindex="0" role="button" aria-label="Upload PDF files" style="padding:20px 14px;margin:0">
+          <span style="font-size:28px;display:block;margin-bottom:6px">📂</span>
+          <strong style="font-size:12px">Drop files here or click</strong>
+          <small style="font-size:11px">PDF &middot; Word &middot; Excel &middot; Text<br>Multiple files at once supported</small>
+          <input type="file" id="file-picker" accept="application/pdf" multiple class="hidden">
+          <input type="file" id="folder-picker" webkitdirectory directory multiple class="hidden">
+        </div>
+        <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap">
+          <button id="btn-add-folder" type="button" style="flex:1;font-size:11px;padding:5px 8px">📂 Folder</button>
+          <button id="btn-clear" class="danger" type="button" style="flex:1;font-size:11px;padding:5px 8px">✕ Clear</button>
+        </div>
+        <label class="autosave" style="margin-top:6px"><input type="checkbox" id="chk-fedex-autosave"> Autosave to D1</label>
       </div>
-      <label class="inline-field">From <input type="date" id="bm-from"></label>
-      <label class="inline-field">To <input type="date" id="bm-to"></label>
-      <button id="btn-bm-refresh" type="button">Refresh</button>
-    </div>
-    <div id="bm-dashboard" class="status-dash"></div>
-    <div class="actions track-toolbar">
-      <input type="text" id="bm-filter" class="filter-input" placeholder="Filter rows&hellip;">
-      <button id="btn-bm-save-sel" class="primary" type="button" disabled>Save selected</button>
-      <button id="btn-bm-copy-sel" type="button" disabled>Copy selected</button>
-      <button id="btn-bm-delete-sel" class="danger" type="button" disabled>Delete selected</button>
-      <span id="bm-sel-count" class="sel-count">0 selected</span>
-      <button id="btn-bm-paste" type="button">Paste from Excel</button>
-      <label class="file-btn">Upload Excel/CSV<input type="file" id="bm-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
-      <button id="btn-bm-template" type="button">Template</button>
-      <button id="btn-bm-download" type="button">Download (xlsx)</button>
-    </div>
-    <div id="bymerchant-status" aria-live="polite"></div>
-    <div class="scroll-box">
-      <table id="bymerchant-table" class="track-table" aria-label="Tracking by merchant">
-        <thead id="bymerchant-head"></thead>
-        <tbody id="bymerchant-body"></tbody>
-      </table>
-    </div>
-  </section>
 
-  <section class="panel" id="panel-today">
-    <h2>Today's orders</h2>
-    <p class="panel-hint">Today's saved tracking rows. Check and fill everything, then <strong>Update master list</strong> to copy them into the Master List. This only adds/updates today's orders &mdash; previously promoted master rows are never touched.</p>
-    <div id="today-dashboard" class="status-dash"></div>
-    <div class="actions track-toolbar">
-      <input type="text" id="today-filter" class="filter-input" placeholder="Filter rows&hellip;">
-      <button id="btn-today-save-sel" class="primary" type="button" disabled>Save selected</button>
-      <button id="btn-today-copy-sel" type="button" disabled>Copy selected</button>
-      <button id="btn-today-delete-sel" class="danger" type="button" disabled>Delete selected</button>
-      <span id="today-sel-count" class="sel-count">0 selected</span>
-      <button id="btn-today-paste" type="button">Paste from Excel</button>
-      <label class="file-btn">Upload Excel/CSV<input type="file" id="today-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
-      <button id="btn-today-template" type="button">Template</button>
-      <button id="btn-today-download" type="button">Download (xlsx)</button>
-      <button id="btn-today-promote" class="primary" type="button">Update master list &rarr;</button>
-      <button id="btn-today-refresh" type="button">Refresh</button>
-    </div>
-    <div id="today-status" aria-live="polite"></div>
-    <div class="scroll-box">
-      <table id="today-table" class="track-table" aria-label="Today's orders">
-        <thead id="today-head"></thead>
-        <tbody id="today-body"></tbody>
-      </table>
-    </div>
-  </section>
+      <!-- Step 2: Review stats -->
+      <div class="sidebar-card">
+        <div class="sidebar-step-label" style="color:var(--grn)">✅ Step 2 — Review Orders</div>
+        <div class="sidebar-stats">
+          <div class="sb-stat"><span class="sb-val" id="sb-total">0</span><span class="sb-lbl">Total</span></div>
+          <div class="sb-stat"><span class="sb-val" style="color:var(--grn)" id="sb-ready">0</span><span class="sb-lbl">Ready</span></div>
+          <div class="sb-stat"><span class="sb-val" style="color:var(--amb)" id="sb-need">0</span><span class="sb-lbl">Need info</span></div>
+          <div class="sb-stat"><span class="sb-val" style="color:var(--tacc)" id="sb-sender">1/8</span><span class="sb-lbl">Sender</span></div>
+        </div>
+        <div id="summary" style="font-size:11px;color:var(--muted);margin-top:6px">Drop PDFs above to begin.</div>
+        <div id="status" aria-live="polite"></div>
+        <div id="fedex-status" aria-live="polite"></div>
+      </div>
 
-  <section class="panel" id="panel-master">
-    <h2>Master list</h2>
-    <p class="panel-hint">The master record of all orders, stored separately from the live tracking rows. Promote today's orders from the Today tab. Edit a cell, tick rows, then save/copy/delete. Click a column header to sort or filter.</p>
-    <div id="master-dashboard" class="status-dash"></div>
-    <div class="actions track-toolbar">
-      <input type="text" id="master-filter" class="filter-input" placeholder="Filter rows&hellip;">
-      <button id="btn-master-save-sel" class="primary" type="button" disabled>Save selected</button>
-      <button id="btn-master-copy-sel" type="button" disabled>Copy selected</button>
-      <button id="btn-master-delete-sel" class="danger" type="button" disabled>Delete selected</button>
-      <span id="master-sel-count" class="sel-count">0 selected</span>
-      <button id="btn-master-paste" type="button">Paste from Excel</button>
-      <label class="file-btn">Upload Excel/CSV<input type="file" id="master-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
-      <button id="btn-master-template" type="button">Template</button>
-      <button id="btn-master-refresh" type="button">Refresh</button>
-      <button id="btn-master-download" type="button">Download all (xlsx)</button>
-    </div>
-    <button id="btn-btrk-toggle" type="button" style="margin:6px 0 0 0">🔍 Bulk Track</button>
-    <div class="btrk-panel" id="btrk-panel">
-      <div class="btrk-inner">
-        <div class="btrk-title">
-          <span>🔍 Bulk Tracking Lookup — paste multiple tracking numbers</span>
-          <button type="button" onclick="BTRK.close()" style="padding:3px 8px;font-size:10px;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:4px;cursor:pointer">✕ Close</button>
+      <!-- Step 3: Download -->
+      <div class="sidebar-card">
+        <div class="sidebar-step-label" style="color:var(--tacc)">📥 Step 3 — Download Excel</div>
+        <div class="sidebar-dl-stats" id="sb-dl-info" style="font-size:11px;color:var(--muted);margin-bottom:8px"></div>
+        <button id="btn-download-sidebar" class="primary" type="button" disabled
+          style="width:100%;justify-content:center;background:var(--grn);border:none;padding:8px;font-size:12px;border-radius:5px">
+          ⬇ Download FedEx Batch Excel
+        </button>
+        <button id="btn-fedex-saveall" type="button" style="width:100%;margin-top:5px;font-size:11px;justify-content:center">💾 Save all to D1</button>
+        <button id="btn-add-to-stock" class="flash hidden" type="button" style="width:100%;margin-top:5px;font-size:11px">📦 Update Stock Sheet</button>
+        <div style="display:flex;gap:6px;margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+          <button type="button" style="flex:1;font-size:10.5px;padding:4px" onclick="document.querySelectorAll('.panel.active .card').forEach(c=>c.classList.remove('collapsed'))">All ▼</button>
+          <button type="button" style="flex:1;font-size:10.5px;padding:4px" onclick="document.querySelectorAll('.panel.active .card').forEach(c=>c.classList.add('collapsed'))">Collapse ▶</button>
         </div>
-        <div class="btrk-grid">
-          <textarea class="btrk-ta" id="btrk-input" placeholder="Paste tracking numbers here — one per line (or comma/space separated)&#10;&#10;887619865122&#10;871248857999&#10;870108661331&#10;..."></textarea>
-          <div class="btrk-btns">
-            <button type="button" class="primary" onclick="BTRK.lookup()" style="font-size:11px;padding:6px 10px">🔍 Find in Data</button>
-            <button type="button" onclick="BTRK.openAll()" style="font-size:11px;padding:6px 10px">↗ Open All on FedEx</button>
-            <button type="button" onclick="BTRK.copyResults()" style="font-size:11px;padding:6px 10px">📋 Copy Results</button>
-            <button type="button" onclick="BTRK.clear()" style="font-size:11px;padding:6px 10px">↺ Clear</button>
-          </div>
-        </div>
-        <div id="btrk-results"></div>
+      </div>
+
+      <!-- Tracking autosave -->
+      <div class="sidebar-card" style="border-top:2px solid var(--border)">
+        <div class="sidebar-step-label" style="color:var(--pur)">📋 Tracking Sheet</div>
+        <label class="autosave" style="font-size:11px"><input type="checkbox" id="chk-track-autosave"> Autosave tracking rows</label>
       </div>
     </div>
-    <div id="master-status" aria-live="polite"></div>
-    <div class="scroll-box">
-      <table id="master-table" class="track-table" aria-label="Master list">
-        <thead id="master-head"></thead>
-        <tbody id="master-body"></tbody>
-      </table>
+
+    <!-- RIGHT MAIN (orders + tracking) -->
+    <div class="builder-main">
+      <!-- Orders scroll area -->
+      <div class="builder-orders">
+        <div id="cards" class="cards" aria-label="Shipments preview"></div>
+      </div>
+
+      <!-- Tracking section -->
+      <div class="builder-tracking">
+        <div class="section-divider" style="margin:0;padding:10px 14px;border-top:2px solid var(--border);border-bottom:1px solid var(--border)">
+          <h2 style="font-size:13px;display:inline">Tracking Sheet</h2>
+          <span style="color:var(--muted);font-size:11px;margin-left:8px">— one row per order, all products grouped</span>
+        </div>
+        <div id="tracking-dashboard" class="status-dash" style="padding:6px 14px"></div>
+        <div class="actions track-toolbar" style="padding:6px 14px;margin:0;border-bottom:1px solid var(--border)">
+          <input type="text" id="tracking-filter" class="filter-input" placeholder="Filter rows&hellip;" style="min-width:150px">
+          <button id="btn-track-save-sel" class="primary" type="button" disabled>Save selected</button>
+          <button id="btn-track-copy-sel" type="button" disabled>Copy selected</button>
+          <button id="btn-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
+          <span id="track-sel-count" class="sel-count">0 selected</span>
+        </div>
+        <div id="tracking-status" aria-live="polite" style="padding:2px 14px;font-size:11px;color:var(--muted)"></div>
+        <div style="overflow:auto;flex:1">
+          <table id="tracking-table" class="track-table" aria-label="Tracking sheet">
+            <thead id="tracking-head"></thead>
+            <tbody id="tracking-body"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
-  </section>
 
-  <section class="panel" id="panel-catalog">
-    <h2>Catalog</h2>
-    <p class="panel-hint">Products and HS codes used for detection and the FedEx/tracking output. Seeded from the built-in list and stored in the database. Use <strong>status</strong> (active / inactive / hold / withdrawn) instead of deleting, so stock movements aren't orphaned. New products auto-detect by name + keywords.</p>
+  </div>
+</section>
 
-    <h3 class="sub-head">Products</h3>
+<!-- STEP 1 secondary: SAVED FEDEX -->
+<section class="panel" id="panel-fedex">
+  <div class="p-toolbar">
+    <span class="p-title">💾 Saved FedEx Shipments</span>
+    <span class="p-hint">Click a card to view/edit all 52 fields. Overwrite saves changes back.</span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button id="btn-saved-fedex-refresh" class="primary" type="button">↻ Refresh</button>
+      <button id="btn-saved-fedex-download" type="button">⬇ Download all (xlsx)</button>
+    </div>
+  </div>
+  <div id="saved-fedex-status" aria-live="polite" style="padding:4px 14px;font-size:11px;color:var(--muted)"></div>
+  <div style="flex:1;overflow:auto;padding:12px">
+    <div id="saved-fedex-cards" class="cards" aria-label="Saved FedEx shipments"></div>
+  </div>
+</section>
+
+<!-- STEP 1 secondary: CATALOG -->
+<section class="panel" id="panel-catalog">
+  <div class="p-toolbar">
+    <span class="p-title">🏷 Catalog — Products &amp; HS Codes</span>
+    <span class="p-hint">Used for auto-detection and FedEx/tracking output. Use status instead of deleting.</span>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:14px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px">Products (MID Codes)</div>
     <div class="actions">
       <button id="btn-product-add" class="primary" type="button">+ Add product</button>
       <button id="btn-product-template" type="button">Download template</button>
@@ -431,14 +399,14 @@ ${css}
       <button id="btn-product-refresh" type="button">Refresh</button>
     </div>
     <div id="product-status" aria-live="polite"></div>
-    <div class="scroll-box">
+    <div class="scroll-box" style="max-height:40vh">
       <table class="track-table" aria-label="Products">
         <thead id="products-head"></thead>
         <tbody id="products-body"></tbody>
       </table>
     </div>
 
-    <h3 class="sub-head">HS codes (rotating cosmetic list)</h3>
+    <div style="font-weight:700;font-size:13px;margin:20px 0 10px">HS Codes (rotating cosmetic list)</div>
     <div class="actions">
       <button id="btn-hs-add" class="primary" type="button">+ Add HS code</button>
       <button id="btn-hs-template" type="button">Download template</button>
@@ -447,130 +415,287 @@ ${css}
       <button id="btn-hs-refresh" type="button">Refresh</button>
     </div>
     <div id="hs-status" aria-live="polite"></div>
-    <div class="scroll-box">
+    <div class="scroll-box" style="max-height:30vh">
       <table class="track-table" aria-label="HS codes">
         <thead id="hs-head"></thead>
         <tbody id="hs-body"></tbody>
       </table>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section class="panel" id="panel-merchants">
-    <h2>Merchants</h2>
-    <p class="panel-hint">Merchants are auto-detected from each PDF's format and improve as you correct them. Add new merchants here.</p>
-    <div class="actions">
-      <input type="text" id="merchant-new" placeholder="New merchant name">
-      <button id="btn-merchant-add" class="primary" type="button">Add merchant</button>
+<!-- STEP 1 secondary: MERCHANTS -->
+<section class="panel" id="panel-merchants">
+  <div class="p-toolbar">
+    <span class="p-title">🏪 Merchants</span>
+    <span class="p-hint">Auto-detected from PDF format. Add new merchants here.</span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <input type="text" id="merchant-new" placeholder="New merchant name" style="min-width:200px">
+      <button id="btn-merchant-add" class="primary" type="button">Add</button>
       <button id="btn-merchant-refresh" type="button">Refresh</button>
     </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:14px">
     <div id="merchant-status" aria-live="polite"></div>
     <div id="merchant-list" class="merchant-list"></div>
-  </section>
+  </div>
+</section>
 
-  <section class="panel" id="panel-stock">
-    <h2>Stock</h2>
-    <p class="panel-hint">A controlled stock ledger per merchant. Pull movements from loaded orders as <strong>pending</strong>, map each to a stock item, then <strong>confirm</strong> to apply &mdash; nothing changes your numbers until you confirm. Manage items and export confirmed movements for your sheets.</p>
-    <div class="actions">
-      <label class="inline-field">Merchant
-        <select id="stock-merchant"></select>
-      </label>
+<!-- STEP 1 secondary: STOCK -->
+<section class="panel" id="panel-stock">
+  <div class="p-toolbar">
+    <span class="p-title">📦 Stock Ledger</span>
+    <span class="p-hint">Pull movements from orders as pending, confirm to apply. Nothing changes until confirmed.</span>
+    <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+      <label class="inline-field">Merchant<select id="stock-merchant"></select></label>
       <button id="btn-stock-refresh" class="primary" type="button">Refresh</button>
-      <button id="btn-stock-from-tracking" type="button">Pull from Tracking &rarr; pending</button>
-      <button id="btn-stock-add-manual" type="button">+ Manual movement</button>
+      <button id="btn-stock-from-tracking" type="button">Pull from Tracking</button>
+      <button id="btn-stock-add-manual" type="button">+ Manual</button>
     </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:14px">
     <div id="stock-status" aria-live="polite"></div>
-
     <div id="stock-tracking-picker" class="hidden">
-      <h3 class="sub-head">Select tracking rows to add (for merchant chosen above)</h3>
+      <div style="font-weight:700;font-size:12px;margin-bottom:8px">Select tracking rows to add</div>
       <div class="actions">
         <button id="btn-stock-picker-add" class="primary" type="button">Add selected &rarr; pending</button>
         <button id="btn-stock-picker-cancel" type="button">Cancel</button>
       </div>
-      <div class="scroll-box">
+      <div class="scroll-box" style="max-height:35vh">
         <table class="track-table" aria-label="Pick tracking rows">
           <thead id="stock-picker-head"></thead>
           <tbody id="stock-picker-body"></tbody>
         </table>
       </div>
     </div>
-
-    <h3 class="sub-head">Pending movements</h3>
-    <div class="scroll-box">
+    <div style="font-weight:700;font-size:12px;margin:14px 0 6px">Pending movements</div>
+    <div class="scroll-box" style="max-height:30vh">
       <table id="stock-pending-table" class="track-table" aria-label="Pending stock movements">
         <thead id="stock-pending-head"></thead>
         <tbody id="stock-pending-body"></tbody>
       </table>
     </div>
-
-    <h3 class="sub-head">Stock items &amp; current quantity</h3>
+    <div style="font-weight:700;font-size:12px;margin:14px 0 6px">Stock items &amp; current quantity</div>
     <div class="actions stock-additem">
       <input type="text" id="si-name" placeholder="Item name">
-      <input type="text" id="si-section" placeholder="Section (e.g. MP stock)">
+      <input type="text" id="si-section" placeholder="Section">
       <input type="text" id="si-country" placeholder="Country">
       <input type="text" id="si-batch" placeholder="Batch">
       <input type="text" id="si-expiry" placeholder="Expiry">
       <input type="text" id="si-opening" placeholder="Opening qty" inputmode="numeric">
       <button id="btn-stock-additem" class="primary" type="button">Add item</button>
     </div>
-    <div class="scroll-box">
+    <div class="scroll-box" style="max-height:35vh">
       <table id="stock-items-table" class="track-table" aria-label="Stock items">
         <thead id="stock-items-head"></thead>
         <tbody id="stock-items-body"></tbody>
       </table>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- AWB Checklist panel -->
-  <section class="panel" id="panel-awb">
-    <div class="actions track-toolbar" style="border-bottom:1px solid var(--border);padding:10px 14px">
-      <span style="font-weight:700;font-size:14px">📋 AWB &amp; Invoice Checklist</span>
-      <span style="color:var(--muted);font-size:12px">— Complete before uploading to FedEx Ship Manager</span>
-      <button type="button" class="primary" onclick="AWB.markAllDone()" style="margin-left:auto">✓ Mark All Done</button>
+<!-- STEP 2: AWB CHECKLIST -->
+<section class="panel" id="panel-awb">
+  <div class="p-toolbar">
+    <span class="p-title">📋 AWB &amp; Invoice Checklist</span>
+    <span class="p-hint">— Complete before uploading to FedEx Ship Manager</span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button type="button" style="background:var(--grn);color:#fff;border:none;padding:6px 13px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer" onclick="AWB.markAllDone()">✓ Mark All Done</button>
       <button type="button" onclick="AWB.reset()">↺ Reset</button>
     </div>
-    <div class="awb-wrap" id="awb-wrap"></div>
-  </section>
+  </div>
+  <div class="awb-wrap" id="awb-wrap"></div>
+</section>
 
-  <!-- Reports panel -->
-  <section class="panel" id="panel-reports" style="display:flex;flex-direction:column;min-height:0">
-    <div class="rpt-toolbar">
-      <span style="font-weight:700;font-size:14px">📊 Reports &amp; Master Analytics</span>
-      <div class="rpt-vtabs">
-        <button class="rpt-vtab on" id="rpt-vtab-report" onclick="RPT.setView('report',this)">📊 Reports</button>
-        <button class="rpt-vtab" id="rpt-vtab-master" onclick="RPT.setView('master',this)">📋 Master Table</button>
-      </div>
-      <select id="rpt-client" onchange="RPT.render()">
-        <option value="">All Clients</option>
-        <option>Activa</option><option>David Hitchen</option>
-        <option>Krypton 2.0</option><option>Krypton 3.0</option>
-        <option>PriceMD</option><option>Secil</option><option>PDMS</option>
-      </select>
-      <select id="rpt-year" onchange="RPT.render()">
-        <option value="">All Years</option>
-        <option>2024</option><option>2025</option><option>2026</option>
-      </select>
-      <input type="search" id="rpt-search" placeholder="Search master…" oninput="RPT.filterMaster()" style="width:180px">
-      <span class="rpt-count" id="rpt-count">—</span>
-      <button type="button" class="primary" onclick="RPT.downloadMaster()">⬇ Full Master Excel</button>
-      <button type="button" onclick="RPT.downloadProductReport()">📦 Product Report</button>
-      <button type="button" onclick="RPT.downloadClientReport()">👤 Client Report</button>
+<!-- STEP 3: TODAY'S DISPATCH -->
+<section class="panel" id="panel-today">
+  <div class="p-toolbar">
+    <span class="p-title">📅 Today&apos;s Orders</span>
+    <span class="p-hint">Saved tracking rows for today. Fill everything then <strong>Update master list</strong> to promote.</span>
+    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+      <button id="btn-today-promote" class="primary" type="button">Update master list &rarr;</button>
+      <button id="btn-today-paste" type="button">Paste from Excel</button>
+      <label class="file-btn">Upload<input type="file" id="today-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
+      <button id="btn-today-download" type="button">⬇ xlsx</button>
+      <button id="btn-today-refresh" type="button">↻</button>
     </div>
-    <div id="rpt-report" class="rpt-wrap"></div>
-    <div id="rpt-master-wrap" class="rpt-wrap" style="display:none">
-      <div class="scroll-box" style="max-height:none">
-        <table class="track-table" aria-label="Master table">
-          <thead id="rpt-master-head"></thead>
-          <tbody id="rpt-master-body"></tbody>
-        </table>
-      </div>
+  </div>
+  <div id="today-dashboard" class="status-dash" style="padding:6px 14px"></div>
+  <div class="actions track-toolbar" style="padding:6px 14px;margin:0;border-bottom:1px solid var(--border)">
+    <input type="text" id="today-filter" class="filter-input" placeholder="Filter rows&hellip;" style="min-width:160px">
+    <button id="btn-today-save-sel" class="primary" type="button" disabled>Save selected</button>
+    <button id="btn-today-copy-sel" type="button" disabled>Copy</button>
+    <button id="btn-today-delete-sel" class="danger" type="button" disabled>Delete</button>
+    <span id="today-sel-count" class="sel-count">0 selected</span>
+    <button id="btn-today-template" type="button">Template</button>
+  </div>
+  <div id="today-status" aria-live="polite" style="padding:2px 14px;font-size:11px;color:var(--muted)"></div>
+  <div style="flex:1;overflow:auto">
+    <table id="today-table" class="track-table" aria-label="Today's orders">
+      <thead id="today-head"></thead>
+      <tbody id="today-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- STEP 4: TRACK & UPDATE -->
+<section class="panel" id="panel-tracking">
+  <div class="p-toolbar">
+    <span class="p-title">📦 Saved Tracking Rows</span>
+    <span class="p-hint">Edit cells, tick rows, save/copy/delete. Click column header to sort or filter.</span>
+    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+      <button id="btn-saved-track-paste" type="button">Paste from Excel</button>
+      <label class="file-btn">Upload<input type="file" id="saved-track-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
+      <button id="btn-saved-track-template" type="button">Template</button>
+      <button id="btn-saved-track-refresh" type="button">↻ Refresh</button>
+      <button id="btn-saved-track-download" type="button">⬇ xlsx</button>
     </div>
-  </section>
+  </div>
+  <div id="saved-track-dashboard" class="status-dash" style="padding:6px 14px"></div>
+  <div class="actions track-toolbar" style="padding:6px 14px;margin:0;border-bottom:1px solid var(--border)">
+    <input type="text" id="saved-track-filter" class="filter-input" placeholder="Filter rows&hellip;" style="min-width:160px">
+    <button id="btn-saved-track-save-sel" class="primary" type="button" disabled>Save selected</button>
+    <button id="btn-saved-track-copy-sel" type="button" disabled>Copy</button>
+    <button id="btn-saved-track-delete-sel" class="danger" type="button" disabled>Delete</button>
+    <span id="saved-track-sel-count" class="sel-count">0 selected</span>
+  </div>
+  <div id="saved-track-status" aria-live="polite" style="padding:2px 14px;font-size:11px;color:var(--muted)"></div>
+  <div style="flex:1;overflow:auto">
+    <table id="saved-track-table" class="track-table" aria-label="Saved tracking rows">
+      <thead id="saved-track-head"></thead>
+      <tbody id="saved-track-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- STEP 4 secondary: BY MERCHANT -->
+<section class="panel" id="panel-bymerchant">
+  <div class="p-toolbar">
+    <span class="p-title">🏪 Tracking by Merchant</span>
+    <span class="p-hint">Same rows split per merchant. Editing here writes to the shared database.</span>
+    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <div class="seg" id="bm-datemode">
+        <button data-mode="today" type="button">Today</button>
+        <button data-mode="all" class="active" type="button">All</button>
+        <button data-mode="range" type="button">Range</button>
+      </div>
+      <label class="inline-field">From <input type="date" id="bm-from" style="width:auto"></label>
+      <label class="inline-field">To <input type="date" id="bm-to" style="width:auto"></label>
+      <button id="btn-bm-refresh" type="button">↻</button>
+      <button id="btn-bm-download" type="button">⬇ xlsx</button>
+    </div>
+  </div>
+  <div id="bymerchant-subtabs" class="subtabs" role="tablist" style="padding:6px 14px;border-bottom:1px solid var(--border)"></div>
+  <div id="bm-dashboard" class="status-dash" style="padding:4px 14px"></div>
+  <div class="actions track-toolbar" style="padding:6px 14px;margin:0;border-bottom:1px solid var(--border)">
+    <input type="text" id="bm-filter" class="filter-input" placeholder="Filter rows&hellip;" style="min-width:150px">
+    <button id="btn-bm-save-sel" class="primary" type="button" disabled>Save selected</button>
+    <button id="btn-bm-copy-sel" type="button" disabled>Copy</button>
+    <button id="btn-bm-delete-sel" class="danger" type="button" disabled>Delete</button>
+    <span id="bm-sel-count" class="sel-count">0 selected</span>
+    <button id="btn-bm-paste" type="button">Paste</button>
+    <label class="file-btn">Upload<input type="file" id="bm-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
+    <button id="btn-bm-template" type="button">Template</button>
+  </div>
+  <div id="bymerchant-status" aria-live="polite" style="padding:2px 14px;font-size:11px;color:var(--muted)"></div>
+  <div style="flex:1;overflow:auto">
+    <table id="bymerchant-table" class="track-table" aria-label="Tracking by merchant">
+      <thead id="bymerchant-head"></thead>
+      <tbody id="bymerchant-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- STEP 5: MASTER LIST -->
+<section class="panel" id="panel-master">
+  <div class="p-toolbar">
+    <span class="p-title">📋 Master List</span>
+    <span class="p-hint">Master record of all orders. Promote today's orders from Step 3. Edit cell → save.</span>
+    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+      <button id="btn-btrk-toggle" type="button" style="background:rgba(56,189,248,.12);color:var(--tacc);border:1px solid rgba(56,189,248,.25)">🔍 Bulk Track</button>
+      <button id="btn-master-paste" type="button">Paste from Excel</button>
+      <label class="file-btn">Upload<input type="file" id="master-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
+      <button id="btn-master-template" type="button">Template</button>
+      <button id="btn-master-refresh" type="button">↻ Refresh</button>
+      <button id="btn-master-download" type="button">⬇ xlsx</button>
+    </div>
+  </div>
+  <div class="btrk-panel" id="btrk-panel">
+    <div class="btrk-inner">
+      <div class="btrk-title">
+        <span>🔍 Bulk Tracking Lookup</span>
+        <button type="button" onclick="BTRK.close()" style="padding:3px 8px;font-size:10px;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:4px;cursor:pointer">✕</button>
+      </div>
+      <div class="btrk-grid">
+        <textarea class="btrk-ta" id="btrk-input" placeholder="Paste tracking numbers — one per line&#10;887619865122&#10;871248857999&#10;..."></textarea>
+        <div class="btrk-btns">
+          <button type="button" class="primary" onclick="BTRK.lookup()" style="font-size:11px;padding:6px 10px">🔍 Find in Data</button>
+          <button type="button" onclick="BTRK.openAll()" style="font-size:11px;padding:6px 10px">↗ Open FedEx</button>
+          <button type="button" onclick="BTRK.copyResults()" style="font-size:11px;padding:6px 10px">📋 Copy</button>
+          <button type="button" onclick="BTRK.clear()" style="font-size:11px;padding:6px 10px">↺ Clear</button>
+        </div>
+      </div>
+      <div id="btrk-results"></div>
+    </div>
+  </div>
+  <div id="master-dashboard" class="status-dash" style="padding:6px 14px"></div>
+  <div class="actions track-toolbar" style="padding:6px 14px;margin:0;border-bottom:1px solid var(--border)">
+    <input type="text" id="master-filter" class="filter-input" placeholder="Filter rows&hellip;" style="min-width:160px">
+    <button id="btn-master-save-sel" class="primary" type="button" disabled>Save selected</button>
+    <button id="btn-master-copy-sel" type="button" disabled>Copy</button>
+    <button id="btn-master-delete-sel" class="danger" type="button" disabled>Delete</button>
+    <span id="master-sel-count" class="sel-count">0 selected</span>
+  </div>
+  <div id="master-status" aria-live="polite" style="padding:2px 14px;font-size:11px;color:var(--muted)"></div>
+  <div style="flex:1;overflow:auto">
+    <table id="master-table" class="track-table" aria-label="Master list">
+      <thead id="master-head"></thead>
+      <tbody id="master-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- STEP 5 secondary: REPORTS -->
+<section class="panel" id="panel-reports">
+  <div class="rpt-toolbar">
+    <span style="font-weight:700;font-size:13px">📊 Reports &amp; Analytics</span>
+    <div class="rpt-vtabs">
+      <button class="rpt-vtab on" id="rpt-vtab-report" onclick="RPT.setView('report',this)">📊 Reports</button>
+      <button class="rpt-vtab" id="rpt-vtab-master" onclick="RPT.setView('master',this)">📋 Master Table</button>
+    </div>
+    <select id="rpt-client" onchange="RPT.render()">
+      <option value="">All Clients</option>
+      <option>Activa</option><option>David Hitchen</option>
+      <option>Krypton 2.0</option><option>Krypton 3.0</option>
+      <option>PriceMD</option><option>Secil</option><option>PDMS</option>
+    </select>
+    <select id="rpt-year" onchange="RPT.render()">
+      <option value="">All Years</option>
+      <option>2024</option><option>2025</option><option>2026</option>
+    </select>
+    <input type="search" id="rpt-search" placeholder="Search master…" oninput="RPT.filterMaster()" style="width:160px">
+    <span class="rpt-count" id="rpt-count">—</span>
+    <button type="button" class="primary" onclick="RPT.downloadMaster()">⬇ Master Excel</button>
+    <button type="button" onclick="RPT.downloadProductReport()">📦 Products</button>
+    <button type="button" onclick="RPT.downloadClientReport()">👤 Clients</button>
+  </div>
+  <div id="rpt-report" class="rpt-wrap"></div>
+  <div id="rpt-master-wrap" class="rpt-wrap" style="display:none">
+    <div style="overflow:auto;max-height:calc(100vh - 200px)">
+      <table class="track-table" aria-label="Master table">
+        <thead id="rpt-master-head"></thead>
+        <tbody id="rpt-master-body"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
 
 </main>
 <footer>
-  Meditpharma &middot; runs entirely in your browser &middot; build ${BUILD_STAMP}
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build ${BUILD_STAMP}
 </footer>
 </div>
+<div id="toast" style="display:none"></div>
 <script src="${PDFJS_CDN}" crossorigin="anonymous"></script>
 <script src="${XLSX_CDN}" crossorigin="anonymous"></script>
 <script>
@@ -583,22 +708,111 @@ ${css}
 <script>
 ${bundleJs}
 
-// ── Expose masterRows for AWB/BTRK/RPT ──────────────────────────────────
-// Patched into createApp return; we wrap bootstrap to set the getter.
-// ────────────────────────────────────────────────────────────────────────
-
 (function bootstrap() {
+  // Wire folder button
   document.getElementById('btn-add-folder').addEventListener('click', function () {
     document.getElementById('folder-picker').click();
   });
+
+  // Sync sidebar download button → main download button
+  const dlSidebar = document.getElementById('btn-download-sidebar');
+  const dlMain = document.getElementById('btn-download');
+  if (dlSidebar && dlMain) {
+    dlSidebar.addEventListener('click', () => dlMain.click());
+    // Keep disabled state in sync
+    const obs = new MutationObserver(() => {
+      dlSidebar.disabled = dlMain.disabled;
+    });
+    obs.observe(dlMain, { attributes: true, attributeFilter: ['disabled'] });
+  }
+
   window.__appInstance__ = AppModule.createApp({
     document: document,
     window: window,
     pdfjsLib: window.pdfjsLib,
     XLSX: window.XLSX,
   });
+
+  // ── Workflow nav + secondary tabs ──────────────────────────────────────────
+  const STEP_MAP = {
+    'panel-builder': 1, 'panel-fedex': 1, 'panel-catalog': 1,
+    'panel-merchants': 1, 'panel-stock': 1,
+    'panel-awb': 2,
+    'panel-today': 3,
+    'panel-tracking': 4, 'panel-bymerchant': 4,
+    'panel-master': 5, 'panel-reports': 5,
+  };
+
+  function syncNav(activePanelId) {
+    const step = STEP_MAP[activePanelId] || 1;
+    // Update workflow step dots
+    document.querySelectorAll('#wf-nav .wf-tab').forEach(btn => {
+      const s = parseInt(btn.dataset.step);
+      btn.classList.toggle('active', s === step);
+    });
+    // Show/hide secondary tab groups
+    document.getElementById('sg-1').classList.toggle('hidden', step !== 1);
+    document.getElementById('sg-4').classList.toggle('hidden', step !== 4);
+    document.getElementById('sg-5').classList.toggle('hidden', step !== 5);
+    // Highlight active sec-tab
+    document.querySelectorAll('.sec-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.panel === activePanelId);
+    });
+  }
+
+  // Wire secondary tabs
+  document.querySelectorAll('.sec-tab[data-panel]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Find and click the matching panel's wf-tab or trigger panel activation
+      const panelId = btn.dataset.panel;
+      // Try to trigger app.js tab activation via the wf-tab if it exists
+      const wfBtn = document.querySelector('#wf-nav .wf-tab[data-panel="' + panelId + '"]');
+      if (wfBtn) {
+        wfBtn.click();
+      } else {
+        // Secondary panel — activate directly by showing/hiding panels
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        const target = document.getElementById(panelId);
+        if (target) target.classList.add('active');
+        syncNav(panelId);
+      }
+    });
+  });
+
+  // Patch wf-tab clicks to also sync nav
+  document.querySelectorAll('#wf-nav .wf-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setTimeout(() => {
+        const activePanel = document.querySelector('.panel.active');
+        if (activePanel) syncNav(activePanel.id);
+      }, 0);
+    });
+  });
+
+  // Bulk track toggle
   const btrkBtn = document.getElementById('btn-btrk-toggle');
   if (btrkBtn) btrkBtn.addEventListener('click', () => BTRK.toggle());
+
+  // ── Update header stats from master rows ───────────────────────────────────
+  function updateHeaderStats() {
+    const master = (window.__appInstance__ && window.__appInstance__.masterRows) || [];
+    const today = new Date().toISOString().slice(0, 10);
+    const todayRows = master.filter(r => (r.date || '').slice(0, 10) === today);
+    const transitRows = master.filter(r => {
+      const s = String(r.deliveryStatus || '').toLowerCase();
+      return s === 'in transit' || s === 'transit';
+    });
+    const hs = id => document.getElementById(id);
+    if (hs('hs-today')) hs('hs-today').textContent = todayRows.length;
+    if (hs('hs-transit')) hs('hs-transit').textContent = transitRows.length;
+    if (hs('hs-total')) hs('hs-total').textContent = master.length;
+  }
+  // Update stats when master panel becomes active
+  document.getElementById('tab-master').addEventListener('click', () => setTimeout(updateHeaderStats, 500));
+  document.getElementById('tab-reports').addEventListener('click', () => setTimeout(updateHeaderStats, 500));
+
+  // Initial sync
+  syncNav('panel-builder');
 })();
 </script>
 <script>
