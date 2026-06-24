@@ -883,14 +883,6 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
   overflow-y: auto;
   min-height: 0;
 }
-.builder-tracking {
-  display: flex;
-  flex-direction: column;
-  border-top: 2px solid var(--border);
-  max-height: 46%;
-  min-height: 200px;
-  overflow: hidden;
-}
 
 /* ── Sidebar cards ───────────────────────────────────────────────────────── */
 .sidebar-card {
@@ -1045,6 +1037,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
   <!-- Step 1 sub-tabs -->
   <div class="sec-group" id="sg-1">
     <button class="sec-tab active" data-panel="panel-builder" type="button">📦 Process Orders</button>
+    <button class="sec-tab" data-panel="panel-trk-sheet" type="button">📋 Tracking Sheet</button>
     <button class="sec-tab" id="tab-catalog" data-panel="panel-catalog" type="button">🏷 Catalog / MID</button>
     <button class="sec-tab" id="tab-merchants" data-panel="panel-merchants" type="button">🏪 Merchants</button>
     <button class="sec-tab" id="tab-stock" data-panel="panel-stock" type="button">📦 Stock</button>
@@ -1131,31 +1124,33 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
       <div class="builder-orders">
         <div id="cards" class="cards" aria-label="Shipments preview"></div>
       </div>
-
-      <!-- Tracking section -->
-      <div class="builder-tracking">
-        <div class="section-divider" style="margin:0;padding:10px 14px;border-top:2px solid var(--border);border-bottom:1px solid var(--border)">
-          <h2 style="font-size:13px;display:inline">Tracking Sheet</h2>
-          <span style="color:var(--muted);font-size:11px;margin-left:8px">— one row per order, all products grouped</span>
-        </div>
-        <div id="tracking-dashboard" class="status-dash" style="padding:6px 14px"></div>
-        <div class="actions track-toolbar" style="padding:6px 14px;margin:0;border-bottom:1px solid var(--border)">
-          <input type="text" id="tracking-filter" class="filter-input" placeholder="Filter rows&hellip;" style="min-width:150px">
-          <button id="btn-track-save-sel" class="primary" type="button" disabled>Save selected</button>
-          <button id="btn-track-copy-sel" type="button" disabled>Copy selected</button>
-          <button id="btn-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
-          <span id="track-sel-count" class="sel-count">0 selected</span>
-        </div>
-        <div id="tracking-status" aria-live="polite" style="padding:2px 14px;font-size:11px;color:var(--muted)"></div>
-        <div style="overflow:auto;flex:1">
-          <table id="tracking-table" class="track-table" aria-label="Tracking sheet">
-            <thead id="tracking-head"></thead>
-            <tbody id="tracking-body"></tbody>
-          </table>
-        </div>
-      </div>
     </div>
 
+  </div>
+</section>
+
+<!-- STEP 1 secondary: TRACKING SHEET -->
+<section class="panel" id="panel-trk-sheet">
+  <div class="p-toolbar">
+    <span class="p-title">📋 Tracking Sheet</span>
+    <span class="p-hint">One row per order, all products grouped. Save rows then promote to Today&apos;s Dispatch.</span>
+    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <button id="btn-track-save-sel" class="primary" type="button" disabled>Save selected</button>
+      <button id="btn-track-copy-sel" type="button" disabled>Copy selected</button>
+      <button id="btn-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
+      <span id="track-sel-count" class="sel-count">0 selected</span>
+    </div>
+  </div>
+  <div id="tracking-dashboard" class="status-dash" style="padding:6px 14px;border-bottom:1px solid var(--border);flex-shrink:0"></div>
+  <div class="actions track-toolbar" style="padding:6px 14px;margin:0;border-bottom:1px solid var(--border);flex-shrink:0">
+    <input type="text" id="tracking-filter" class="filter-input" placeholder="Filter rows&hellip;" style="min-width:150px">
+  </div>
+  <div id="tracking-status" aria-live="polite" style="padding:2px 14px;font-size:11px;color:var(--muted);flex-shrink:0"></div>
+  <div style="overflow:auto;flex:1">
+    <table id="tracking-table" class="track-table" aria-label="Tracking sheet">
+      <thead id="tracking-head"></thead>
+      <tbody id="tracking-body"></tbody>
+    </table>
   </div>
 </section>
 
@@ -1477,7 +1472,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 11:38 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 11:45 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -6478,7 +6473,7 @@ window.ParserIndex = ParserIndex;
 
   // ── Workflow nav + secondary tabs ──────────────────────────────────────────
   const STEP_MAP = {
-    'panel-builder': 1, 'panel-catalog': 1,
+    'panel-builder': 1, 'panel-trk-sheet': 1, 'panel-catalog': 1,
     'panel-merchants': 1, 'panel-stock': 1,
     'panel-awb': 2,
     'panel-today': 3,

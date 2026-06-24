@@ -875,14 +875,6 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
   overflow-y: auto;
   min-height: 0;
 }
-.builder-tracking {
-  display: flex;
-  flex-direction: column;
-  border-top: 2px solid var(--border);
-  max-height: 46%;
-  min-height: 200px;
-  overflow: hidden;
-}
 
 /* ── Sidebar cards ───────────────────────────────────────────────────────── */
 .sidebar-card {
