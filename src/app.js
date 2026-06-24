@@ -166,6 +166,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const siBatch = document.getElementById('si-batch');
   const siExpiry = document.getElementById('si-expiry');
   const siOpening = document.getElementById('si-opening');
+  const siMerchantSel = document.getElementById('si-merchant');
   const stockAddItem = document.getElementById('btn-stock-additem');
 
   // Tracking section elements
@@ -1353,12 +1354,12 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   async function addStockItem() {
     const name = (siName && siName.value || '').trim();
     if (!name) { setStatusInto(stockStatus, 'Item needs a name.', 'warn'); return; }
-    const merchant = stockMerchant || (merchantNames()[0] || '');
+    const merchant = (siMerchantSel && siMerchantSel.value) || stockMerchant || (merchantNames()[0] || '');
     const item = {
       merchant,
       name,
-      section: (siSection && siSection.value || '').trim(),
-      country: (siCountry && siCountry.value || '').trim(),
+      section: '',
+      country: '',
       batch: (siBatch && siBatch.value || '').trim(),
       expiry: (siExpiry && siExpiry.value || '').trim(),
       opening: String(toNum(siOpening && siOpening.value)),
@@ -1367,8 +1368,9 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     try {
       const saved = await makeStore('stockitems').save(item);
       stockItems.push(saved);
-      [siName, siSection, siCountry, siBatch, siExpiry, siOpening].forEach((el) => { if (el) el.value = ''; });
-      setStatusInto(stockStatus, `Added item "${name}"${merchant ? ` for ${merchant}` : ''}.`, 'ok');
+      [siName, siBatch, siExpiry, siOpening].forEach((el) => { if (el) el.value = ''; });
+      if (siMerchantSel) siMerchantSel.value = '';
+      setStatusInto(stockStatus, `Added "${name}"${merchant ? ` for ${merchant}` : ''}.`, 'ok');
       renderStock();
     } catch (err) {
       setStatusInto(stockStatus, `Add item failed: ${err.message}`, 'err');
@@ -1447,6 +1449,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
   function renderStock() {
     if (stockMerchantSel) fillMerchantSelect(stockMerchantSel, stockMerchant);
+    if (siMerchantSel) fillMerchantSelect(siMerchantSel, siMerchantSel.value || '');
     renderStockPending();
     renderStockItems();
   }
@@ -1538,7 +1541,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (!stockItemsHead || !stockItemsBody) return;
     stockItemsHead.innerHTML = '';
     const htr = document.createElement('tr');
-    for (const h of ['Item', 'Section', 'Country', 'Batch', 'Expiry', 'Opening', 'Current', 'Actions']) {
+    for (const h of ['Item', 'Merchant', 'Batch', 'Expiry', 'Opening', 'Current', 'Actions']) {
       const th = document.createElement('th');
       th.textContent = h;
       htr.appendChild(th);
@@ -1551,10 +1554,20 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       const tr = document.createElement('tr');
       const cell = (node) => { const td = document.createElement('td'); td.appendChild(node); tr.appendChild(td); };
       cell(makeStockInput(item.name, (v) => { item.name = v; }, 'w-lg'));
-      cell(makeStockInput(item.section, (v) => { item.section = v; }, 'w-md'));
-      cell(makeStockInput(item.country, (v) => { item.country = v; }, 'w-sm'));
+      // Merchant cell — editable select
+      const mSel = document.createElement('select');
+      fillMerchantSelect(mSel, item.merchant || '');
+      mSel.addEventListener('change', () => { item.merchant = mSel.value; });
+      cell(mSel);
       cell(makeStockInput(item.batch, (v) => { item.batch = v; }, 'w-sm'));
-      cell(makeStockInput(item.expiry, (v) => { item.expiry = v; }, 'w-sm'));
+      // Expiry as date input
+      const expInp = document.createElement('input');
+      expInp.type = 'date'; expInp.value = item.expiry || '';
+      expInp.style.cssText = 'width:100%;background:transparent;border:1px solid transparent;color:#cbd5e1;font-size:11.5px;padding:3px 5px;font-family:inherit;border-radius:4px;cursor:pointer;';
+      expInp.addEventListener('change', () => { item.expiry = expInp.value; });
+      expInp.addEventListener('focus', () => { expInp.style.borderColor = 'var(--tacc)'; expInp.style.background = '#0f1b30'; });
+      expInp.addEventListener('blur', () => { expInp.style.borderColor = 'transparent'; expInp.style.background = 'transparent'; });
+      cell(expInp);
       cell(makeStockInput(item.opening, (v) => { item.opening = v; }, 'w-sm'));
 
       const cur = document.createElement('td');
@@ -1586,7 +1599,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (!items.length) {
       const tr = document.createElement('tr');
       const td = document.createElement('td');
-      td.colSpan = 8;
+      td.colSpan = 7;
       td.className = 'empty-cell';
       td.textContent = stockMerchant ? `No items for ${stockMerchant} yet — add some above.` : 'Pick a merchant and add items above.';
       tr.appendChild(td);

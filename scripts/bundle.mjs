@@ -511,21 +511,30 @@ ${css}
     </div>
     <div style="font-weight:700;font-size:12px;margin:14px 0 6px">Stock items &amp; current quantity</div>
     <div class="actions stock-additem">
+      <!-- Product dropdown -->
       <div style="display:inline-flex;flex-direction:column;gap:3px">
-        <select id="si-name-select" style="min-width:200px;height:32px;font-size:12px">
+        <select id="si-name-select" style="min-width:190px;height:32px;font-size:12px">
           <option value="">— Select product —</option>
           ${PRODUCTS.map(p=>`<option value="${p.label.replace(/"/g,'&quot;')}" data-country="${p.country}">${p.label}</option>`).join('\n          ')}
           <option value="__custom__">＋ Custom name…</option>
         </select>
-        <input type="text" id="si-name-custom" placeholder="Type custom name…" style="min-width:200px;font-size:12px;display:none">
+        <input type="text" id="si-name-custom" placeholder="Type custom name…" style="min-width:190px;font-size:12px;display:none">
         <input type="hidden" id="si-name">
       </div>
-      <input type="text" id="si-section" placeholder="Section">
-      <input type="text" id="si-country" placeholder="Country">
-      <input type="text" id="si-batch" placeholder="Batch">
-      <input type="text" id="si-expiry" placeholder="Expiry">
-      <input type="text" id="si-opening" placeholder="Opening qty" inputmode="numeric">
-      <button id="btn-stock-additem" class="primary" type="button">Add item</button>
+      <!-- Merchant dropdown (populated from merchant list) -->
+      <select id="si-merchant" style="min-width:140px;height:32px;font-size:12px">
+        <option value="">— Merchant —</option>
+      </select>
+      <!-- Batch # -->
+      <input type="text" id="si-batch" placeholder="Batch #" style="min-width:100px">
+      <!-- Expiry date with calendar -->
+      <input type="date" id="si-expiry" title="Expiry date" style="min-width:140px;height:32px;font-size:12px;cursor:pointer">
+      <!-- Opening qty -->
+      <input type="number" id="si-opening" placeholder="Opening qty" min="0" style="min-width:100px">
+      <!-- Hidden legacy fields kept so app.js doesn't break -->
+      <input type="hidden" id="si-section">
+      <input type="hidden" id="si-country">
+      <button id="btn-stock-additem" class="primary" type="button" style="height:32px;padding:0 18px;font-size:12px">Add item</button>
     </div>
     <div class="scroll-box" style="max-height:35vh">
       <table id="stock-items-table" class="track-table" aria-label="Stock items">
