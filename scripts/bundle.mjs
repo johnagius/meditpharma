@@ -243,7 +243,6 @@ ${css}
   <!-- Step 1 sub-tabs -->
   <div class="sec-group" id="sg-1">
     <button class="sec-tab active" data-panel="panel-builder" type="button">📦 Process Orders</button>
-    <button class="sec-tab" id="tab-fedex" data-panel="panel-fedex" type="button">💾 Saved FedEx</button>
     <button class="sec-tab" id="tab-catalog" data-panel="panel-catalog" type="button">🏷 Catalog / MID</button>
     <button class="sec-tab" id="tab-merchants" data-panel="panel-merchants" type="button">🏪 Merchants</button>
     <button class="sec-tab" id="tab-stock" data-panel="panel-stock" type="button">📦 Stock</button>
@@ -355,22 +354,6 @@ ${css}
       </div>
     </div>
 
-  </div>
-</section>
-
-<!-- STEP 1 secondary: SAVED FEDEX -->
-<section class="panel" id="panel-fedex">
-  <div class="p-toolbar">
-    <span class="p-title">💾 Saved FedEx Shipments</span>
-    <span class="p-hint">Click a card to view/edit all 52 fields. Overwrite saves changes back.</span>
-    <div style="margin-left:auto;display:flex;gap:6px">
-      <button id="btn-saved-fedex-refresh" class="primary" type="button">↻ Refresh</button>
-      <button id="btn-saved-fedex-download" type="button">⬇ Download all (xlsx)</button>
-    </div>
-  </div>
-  <div id="saved-fedex-status" aria-live="polite" style="padding:4px 14px;font-size:11px;color:var(--muted)"></div>
-  <div style="flex:1;overflow:auto;padding:12px">
-    <div id="saved-fedex-cards" class="cards" aria-label="Saved FedEx shipments"></div>
   </div>
 </section>
 
@@ -735,7 +718,7 @@ ${bundleJs}
 
   // ── Workflow nav + secondary tabs ──────────────────────────────────────────
   const STEP_MAP = {
-    'panel-builder': 1, 'panel-fedex': 1, 'panel-catalog': 1,
+    'panel-builder': 1, 'panel-catalog': 1,
     'panel-merchants': 1, 'panel-stock': 1,
     'panel-awb': 2,
     'panel-today': 3,
