@@ -175,12 +175,13 @@ window.ParserIndex = ParserIndex;
 <meta charset="UTF-8">
 <title>Meditpharma — Shipment & Order Management</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2338bdf8'/%3E%3Ctext x='8' y='12' text-anchor='middle' font-size='10' font-family='sans-serif' fill='%230b1224' font-weight='700'%3EMP%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23f97316'/%3E%3Ctext x='8' y='12' text-anchor='middle' font-size='10' font-family='sans-serif' fill='%23ffffff' font-weight='900'%3EMP%3C/text%3E%3C/svg%3E">
 <style>
 ${css}
 </style>
 </head>
 <body>
+<div id="app-shell">
 <header>
   <div class="brand">
     <div class="brand-mark" aria-hidden="true">MP</div>
@@ -188,9 +189,13 @@ ${css}
       <h1>Meditpharma</h1>
       <span class="brand-sub">Shipment &amp; Order Management</span>
     </div>
-    <span class="brand-status">All processing runs in your browser</span>
   </div>
-  <p class="brand-desc">Import PDF orders from any merchant, auto-build FedEx batch files, manage tracking sheets, and keep every shipment saved and searchable &mdash; one workspace, no spreadsheets to juggle.</p>
+  <div class="brand-status">
+    <div class="hstat"><strong id="hs-orders" style="color:var(--accent)">—</strong><span>Batch</span></div>
+    <div class="hstat"><strong id="hs-today" style="color:var(--tok)">—</strong><span>Today</span></div>
+    <div class="hstat"><strong id="hs-transit" style="color:var(--twarn)">—</strong><span>Transit</span></div>
+    <div class="hstat"><strong id="hs-total" style="color:var(--tacc)">—</strong><span>All-Time</span></div>
+  </div>
 </header>
 <main>
   <nav class="tabs" role="tablist">
@@ -563,8 +568,9 @@ ${css}
 
 </main>
 <footer>
-  Meditpharma &middot; runs entirely in your browser. Saved tracking rows go only to the database you configure. &middot; build ${BUILD_STAMP}
+  Meditpharma &middot; runs entirely in your browser &middot; build ${BUILD_STAMP}
 </footer>
+</div>
 <script src="${PDFJS_CDN}" crossorigin="anonymous"></script>
 <script src="${XLSX_CDN}" crossorigin="anonymous"></script>
 <script>
