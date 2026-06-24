@@ -1,9 +1,9 @@
 export const PRODUCTS = [
   // ── Botulinum toxins ─────────────────────────────────────────────────────
-  { key: 'botox',      label: 'Botox',        mid: 'IEALLPHAWE',       country: 'IE', patterns: [/botox/i, /\bBOT\s+\d+IU\b/i] },
-  { key: 'xeomin',     label: 'Xeomin',       mid: 'DEMERPHA100FRA',   country: 'DE', patterns: [/xeomin/i, /\bXEO\s+\d+IU\b/i] },
+  { key: 'botox',      label: 'Botox',        mid: 'IEALLPHAWE',       country: 'IE', patterns: [/botox/i, /\bBOT\s*\d+/i] },
+  { key: 'xeomin',     label: 'Xeomin',       mid: 'DEMERPHA100FRA',   country: 'DE', patterns: [/xeomin/i, /\bXEO\s*\d+/i] },
   { key: 'azzalure',   label: 'Azzalure',     mid: 'GBIPSBIOWRE',      country: 'GB', patterns: [/azzalure/i] },
-  { key: 'dysport',    label: 'Dysport',      mid: 'GBIPS37LON',       country: 'GB', patterns: [/dysport/i, /\bDYS\b/i] },
+  { key: 'dysport',    label: 'Dysport',      mid: 'GBIPS37LON',       country: 'GB', patterns: [/dysport/i, /\bDYS/i] },
   { key: 'bocouture',  label: 'Bocouture 50', mid: 'DEMERPHA100FRA',   country: 'DE', patterns: [/bocouture/i] },
 
   // ── GLP-1 / Diabetes / Obesity ───────────────────────────────────────────
