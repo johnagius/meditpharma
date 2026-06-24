@@ -466,9 +466,13 @@ ${css}
     </div>
     <div style="font-weight:700;font-size:12px;margin:14px 0 6px">Stock items &amp; current quantity</div>
     <div class="actions stock-additem">
-      <div style="position:relative;display:inline-flex;align-items:center;gap:0">
-        <input type="text" id="si-name" placeholder="Item name" list="si-name-list" autocomplete="off" style="min-width:160px">
-        <datalist id="si-name-list"></datalist>
+      <div style="display:inline-flex;flex-direction:column;gap:3px">
+        <select id="si-name-select" style="min-width:180px;height:32px">
+          <option value="">— Select product —</option>
+          <option value="__custom__">＋ Custom name…</option>
+        </select>
+        <input type="text" id="si-name-custom" placeholder="Type custom name…" style="min-width:180px;display:none">
+        <input type="hidden" id="si-name">
       </div>
       <input type="text" id="si-section" placeholder="Section">
       <input type="text" id="si-country" placeholder="Country">
@@ -1225,26 +1229,49 @@ const SENDERS_UI=(function(){
 document.addEventListener('DOMContentLoaded',()=>{
   SENDERS_UI.init();
 
-  // ── Stock item-name datalist — populate from product catalog ────────────
-  const siList=document.getElementById('si-name-list');
-  if(siList&&window.ModMid&&ModMid.PRODUCTS){
-    // Add all known products as options
+  // ── Stock item-name select — populate from product catalog ──────────────
+  const siSelect=document.getElementById('si-name-select');
+  const siCustom=document.getElementById('si-name-custom');
+  const siHidden=document.getElementById('si-name');
+  const siCountryEl=document.getElementById('si-country');
+  if(siSelect&&window.ModMid&&ModMid.PRODUCTS){
+    // Group products by category comment — insert them after the fixed options
+    const customOpt=siSelect.querySelector('option[value="__custom__"]');
     ModMid.PRODUCTS.forEach(p=>{
       const opt=document.createElement('option');
       opt.value=p.label;
-      opt.dataset.key=p.key;
-      siList.appendChild(opt);
+      opt.dataset.country=p.country||'';
+      opt.textContent=p.label;
+      siSelect.insertBefore(opt,customOpt);
     });
   }
-  // Auto-fill Country when a known product is picked
-  const siNameEl=document.getElementById('si-name');
-  const siCountryEl=document.getElementById('si-country');
-  if(siNameEl&&siCountryEl){
-    siNameEl.addEventListener('input',()=>{
-      if(!window.ModMid)return;
-      const val=siNameEl.value.trim().toLowerCase();
-      const match=ModMid.PRODUCTS.find(p=>p.label.toLowerCase()===val||p.key===val);
-      if(match&&!siCountryEl.value)siCountryEl.value=match.country||'';
+  function _siSync(){
+    if(!siSelect)return;
+    const val=siSelect.value;
+    if(val==='__custom__'){
+      if(siCustom)siCustom.style.display='';
+      if(siHidden)siHidden.value=siCustom?siCustom.value.trim():'';
+    } else {
+      if(siCustom)siCustom.style.display='none';
+      if(siHidden)siHidden.value=val;
+      // Auto-fill country
+      if(siCountryEl&&val){
+        const opt=siSelect.querySelector('option[value="'+val.replace(/"/g,'&quot;')+'"]');
+        if(opt&&opt.dataset.country&&!siCountryEl.value)siCountryEl.value=opt.dataset.country;
+      }
+    }
+  }
+  if(siSelect)siSelect.addEventListener('change',_siSync);
+  if(siCustom)siCustom.addEventListener('input',()=>{if(siHidden)siHidden.value=siCustom.value.trim();});
+  // After app.js adds an item it clears all si-* inputs; reset select too
+  const stockAddBtn=document.getElementById('btn-stock-additem');
+  if(stockAddBtn){
+    stockAddBtn.addEventListener('click',()=>{
+      setTimeout(()=>{
+        if(siSelect)siSelect.value='';
+        if(siCustom){siCustom.value='';siCustom.style.display='none';}
+        if(siHidden)siHidden.value='';
+      },50);
     });
   }
 
