@@ -339,21 +339,65 @@ ${css}
 
 <!-- STEP 1 secondary: TRACKING SHEET -->
 <section class="panel" id="panel-trk-sheet">
-  <div class="p-toolbar">
-    <span class="p-title">📋 Tracking Sheet</span>
-    <span class="p-hint">One row per order, all products grouped. Save rows then promote to Today&apos;s Dispatch.</span>
-    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-      <button id="btn-track-save-sel" class="primary" type="button" disabled>Save selected</button>
-      <button id="btn-track-copy-sel" type="button" disabled>Copy selected</button>
-      <button id="btn-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
-      <span id="track-sel-count" class="sel-count">0 selected</span>
-      <button id="btn-trk-sheet-dl" type="button" style="background:var(--grn);color:#fff;border:none;padding:6px 13px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px">⬇ Excel</button>
+  <!-- Row 1: Filters + Stats -->
+  <div style="display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;background:var(--panel-bg)">
+    <label style="display:flex;flex-direction:column;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;gap:2px">
+      Client
+      <select id="trk-filter-client" style="min-width:110px;height:28px;font-size:12px">
+        <option value="">All Clients</option>
+      </select>
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;gap:2px">
+      Date
+      <input type="date" id="trk-filter-date" style="height:28px;font-size:12px;min-width:130px">
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;gap:2px">
+      Status
+      <select id="trk-filter-status" style="min-width:90px;height:28px;font-size:12px">
+        <option value="">All</option>
+        <option value="pending">Pending</option>
+        <option value="transit">In Transit</option>
+        <option value="delivered">Delivered</option>
+        <option value="returned">Returned</option>
+      </select>
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;gap:2px">
+      Account
+      <select id="trk-filter-account" style="min-width:90px;height:28px;font-size:12px">
+        <option value="">All</option>
+        <option>Fedex</option>
+        <option>Fedex LPN</option>
+        <option>Fedex PPS</option>
+        <option>Fedex RSW</option>
+      </select>
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;gap:2px">
+      Search
+      <input type="text" id="tracking-filter" class="filter-input" placeholder="Name · tracking · product…" style="min-width:180px;height:28px;font-size:12px">
+    </label>
+    <!-- Stats pushed to the right -->
+    <div style="margin-left:auto;display:flex;gap:16px;align-items:center">
+      <div style="text-align:center;line-height:1.1"><div id="tsh-total" style="font-size:18px;font-weight:800;color:var(--accent)">0</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Total</div></div>
+      <div style="text-align:center;line-height:1.1"><div id="tsh-pending" style="font-size:18px;font-weight:800;color:#fbbf24">0</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Pending</div></div>
+      <div style="text-align:center;line-height:1.1"><div id="tsh-transit" style="font-size:18px;font-weight:800;color:#38bdf8">0</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Transit</div></div>
+      <div style="text-align:center;line-height:1.1"><div id="tsh-delivered" style="font-size:18px;font-weight:800;color:#4ade80">0</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Delivered</div></div>
+      <div style="text-align:center;line-height:1.1"><div id="tsh-returned" style="font-size:18px;font-weight:800;color:#f87171">0</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Returned</div></div>
     </div>
   </div>
-  <div id="tracking-dashboard" class="status-dash" style="padding:6px 14px;border-bottom:1px solid var(--border);flex-shrink:0"></div>
-  <div class="actions track-toolbar" style="padding:6px 14px;margin:0;border-bottom:1px solid var(--border);flex-shrink:0">
-    <input type="text" id="tracking-filter" class="filter-input" placeholder="Filter rows&hellip;" style="min-width:150px">
+  <!-- Row 2: Actions -->
+  <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap">
+    <button id="btn-track-save-sel" class="primary" type="button" disabled style="font-size:11px;padding:5px 11px">💾 Save All Edits</button>
+    <button id="btn-track-copy-sel" type="button" style="background:#16a34a;color:#fff;border:none;border-radius:5px;font-size:11px;padding:5px 11px;font-weight:700;cursor:pointer">✓ Mark Delivered</button>
+    <button id="btn-track-add-row" type="button" style="font-size:11px;padding:5px 11px">＋ Add Row</button>
+    <button id="btn-track-delete-sel" class="danger" type="button" disabled style="font-size:11px;padding:5px 11px">✕ Delete</button>
+    <span id="track-sel-count" class="sel-count" style="font-size:11px"></span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button id="btn-trk-sheet-dl" type="button" style="background:#f97316;color:#fff;border:none;padding:5px 13px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">↑ Export to Master</button>
+      <button id="btn-trk-dl-excel" type="button" style="background:#2563eb;color:#fff;border:none;padding:5px 13px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">⬇ Excel</button>
+      <button id="btn-btrk-toggle" type="button" style="background:#7c3aed;color:#fff;border:none;padding:5px 13px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">⬤ Bulk Track</button>
+    </div>
   </div>
+  <div id="tracking-dashboard" class="status-dash" style="display:none"></div>
   <div id="tracking-status" aria-live="polite" style="padding:2px 14px;font-size:11px;color:var(--muted);flex-shrink:0"></div>
   <div style="overflow:auto;flex:1">
     <table id="tracking-table" class="track-table" aria-label="Tracking sheet">
@@ -1229,6 +1273,78 @@ const SENDERS_UI=(function(){
 document.addEventListener('DOMContentLoaded',()=>{
   SENDERS_UI.init();
 
+  // ── Tracking Sheet dashboard stats ──────────────────────────────────────
+  function _updateTshStats(){
+    const rows=document.querySelectorAll('#tracking-body tr[data-id]');
+    let total=0,pending=0,transit=0,delivered=0,returned=0;
+    rows.forEach(tr=>{
+      total++;
+      const sel=tr.querySelector('select.trk-status-sel,select[data-col="deliveryStatus"],.status-sel');
+      const val=sel?sel.value.toLowerCase().trim():(tr.dataset.status||'').toLowerCase();
+      if(val==='delivered')delivered++;
+      else if(val==='in transit'||val==='transit')transit++;
+      else if(val==='returned')returned++;
+      else pending++;
+    });
+    const s=id=>document.getElementById(id);
+    if(s('tsh-total'))s('tsh-total').textContent=total;
+    if(s('tsh-pending'))s('tsh-pending').textContent=pending;
+    if(s('tsh-transit'))s('tsh-transit').textContent=transit;
+    if(s('tsh-delivered'))s('tsh-delivered').textContent=delivered;
+    if(s('tsh-returned'))s('tsh-returned').textContent=returned;
+  }
+  // Update stats whenever tracking body changes
+  const trkBody=document.getElementById('tracking-body');
+  if(trkBody)new MutationObserver(_updateTshStats).observe(trkBody,{childList:true,subtree:true,characterData:true});
+  // Also update on status dropdown changes (event delegation)
+  if(trkBody)trkBody.addEventListener('change',e=>{if(e.target.tagName==='SELECT')setTimeout(_updateTshStats,0);});
+
+  // ── Tracking Sheet — combined filter (search + client + date + status + account) ──
+  function _applyTrkFilters(){
+    const search=(document.getElementById('tracking-filter')||{value:''}).value.toLowerCase();
+    const client=(document.getElementById('trk-filter-client')||{value:''}).value.toLowerCase();
+    const date=(document.getElementById('trk-filter-date')||{value:''}).value;
+    const status=(document.getElementById('trk-filter-status')||{value:''}).value.toLowerCase();
+    const account=(document.getElementById('trk-filter-account')||{value:''}).value.toLowerCase();
+    document.querySelectorAll('#tracking-body tr[data-id]').forEach(tr=>{
+      const text=tr.textContent.toLowerCase();
+      const rowStatus=(tr.querySelector('select')&&tr.querySelector('select').value||'').toLowerCase();
+      const rowAccount=(tr.querySelectorAll('select')[1]&&tr.querySelectorAll('select')[1].value||'').toLowerCase();
+      let show=true;
+      if(search&&!text.includes(search))show=false;
+      if(client&&!text.includes(client))show=false;
+      if(date){const cells=tr.querySelectorAll('td');let found=false;cells.forEach(td=>{if(td.textContent.trim()===date||td.querySelector('input[type="date"]')&&td.querySelector('input[type="date"]').value===date)found=true;});if(!found)show=false;}
+      if(status&&!rowStatus.includes(status))show=false;
+      if(account&&!rowAccount.includes(account))show=false;
+      tr.style.display=show?'':'none';
+    });
+    _updateTshStats();
+  }
+  ['tracking-filter','trk-filter-client','trk-filter-date','trk-filter-status','trk-filter-account'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('input',_applyTrkFilters);
+    if(el)el.addEventListener('change',_applyTrkFilters);
+  });
+
+  // Populate client dropdown from tracking rows when panel opens
+  document.getElementById('tab-catalog')&&document.querySelector('.sec-tab[data-panel="panel-trk-sheet"]')&&
+  document.querySelector('.sec-tab[data-panel="panel-trk-sheet"]').addEventListener('click',()=>{
+    setTimeout(()=>{
+      const sel=document.getElementById('trk-filter-client');
+      if(!sel)return;
+      const clients=new Set();
+      document.querySelectorAll('#tracking-body tr[data-id]').forEach(tr=>{
+        const tds=tr.querySelectorAll('td');
+        // client is typically in a specific column — grab all text, extract unique names
+        tds.forEach(td=>{const t=td.textContent.trim();if(t&&t.length>1&&t.length<40&&!/^\d/.test(t))clients.add(t);});
+      });
+      // Keep "All Clients" option, rebuild rest
+      while(sel.options.length>1)sel.remove(1);
+      Array.from(clients).sort().slice(0,60).forEach(c=>{const o=document.createElement('option');o.value=c.toLowerCase();o.textContent=c;sel.appendChild(o);});
+      _updateTshStats();
+    },200);
+  });
+
   // ── Stock item-name select — populate from product catalog ──────────────
   const siSelect=document.getElementById('si-name-select');
   const siCustom=document.getElementById('si-name-custom');
@@ -1276,7 +1392,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   // ── Tracking Sheet — Download Excel ─────────────────────────────────────
-  const dlBtn=document.getElementById('btn-trk-sheet-dl');
+  const dlBtn=document.getElementById('btn-trk-dl-excel');
   if(dlBtn){
     dlBtn.addEventListener('click',()=>{
       if(!window.XLSX){_toast('XLSX library not loaded','err');return;}
