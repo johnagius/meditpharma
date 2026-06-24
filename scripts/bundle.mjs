@@ -1101,10 +1101,18 @@ const SENDERS_UI=(function(){
   let pool=[];
   let editIdx=-1; // -1 = new, >=0 = editing
 
+  function _builtIn(){return ModSenders&&ModSenders.SENDERS?ModSenders.SENDERS.map(s=>Object.assign({},s)):[];}
+
   function _load(){
-    pool=(ModSenders&&ModSenders.SENDERS?ModSenders.SENDERS.map(s=>Object.assign({},s)):[]);
-    // Sync any session additions stored in localStorage
-    try{const saved=localStorage.getItem('_senders_pool');if(saved){pool=JSON.parse(saved);}}catch(_){}
+    const base=_builtIn();
+    // Only use localStorage if it has MORE entries than built-in (user has added custom senders)
+    try{
+      const saved=localStorage.getItem('_senders_pool');
+      if(saved){
+        const parsed=JSON.parse(saved);
+        pool=parsed.length>=base.length?parsed:base;
+      }else{pool=base;}
+    }catch(_){pool=base;}
     _pushToModule();
   }
 
