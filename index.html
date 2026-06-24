@@ -1310,7 +1310,998 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
           <th style="width:100px">Actions</th>
         </tr>
       </thead>
-      <tbody id="sender-tbody"></tbody>
+      <tbody id="sender-tbody">
+        <tr data-idx="0">
+          <td style="color:var(--muted);font-size:11px">1</td>
+          <td>Robert Aquilina</td>
+          <td>41 Triq Il Kbira</td>
+          <td>Birkirkara</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(0)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(0)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="1">
+          <td style="color:var(--muted);font-size:11px">2</td>
+          <td>Sandra Borg</td>
+          <td>12 Triq San Pawl</td>
+          <td>Mosta</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(1)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(1)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="2">
+          <td style="color:var(--muted);font-size:11px">3</td>
+          <td>Frank Zammit</td>
+          <td>7 Triq Il Bahar</td>
+          <td>Rabat</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(2)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(2)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="3">
+          <td style="color:var(--muted);font-size:11px">4</td>
+          <td>Maria Galea</td>
+          <td>3 Triq Il Ward</td>
+          <td>Saint Pauls Bay</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(3)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(3)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="4">
+          <td style="color:var(--muted);font-size:11px">5</td>
+          <td>Paul Pace</td>
+          <td>19 Triq Il Knisja</td>
+          <td>Qormi</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(4)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(4)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="5">
+          <td style="color:var(--muted);font-size:11px">6</td>
+          <td>Sandra Caruana</td>
+          <td>28 Triq San Gorg</td>
+          <td>Zebbug</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(5)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(5)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="6">
+          <td style="color:var(--muted);font-size:11px">7</td>
+          <td>James Briffa</td>
+          <td>55 Triq Dun Karm</td>
+          <td>Victoria</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(6)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(6)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="7">
+          <td style="color:var(--muted);font-size:11px">8</td>
+          <td>Mary Fenech</td>
+          <td>9 Triq Il Mithna</td>
+          <td>Sliema</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(7)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(7)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="8">
+          <td style="color:var(--muted);font-size:11px">9</td>
+          <td>Joseph Azzopardi</td>
+          <td>14 Triq Il Palazz</td>
+          <td>Valletta</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(8)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(8)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="9">
+          <td style="color:var(--muted);font-size:11px">10</td>
+          <td>Carmen Mifsud</td>
+          <td>6 Triq San Nikola</td>
+          <td>Naxxar</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(9)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(9)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="10">
+          <td style="color:var(--muted);font-size:11px">11</td>
+          <td>Anthony Vella</td>
+          <td>33 Triq Il Fortizza</td>
+          <td>Attard</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(10)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(10)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="11">
+          <td style="color:var(--muted);font-size:11px">12</td>
+          <td>Rosaria Camilleri</td>
+          <td>22 Triq Ix Xatt</td>
+          <td>Msida</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(11)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(11)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="12">
+          <td style="color:var(--muted);font-size:11px">13</td>
+          <td>George Grech</td>
+          <td>5 Triq Il Balluta</td>
+          <td>Saint Julians</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(12)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(12)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="13">
+          <td style="color:var(--muted);font-size:11px">14</td>
+          <td>Josephine Farrugia</td>
+          <td>17 Triq Il Ghasel</td>
+          <td>Zejtun</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(13)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(13)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="14">
+          <td style="color:var(--muted);font-size:11px">15</td>
+          <td>Charles Sultana</td>
+          <td>44 Triq Il Birgu</td>
+          <td>Paola</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(14)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(14)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="15">
+          <td style="color:var(--muted);font-size:11px">16</td>
+          <td>Anna Micallef</td>
+          <td>8 Triq Il Hamrun</td>
+          <td>Hamrun</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(15)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(15)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="16">
+          <td style="color:var(--muted);font-size:11px">17</td>
+          <td>Victor Bonello</td>
+          <td>31 Triq Il Fosos</td>
+          <td>Floriana</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(16)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(16)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="17">
+          <td style="color:var(--muted);font-size:11px">18</td>
+          <td>Teresa Scicluna</td>
+          <td>16 Triq Santu Wistin</td>
+          <td>Santa Venera</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(17)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(17)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="18">
+          <td style="color:var(--muted);font-size:11px">19</td>
+          <td>Emmanuel Debono</td>
+          <td>25 Triq Il Wied</td>
+          <td>Zabbar</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(18)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(18)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="19">
+          <td style="color:var(--muted);font-size:11px">20</td>
+          <td>Doris Attard</td>
+          <td>11 Triq Il Liedna</td>
+          <td>Siggiewi</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(19)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(19)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="20">
+          <td style="color:var(--muted);font-size:11px">21</td>
+          <td>Raymond Schembri</td>
+          <td>38 Triq San Tumas</td>
+          <td>San Gwann</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(20)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(20)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="21">
+          <td style="color:var(--muted);font-size:11px">22</td>
+          <td>Lorraine Muscat</td>
+          <td>4 Triq Il Ghajn</td>
+          <td>Iklin</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(21)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(21)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="22">
+          <td style="color:var(--muted);font-size:11px">23</td>
+          <td>Alfred Agius</td>
+          <td>52 Triq Il Marsa</td>
+          <td>Marsa</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(22)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(22)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="23">
+          <td style="color:var(--muted);font-size:11px">24</td>
+          <td>Claudette Tabone</td>
+          <td>29 Triq Il Baqqari</td>
+          <td>Mellieha</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(23)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(23)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="24">
+          <td style="color:var(--muted);font-size:11px">25</td>
+          <td>Mario Borg</td>
+          <td>13 Triq Il Kappella</td>
+          <td>Marsaskala</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(24)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(24)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="25">
+          <td style="color:var(--muted);font-size:11px">26</td>
+          <td>Patricia Bajada</td>
+          <td>7 Triq Tal Qoton</td>
+          <td>Tarxien</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(25)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(25)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="26">
+          <td style="color:var(--muted);font-size:11px">27</td>
+          <td>Vincent Calleja</td>
+          <td>61 Triq Il Maskla</td>
+          <td>Gzira</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(26)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(26)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="27">
+          <td style="color:var(--muted);font-size:11px">28</td>
+          <td>Miriam Ellul</td>
+          <td>18 Triq Il Qlejgħa</td>
+          <td>Balzan</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(27)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(27)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="28">
+          <td style="color:var(--muted);font-size:11px">29</td>
+          <td>Stefan Gauci</td>
+          <td>39 Triq Santa Marija</td>
+          <td>Lija</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(28)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(28)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="29">
+          <td style="color:var(--muted);font-size:11px">30</td>
+          <td>Denise Buhagiar</td>
+          <td>2 Triq Il Girna</td>
+          <td>Swieqi</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(29)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(29)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="30">
+          <td style="color:var(--muted);font-size:11px">31</td>
+          <td>Kenneth Cassar</td>
+          <td>47 Triq Il Qrendi</td>
+          <td>Qrendi</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(30)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(30)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="31">
+          <td style="color:var(--muted);font-size:11px">32</td>
+          <td>Ingrid Abela</td>
+          <td>21 Triq Il Kunsill</td>
+          <td>Pembroke</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(31)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(31)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="32">
+          <td style="color:var(--muted);font-size:11px">33</td>
+          <td>Noel Xerri</td>
+          <td>35 Triq Il Hagar</td>
+          <td>Marsaxlokk</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(32)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(32)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="33">
+          <td style="color:var(--muted);font-size:11px">34</td>
+          <td>Bernadette Zammit</td>
+          <td>10 Triq Il Balluta</td>
+          <td>Bugibba</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(33)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(33)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="34">
+          <td style="color:var(--muted);font-size:11px">35</td>
+          <td>Lawrence Borg</td>
+          <td>54 Triq Il Kunvent</td>
+          <td>Gudja</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(34)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(34)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="35">
+          <td style="color:var(--muted);font-size:11px">36</td>
+          <td>Theresa Aquilina</td>
+          <td>26 Triq Il Knisja</td>
+          <td>Fgura</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(35)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(35)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="36">
+          <td style="color:var(--muted);font-size:11px">37</td>
+          <td>Ivan Mifsud</td>
+          <td>8 Triq Il Haxix</td>
+          <td>Birzebbuga</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(36)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(36)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="37">
+          <td style="color:var(--muted);font-size:11px">38</td>
+          <td>Claire Vella</td>
+          <td>43 Triq San Duminku</td>
+          <td>Mqabba</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(37)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(37)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="38">
+          <td style="color:var(--muted);font-size:11px">39</td>
+          <td>Gordon Camilleri</td>
+          <td>15 Triq Il Liwan</td>
+          <td>Ghaxaq</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(38)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(38)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="39">
+          <td style="color:var(--muted);font-size:11px">40</td>
+          <td>Elaine Farrugia</td>
+          <td>37 Triq Il Palma</td>
+          <td>Kirkop</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(39)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(39)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="40">
+          <td style="color:var(--muted);font-size:11px">41</td>
+          <td>Saviour Grech</td>
+          <td>6 Triq Il Beraq</td>
+          <td>Luqa</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(40)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(40)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="41">
+          <td style="color:var(--muted);font-size:11px">42</td>
+          <td>Marika Sultana</td>
+          <td>30 Triq Il Borg</td>
+          <td>Zebbug</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(41)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(41)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="42">
+          <td style="color:var(--muted);font-size:11px">43</td>
+          <td>Glen Micallef</td>
+          <td>23 Triq Il Mixta</td>
+          <td>Mgarr</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(42)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(42)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="43">
+          <td style="color:var(--muted);font-size:11px">44</td>
+          <td>Patrizia Bonello</td>
+          <td>49 Triq Il Lunzjata</td>
+          <td>Rabat</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(43)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(43)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="44">
+          <td style="color:var(--muted);font-size:11px">45</td>
+          <td>Adrian Scicluna</td>
+          <td>11 Triq San Publiju</td>
+          <td>Floriana</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(44)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(44)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="45">
+          <td style="color:var(--muted);font-size:11px">46</td>
+          <td>Joanna Debono</td>
+          <td>58 Triq Il Prajjet</td>
+          <td>Naxxar</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(45)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(45)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="46">
+          <td style="color:var(--muted);font-size:11px">47</td>
+          <td>Marco Attard</td>
+          <td>20 Triq Il Ferrovija</td>
+          <td>Birkirkara</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(46)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(46)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="47">
+          <td style="color:var(--muted);font-size:11px">48</td>
+          <td>Sylvana Schembri</td>
+          <td>36 Triq Il Giebja</td>
+          <td>Siggiewi</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(47)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(47)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="48">
+          <td style="color:var(--muted);font-size:11px">49</td>
+          <td>Brian Muscat</td>
+          <td>9 Triq Il Glassier</td>
+          <td>Sliema</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(48)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(48)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="49">
+          <td style="color:var(--muted);font-size:11px">50</td>
+          <td>Helena Agius</td>
+          <td>27 Triq Il Karrozzin</td>
+          <td>Mosta</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(49)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(49)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="50">
+          <td style="color:var(--muted);font-size:11px">51</td>
+          <td>Renzo Tabone</td>
+          <td>42 Triq Il Kappillan</td>
+          <td>San Gwann</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(50)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(50)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="51">
+          <td style="color:var(--muted);font-size:11px">52</td>
+          <td>Nadine Borg</td>
+          <td>14 Triq Il Gidra</td>
+          <td>Attard</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(51)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(51)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="52">
+          <td style="color:var(--muted);font-size:11px">53</td>
+          <td>Clyde Bajada</td>
+          <td>53 Triq Il Fortini</td>
+          <td>Marsaskala</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(52)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(52)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="53">
+          <td style="color:var(--muted);font-size:11px">54</td>
+          <td>Anita Calleja</td>
+          <td>3 Triq It Torri</td>
+          <td>Saint Julians</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(53)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(53)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="54">
+          <td style="color:var(--muted);font-size:11px">55</td>
+          <td>Pierre Ellul</td>
+          <td>67 Triq Il Misrah</td>
+          <td>Valletta</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(54)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(54)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="55">
+          <td style="color:var(--muted);font-size:11px">56</td>
+          <td>Charlene Gauci</td>
+          <td>32 Triq Il Bosk</td>
+          <td>Iklin</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(55)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(55)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="56">
+          <td style="color:var(--muted);font-size:11px">57</td>
+          <td>Damien Buhagiar</td>
+          <td>18 Triq Il Pinu</td>
+          <td>Mellieha</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(56)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(56)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="57">
+          <td style="color:var(--muted);font-size:11px">58</td>
+          <td>Liana Cassar</td>
+          <td>46 Triq Il Qawsalla</td>
+          <td>Zejtun</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(57)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(57)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="58">
+          <td style="color:var(--muted);font-size:11px">59</td>
+          <td>Kristian Abela</td>
+          <td>24 Triq Is Salib</td>
+          <td>Paola</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(58)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(58)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="59">
+          <td style="color:var(--muted);font-size:11px">60</td>
+          <td>Nicole Xerri</td>
+          <td>5 Triq Il Kanun</td>
+          <td>Hamrun</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(59)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(59)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="60">
+          <td style="color:var(--muted);font-size:11px">61</td>
+          <td>Sven Zammit</td>
+          <td>38 Triq Il Barrani</td>
+          <td>Qormi</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(60)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(60)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="61">
+          <td style="color:var(--muted);font-size:11px">62</td>
+          <td>Rachel Borg</td>
+          <td>16 Triq Il Kannizzata</td>
+          <td>Santa Venera</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(61)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(61)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="62">
+          <td style="color:var(--muted);font-size:11px">63</td>
+          <td>Mark Mifsud</td>
+          <td>59 Triq Il Maqdes</td>
+          <td>Msida</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(62)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(62)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="63">
+          <td style="color:var(--muted);font-size:11px">64</td>
+          <td>Grace Vella</td>
+          <td>7 Triq Il Lampuka</td>
+          <td>Zabbar</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(63)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(63)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="64">
+          <td style="color:var(--muted);font-size:11px">65</td>
+          <td>Dennis Camilleri</td>
+          <td>33 Triq Il Barumbara</td>
+          <td>Gzira</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(64)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(64)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="65">
+          <td style="color:var(--muted);font-size:11px">66</td>
+          <td>Lisa Farrugia</td>
+          <td>21 Triq Il Weraq</td>
+          <td>Swieqi</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(65)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(65)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="66">
+          <td style="color:var(--muted);font-size:11px">67</td>
+          <td>Daniel Grech</td>
+          <td>45 Triq Il Merkanti</td>
+          <td>Pembroke</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(66)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(66)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="67">
+          <td style="color:var(--muted);font-size:11px">68</td>
+          <td>Stephanie Sultana</td>
+          <td>12 Triq Il Qoton</td>
+          <td>San Gwann</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(67)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(67)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="68">
+          <td style="color:var(--muted);font-size:11px">69</td>
+          <td>Luke Micallef</td>
+          <td>28 Triq Il Bezbizija</td>
+          <td>Balzan</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(68)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(68)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="69">
+          <td style="color:var(--muted);font-size:11px">70</td>
+          <td>Ingrid Bonello</td>
+          <td>4 Triq Il Malti</td>
+          <td>Lija</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(69)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(69)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="70">
+          <td style="color:var(--muted);font-size:11px">71</td>
+          <td>Gaby Scicluna</td>
+          <td>50 Triq Il Bajtar</td>
+          <td>Birkirkara</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(70)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(70)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="71">
+          <td style="color:var(--muted);font-size:11px">72</td>
+          <td>Ryan Debono</td>
+          <td>17 Triq Il Binja</td>
+          <td>Naxxar</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(71)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(71)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="72">
+          <td style="color:var(--muted);font-size:11px">73</td>
+          <td>Suzanne Attard</td>
+          <td>36 Triq Il Kappar</td>
+          <td>Zebbug</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(72)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(72)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="73">
+          <td style="color:var(--muted);font-size:11px">74</td>
+          <td>Oliver Schembri</td>
+          <td>8 Triq Il Qastan</td>
+          <td>Mosta</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(73)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(73)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="74">
+          <td style="color:var(--muted);font-size:11px">75</td>
+          <td>Tina Muscat</td>
+          <td>62 Triq Il Bettiegħa</td>
+          <td>Rabat</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(74)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(74)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="75">
+          <td style="color:var(--muted);font-size:11px">76</td>
+          <td>David Agius</td>
+          <td>25 Triq Il Warda</td>
+          <td>Saint Pauls Bay</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(75)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(75)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="76">
+          <td style="color:var(--muted);font-size:11px">77</td>
+          <td>Fiona Tabone</td>
+          <td>13 Triq Il Haxix</td>
+          <td>Qormi</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(76)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(76)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="77">
+          <td style="color:var(--muted);font-size:11px">78</td>
+          <td>Neil Borg</td>
+          <td>40 Triq Il Barrieri</td>
+          <td>Victoria</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(77)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(77)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="78">
+          <td style="color:var(--muted);font-size:11px">79</td>
+          <td>Sharon Bajada</td>
+          <td>6 Triq Il Bebbuxu</td>
+          <td>Attard</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(78)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(78)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="79">
+          <td style="color:var(--muted);font-size:11px">80</td>
+          <td>Tony Calleja</td>
+          <td>29 Triq Il Ftaqar</td>
+          <td>Floriana</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(79)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(79)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="80">
+          <td style="color:var(--muted);font-size:11px">81</td>
+          <td>Alexia Ellul</td>
+          <td>19 Triq Il Ghagħa</td>
+          <td>Valletta</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(80)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(80)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="81">
+          <td style="color:var(--muted);font-size:11px">82</td>
+          <td>Rupert Gauci</td>
+          <td>47 Triq Il Ġdida</td>
+          <td>Sliema</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(81)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(81)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="82">
+          <td style="color:var(--muted);font-size:11px">83</td>
+          <td>Lara Buhagiar</td>
+          <td>11 Triq Il Musbieħ</td>
+          <td>Marsaxlokk</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(82)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(82)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="83">
+          <td style="color:var(--muted);font-size:11px">84</td>
+          <td>Dean Cassar</td>
+          <td>35 Triq Il Forn</td>
+          <td>Msida</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(83)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(83)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="84">
+          <td style="color:var(--muted);font-size:11px">85</td>
+          <td>Priscilla Abela</td>
+          <td>23 Triq Il Barriera</td>
+          <td>Paola</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(84)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(84)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="85">
+          <td style="color:var(--muted);font-size:11px">86</td>
+          <td>Oskar Xerri</td>
+          <td>57 Triq Il Qassis</td>
+          <td>Hamrun</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(85)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(85)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="86">
+          <td style="color:var(--muted);font-size:11px">87</td>
+          <td>Vanessa Zammit</td>
+          <td>14 Triq Il Mina</td>
+          <td>Zabbar</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(86)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(86)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="87">
+          <td style="color:var(--muted);font-size:11px">88</td>
+          <td>Kevin Borg</td>
+          <td>43 Triq Il Kapillun</td>
+          <td>Siggiewi</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(87)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(87)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="88">
+          <td style="color:var(--muted);font-size:11px">89</td>
+          <td>Anabel Mifsud</td>
+          <td>9 Triq Il Ghamara</td>
+          <td>San Gwann</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(88)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(88)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="89">
+          <td style="color:var(--muted);font-size:11px">90</td>
+          <td>Calvin Vella</td>
+          <td>31 Triq Il Pjazza</td>
+          <td>Mellieha</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(89)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(89)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="90">
+          <td style="color:var(--muted);font-size:11px">91</td>
+          <td>Bianca Camilleri</td>
+          <td>55 Triq Il Wied</td>
+          <td>Zejtun</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(90)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(90)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="91">
+          <td style="color:var(--muted);font-size:11px">92</td>
+          <td>Louis Farrugia</td>
+          <td>20 Triq Il Bergħaq</td>
+          <td>Marsaskala</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(91)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(91)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="92">
+          <td style="color:var(--muted);font-size:11px">93</td>
+          <td>Elissa Grech</td>
+          <td>37 Triq Il Garriku</td>
+          <td>Gzira</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(92)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(92)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="93">
+          <td style="color:var(--muted);font-size:11px">94</td>
+          <td>Simon Sultana</td>
+          <td>2 Triq Il Maħżen</td>
+          <td>Iklin</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(93)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(93)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="94">
+          <td style="color:var(--muted);font-size:11px">95</td>
+          <td>Gemma Micallef</td>
+          <td>48 Triq Il Bajda</td>
+          <td>Santa Venera</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(94)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(94)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="95">
+          <td style="color:var(--muted);font-size:11px">96</td>
+          <td>Kurt Bonello</td>
+          <td>16 Triq Il Berġa</td>
+          <td>Swieqi</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(95)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(95)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="96">
+          <td style="color:var(--muted);font-size:11px">97</td>
+          <td>Amber Scicluna</td>
+          <td>26 Triq Il Ħamiem</td>
+          <td>Pembroke</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(96)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(96)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="97">
+          <td style="color:var(--muted);font-size:11px">98</td>
+          <td>Alvin Debono</td>
+          <td>34 Triq Il Ħalfa</td>
+          <td>Saint Julians</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(97)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(97)">✕</button>
+          </td>
+        </tr>
+        <tr data-idx="98">
+          <td style="color:var(--muted);font-size:11px">99</td>
+          <td>Yolanda Attard</td>
+          <td>60 Triq Il Lużu</td>
+          <td>Birkirkara</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(98)">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(98)">✕</button>
+          </td>
+        </tr>
+      </tbody>
     </table>
   </div>
 </section>
@@ -1513,7 +2504,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 13:09 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 13:14 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>

@@ -148,6 +148,7 @@ async function buildModule(rel) {
 }
 
 async function main() {
+  const { SENDERS } = await import(path.join(srcDir, 'data/senders.js'));
   const css = await fs.readFile(path.join(srcDir, 'styles.css'), 'utf8');
   const moduleBlocks = [];
   for (const rel of MODULE_ORDER) {
@@ -516,7 +517,18 @@ ${css}
           <th style="width:100px">Actions</th>
         </tr>
       </thead>
-      <tbody id="sender-tbody"></tbody>
+      <tbody id="sender-tbody">${SENDERS.map((s,i)=>`
+        <tr data-idx="${i}">
+          <td style="color:var(--muted);font-size:11px">${i+1}</td>
+          <td>${s.name}</td>
+          <td>${s.line1}</td>
+          <td>${s.city}</td>
+          <td style="white-space:nowrap">
+            <button type="button" style="font-size:11px;padding:3px 8px;margin-right:4px" onclick="SENDERS_UI.edit(${i})">✏ Edit</button>
+            <button type="button" class="danger" style="font-size:11px;padding:3px 8px" onclick="SENDERS_UI.del(${i})">✕</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
     </table>
   </div>
 </section>
