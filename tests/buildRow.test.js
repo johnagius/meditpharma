@@ -67,7 +67,7 @@ describe('buildRow', () => {
     const row7 = buildRow({ recipient: { name: 'X' }, product: ozempic }, 6);
     expect(row7[2]).toBe(SENDERS[6].name);
     const row9 = buildRow({ recipient: { name: 'X' }, product: ozempic }, 8);
-    expect(row9[2]).toBe(SENDERS[0].name);
+    expect(row9[2]).toBe(SENDERS[8].name);
   });
 
   it('rotates HS code + description by row index', () => {
