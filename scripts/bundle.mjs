@@ -1561,6 +1561,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     '<div class="ctx-item" id="ctx-insert-below"><span class="ctx-icon">+</span>Insert row below</div>',
     '<div class="ctx-sep"></div>',
     '<div class="ctx-item danger" id="ctx-delete"><span class="ctx-icon">&#x1F5D1;</span>Delete row</div>',
+    '<div class="ctx-sep"></div>',
+    '<div class="ctx-label">Columns</div>',
+    '<div class="ctx-item" id="ctx-reset-cols"><span class="ctx-icon">&#x21BA;</span>Reset column layout</div>',
   ].join('');
   document.body.appendChild(menu);
 
@@ -1683,6 +1686,24 @@ document.addEventListener('DOMContentLoaded',()=>{
     const delBtn=activeRow.querySelector('button.danger,[data-action="delete"]');
     if(delBtn){delBtn.click();}else{activeRow.remove();}
     _toast('Row deleted','ok');hide();
+  });
+
+  document.getElementById('ctx-reset-cols').addEventListener('click',()=>{
+    // Determine which view the active row belongs to
+    const tbody=activeRow&&activeRow.closest('tbody');
+    if(!tbody){hide();return;}
+    const bodyId=tbody.id;
+    const keyMap={'tracking-body':'builder','saved-track-body':'saved','bymerchant-body':'bymerchant','today-body':'today','master-body':'master'};
+    const viewKey=keyMap[bodyId];
+    if(viewKey){
+      try{localStorage.removeItem('_trk_col_'+viewKey);}catch{}
+      // Trigger re-render by firing a synthetic refresh click if available
+      const refreshBtns={'builder':'#btn-trk-refresh','saved':'#btn-saved-track-refresh','bymerchant':'#btn-bm-refresh','today':'#btn-today-refresh','master':'#btn-master-refresh'};
+      const btn=document.querySelector(refreshBtns[viewKey]);
+      if(btn)btn.click();
+      _toast('Column layout reset — reload the panel to see default layout','ok');
+    }
+    hide();
   });
 })();
 </script>

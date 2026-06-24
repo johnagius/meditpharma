@@ -246,6 +246,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // getter/setter for its row array, and its current filter text.
   const TRACK_VIEWS = {
     builder: {
+      key: 'builder',
       resource: 'rows',
       head: trackingHead, body: trackingBody, status: trackingStatus,
       getRows: () => trackingRows,
@@ -256,6 +257,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
     },
     saved: {
+      key: 'saved',
       resource: 'rows',
       head: savedTrackHead, body: savedTrackBody, status: savedTrackStatus,
       getRows: () => savedTrackingRows,
@@ -269,6 +271,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     // and a date scope (today / all / range). Saving here hits the same store,
     // so the Saved Tracking tab stays in sync.
     bymerchant: {
+      key: 'bymerchant',
       resource: 'rows',
       head: bmHead, body: bmBody, status: bmStatus,
       getRows: () => savedTrackingRows,
@@ -282,6 +285,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     },
     // "Today": today's saved tracking rows (working set), promoted to master.
     today: {
+      key: 'today',
       resource: 'rows',
       head: todayHead, body: todayBody, status: todayStatus,
       getRows: () => savedTrackingRows,
@@ -294,6 +298,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     },
     // "Master List": a separate, persistent table (its own store/resource).
     master: {
+      key: 'master',
       resource: 'master',
       head: masterHead, body: masterBody, status: masterStatus,
       getRows: () => masterRows,
@@ -304,6 +309,171 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       filterText: '', selectAll: null, sort: null, colFilters: {}, statusFilter: '',
     },
   };
+
+  // ── Column layout: resize + reorder + persistence ─────────────────────────
+  const _COL_LS = (k) => '_trk_col_' + k;
+  function _loadColLayout(viewKey) {
+    try { return JSON.parse(localStorage.getItem(_COL_LS(viewKey)) || 'null'); } catch { return null; }
+  }
+  function _saveColLayout(viewKey, layout) {
+    try { localStorage.setItem(_COL_LS(viewKey), JSON.stringify(layout)); } catch {}
+  }
+  function _resetColLayout(viewKey) {
+    try { localStorage.removeItem(_COL_LS(viewKey)); } catch {}
+  }
+  // Reorder data cells in a <tr> according to saved order (array of original col indices)
+  function _applyColOrderToTr(tr, order) {
+    const cells = Array.from(tr.children);
+    if (cells.length < 2) return;
+    const first = cells[0]; // checkbox always stays first
+    const data = cells.slice(1);
+    const reordered = order.map((i) => data[i]).filter(Boolean);
+    if (reordered.length !== data.length) return; // safety
+    while (tr.lastChild !== first) tr.removeChild(tr.lastChild);
+    reordered.forEach((c) => tr.appendChild(c));
+  }
+  // Wire up column resize handles and drag-to-reorder for a rendered header row
+  function _wireColLayout(view, headerTr) {
+    try { _wireColLayoutUnsafe(view, headerTr); } catch { /* no-op in test/stub environments */ }
+  }
+  function _wireColLayoutUnsafe(view, headerTr) {
+    const viewKey = view.key;
+    if (!viewKey) return;
+    const table = typeof headerTr.closest === 'function' ? headerTr.closest('table') : null;
+    if (!table) return;
+
+    const layout = _loadColLayout(viewKey);
+    const cols = Array.from(table.querySelectorAll('col')).slice(1); // skip checkbox col
+
+    // Apply saved widths
+    if (layout && layout.widths && layout.widths.length) {
+      layout.widths.forEach((w, i) => { if (cols[i]) cols[i].style.width = w + 'px'; });
+    }
+
+    // Apply saved column order to header + colgroup
+    if (layout && layout.order && layout.order.length === cols.length) {
+      _applyColOrderToTr(headerTr, layout.order);
+      // Reorder <col> elements to match
+      const colParent = cols[0] && cols[0].parentElement;
+      if (colParent) {
+        const allCols = Array.from(colParent.children);
+        const firstCol = allCols[0];
+        const dataCols = allCols.slice(1);
+        const reorderedCols = layout.order.map((i) => dataCols[i]).filter(Boolean);
+        while (colParent.lastChild !== firstCol) colParent.removeChild(colParent.lastChild);
+        reorderedCols.forEach((c) => colParent.appendChild(c));
+      }
+    }
+
+    // Add resize handles to every data <th>
+    Array.from(headerTr.children).slice(1).forEach((th) => {
+      const handle = document.createElement('span');
+      handle.className = 'col-resize-handle';
+      handle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        handle.classList.add('active');
+        const thIdx = Array.from(headerTr.children).indexOf(th); // includes checkbox at 0
+        const targetCol = Array.from(table.querySelectorAll('col'))[thIdx];
+        const startX = e.clientX;
+        const startW = targetCol ? (targetCol.offsetWidth || parseInt(targetCol.style.width) || th.offsetWidth) : th.offsetWidth;
+        const onMove = (me) => {
+          const nw = Math.max(36, startW + me.clientX - startX);
+          if (targetCol) targetCol.style.width = nw + 'px';
+        };
+        const onUp = () => {
+          handle.classList.remove('active');
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          const currCols = Array.from(table.querySelectorAll('col')).slice(1);
+          const widths = currCols.map((c) => c.offsetWidth || parseInt(c.style.width) || 80);
+          const existing = _loadColLayout(viewKey) || {};
+          _saveColLayout(viewKey, { ...existing, widths });
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+      th.appendChild(handle);
+    });
+
+    // Drag-to-reorder
+    let _dragSrcTh = null;
+    Array.from(headerTr.children).slice(1).forEach((th) => {
+      th.draggable = true;
+      th.addEventListener('dragstart', (e) => {
+        _dragSrcTh = th;
+        th.classList.add('col-drag-src');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', th.dataset.colIdx || '');
+      });
+      th.addEventListener('dragend', () => {
+        th.classList.remove('col-drag-src');
+        headerTr.querySelectorAll('.col-drag-over').forEach((el) => el.classList.remove('col-drag-over'));
+        _dragSrcTh = null;
+      });
+      th.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        headerTr.querySelectorAll('.col-drag-over').forEach((el) => el.classList.remove('col-drag-over'));
+        if (th !== _dragSrcTh) th.classList.add('col-drag-over');
+      });
+      th.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (!_dragSrcTh || _dragSrcTh === th) return;
+        const allThs = Array.from(headerTr.children);
+        const srcIdx = allThs.indexOf(_dragSrcTh);
+        const dstIdx = allThs.indexOf(th);
+        if (srcIdx < 1 || dstIdx < 1) return;
+
+        // Move th in header row
+        if (dstIdx > srcIdx) {
+          headerTr.insertBefore(_dragSrcTh, th.nextSibling);
+        } else {
+          headerTr.insertBefore(_dragSrcTh, th);
+        }
+
+        // Move corresponding <col>
+        const colEls = Array.from(table.querySelectorAll('col'));
+        const srcCol = colEls[srcIdx];
+        const dstCol = colEls[dstIdx];
+        if (srcCol && dstCol) {
+          if (dstIdx > srcIdx) srcCol.parentElement.insertBefore(srcCol, dstCol.nextSibling);
+          else srcCol.parentElement.insertBefore(srcCol, dstCol);
+        }
+
+        // Move cells in every body row
+        const tbody = table.querySelector('tbody');
+        if (tbody) {
+          Array.from(tbody.rows).forEach((btr) => {
+            const bCells = Array.from(btr.children);
+            const bSrc = bCells[srcIdx];
+            const bDst = bCells[dstIdx];
+            if (bSrc && bDst) {
+              if (dstIdx > srcIdx) btr.insertBefore(bSrc, bDst.nextSibling);
+              else btr.insertBefore(bSrc, bDst);
+            }
+          });
+        }
+
+        // Save new order (read data-col-idx from each th after reorder)
+        const newThs = Array.from(headerTr.children).slice(1);
+        const order = newThs.map((t) => parseInt(t.dataset.colIdx || '0'));
+        const currCols = Array.from(table.querySelectorAll('col')).slice(1);
+        const widths = currCols.map((c) => c.offsetWidth || parseInt(c.style.width) || 80);
+        _saveColLayout(viewKey, { order, widths });
+        _toast('Column order saved', 'ok');
+      });
+    });
+  }
+  // Apply saved column order to a freshly-rendered body row
+  function _applyColLayoutToRow(view, tr) {
+    const viewKey = view.key;
+    if (!viewKey) return;
+    const layout = _loadColLayout(viewKey);
+    if (layout && layout.order && layout.order.length) {
+      _applyColOrderToTr(tr, layout.order);
+    }
+  }
 
   renderRows();
 
@@ -1968,6 +2138,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       const key = TRACKING_KEYS[i];
       const th = document.createElement('th');
       th.className = 'col-head';
+      th.dataset.colIdx = String(i); // track original index for reorder persistence
 
       const label = document.createElement('span');
       label.className = 'col-label';
@@ -1989,6 +2160,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       tr.appendChild(th);
     });
     headEl.appendChild(tr);
+    _wireColLayout(view, tr);
   }
 
   function input(value, cls, onInput) {
@@ -2543,6 +2715,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       tr.addEventListener('input', queueAutosave);
       tr.addEventListener('change', queueAutosave);
 
+      _applyColLayoutToRow(view, tr);
       tbody.appendChild(tr);
     });
     updateTrackToolbar(view);

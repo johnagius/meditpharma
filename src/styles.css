@@ -615,12 +615,25 @@ thead th {
 .track-toolbar .sel-count { font-size: 12px; color: var(--muted); }
 
 /* ── Column sort/filter ──────────────────────────────────────────────────── */
-.track-table th.col-head { cursor: pointer; user-select: none; white-space: nowrap; }
+.track-table th.col-head { cursor: pointer; user-select: none; white-space: nowrap; position: relative; }
 .track-table th.col-head .col-label { margin-right: 4px; }
 .track-table th.col-head .col-caret { color: var(--muted); font-size: 10px; }
 .track-table th.col-head:hover { background: rgba(255,255,255,.05); }
 .track-table th.col-head.col-active { color: var(--tacc); }
 .track-table th.col-head.col-active .col-caret { color: var(--tacc); }
+
+/* ── Column resize handle ────────────────────────────────────────────────── */
+.col-resize-handle {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 6px;
+  cursor: col-resize; z-index: 3;
+  border-radius: 0 3px 3px 0;
+  transition: background .15s;
+}
+.col-resize-handle:hover, .col-resize-handle.active { background: rgba(56,189,248,.5); }
+
+/* ── Column drag-to-reorder ──────────────────────────────────────────────── */
+.track-table th.col-drag-src { opacity: .35; }
+.track-table th.col-drag-over { box-shadow: inset 2px 0 0 #38bdf8; }
 
 .col-menu {
   position: absolute; z-index: 1000;
