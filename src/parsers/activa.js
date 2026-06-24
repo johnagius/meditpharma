@@ -58,6 +58,14 @@ export function parse(text) {
       phone = raw.replace(/[^0-9+]/g, '');
       continue;
     }
+    // Handle both "City, State, Zip" and "City, Abbr, StateName, Zip"
+    const cityStateZip4 = raw.match(/^([^,]+),\s*([A-Z]{2}),\s*[^,]+,\s*([0-9]{5}(?:-[0-9]{4})?)$/);
+    if (cityStateZip4) {
+      city = cityStateZip4[1].trim();
+      state = cityStateZip4[2].trim();
+      zip = cityStateZip4[3];
+      continue;
+    }
     const cityStateZip = raw.match(/^([^,]+),\s*([^,]+),\s*([0-9]{5}(?:-[0-9]{4})?)$/);
     if (cityStateZip) {
       city = cityStateZip[1].trim();
