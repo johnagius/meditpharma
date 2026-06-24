@@ -149,6 +149,7 @@ async function buildModule(rel) {
 
 async function main() {
   const { SENDERS } = await import(path.join(srcDir, 'data/senders.js'));
+  const { PRODUCTS } = await import(path.join(srcDir, 'data/midCodes.js'));
   const css = await fs.readFile(path.join(srcDir, 'styles.css'), 'utf8');
   const moduleBlocks = [];
   for (const rel of MODULE_ORDER) {
@@ -511,11 +512,12 @@ ${css}
     <div style="font-weight:700;font-size:12px;margin:14px 0 6px">Stock items &amp; current quantity</div>
     <div class="actions stock-additem">
       <div style="display:inline-flex;flex-direction:column;gap:3px">
-        <select id="si-name-select" style="min-width:180px;height:32px">
+        <select id="si-name-select" style="min-width:200px;height:32px;font-size:12px">
           <option value="">— Select product —</option>
+          ${PRODUCTS.map(p=>`<option value="${p.label.replace(/"/g,'&quot;')}" data-country="${p.country}">${p.label}</option>`).join('\n          ')}
           <option value="__custom__">＋ Custom name…</option>
         </select>
-        <input type="text" id="si-name-custom" placeholder="Type custom name…" style="min-width:180px;display:none">
+        <input type="text" id="si-name-custom" placeholder="Type custom name…" style="min-width:200px;font-size:12px;display:none">
         <input type="hidden" id="si-name">
       </div>
       <input type="text" id="si-section" placeholder="Section">
@@ -1446,17 +1448,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   const siCustom=document.getElementById('si-name-custom');
   const siHidden=document.getElementById('si-name');
   const siCountryEl=document.getElementById('si-country');
-  if(siSelect&&window.ModMid&&ModMid.PRODUCTS){
-    // Group products by category comment — insert them after the fixed options
-    const customOpt=siSelect.querySelector('option[value="__custom__"]');
-    ModMid.PRODUCTS.forEach(p=>{
-      const opt=document.createElement('option');
-      opt.value=p.label;
-      opt.dataset.country=p.country||'';
-      opt.textContent=p.label;
-      siSelect.insertBefore(opt,customOpt);
-    });
-  }
   function _siSync(){
     if(!siSelect)return;
     const val=siSelect.value;

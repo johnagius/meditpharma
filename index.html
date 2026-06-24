@@ -1304,11 +1304,68 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
     <div style="font-weight:700;font-size:12px;margin:14px 0 6px">Stock items &amp; current quantity</div>
     <div class="actions stock-additem">
       <div style="display:inline-flex;flex-direction:column;gap:3px">
-        <select id="si-name-select" style="min-width:180px;height:32px">
+        <select id="si-name-select" style="min-width:200px;height:32px;font-size:12px">
           <option value="">— Select product —</option>
+          <option value="Botox" data-country="IE">Botox</option>
+          <option value="Xeomin" data-country="DE">Xeomin</option>
+          <option value="Azzalure" data-country="GB">Azzalure</option>
+          <option value="Dysport" data-country="GB">Dysport</option>
+          <option value="Bocouture 50" data-country="DE">Bocouture 50</option>
+          <option value="Ozempic" data-country="DK">Ozempic</option>
+          <option value="Wegovy" data-country="DK">Wegovy</option>
+          <option value="Mounjaro" data-country="CH">Mounjaro</option>
+          <option value="Jardiance" data-country="DE">Jardiance</option>
+          <option value="Norditropin 15mg" data-country="DK">Norditropin 15mg</option>
+          <option value="Restylane (all)" data-country="SE">Restylane (all)</option>
+          <option value="Juvederm (all)" data-country="FR">Juvederm (all)</option>
+          <option value="Teosyal" data-country="CH">Teosyal</option>
+          <option value="Stylage" data-country="FR">Stylage</option>
+          <option value="Radiesse" data-country="DE">Radiesse</option>
+          <option value="Profhilo" data-country="IT">Profhilo</option>
+          <option value="Saypha" data-country="AT">Saypha</option>
+          <option value="Fillmed" data-country="FR">Fillmed</option>
+          <option value="Sunekos" data-country="IT">Sunekos</option>
+          <option value="Letybo" data-country="AT">Letybo</option>
+          <option value="PRX-T33" data-country="IT">PRX-T33</option>
+          <option value="BCN" data-country="ES">BCN</option>
+          <option value="SMB" data-country="GB">SMB</option>
+          <option value="Vabysmo" data-country="AT">Vabysmo</option>
+          <option value="Lumigan" data-country="GB">Lumigan</option>
+          <option value="Nexplanon" data-country="GB">Nexplanon</option>
+          <option value="Jaydess" data-country="GB">Jaydess</option>
+          <option value="Yasmin" data-country="NL">Yasmin</option>
+          <option value="Orgalutran" data-country="NL">Orgalutran</option>
+          <option value="Fostimon" data-country="SK">Fostimon</option>
+          <option value="Meriofert" data-country="IT">Meriofert</option>
+          <option value="Zivafert" data-country="IT">Zivafert</option>
+          <option value="Cylogest" data-country="PL">Cylogest</option>
+          <option value="Estrofem" data-country="NL">Estrofem</option>
+          <option value="Lucrin Depot" data-country="NL">Lucrin Depot</option>
+          <option value="Verzenios 150mg" data-country="CH">Verzenios 150mg</option>
+          <option value="Verzenio (ES)" data-country="ES">Verzenio (ES)</option>
+          <option value="Tagrisso" data-country="SE">Tagrisso</option>
+          <option value="Osimertinib 80mg" data-country="SE">Osimertinib 80mg</option>
+          <option value="Revlimid" data-country="IE">Revlimid</option>
+          <option value="Lenalidomide" data-country="DE">Lenalidomide</option>
+          <option value="Alecensa" data-country="CH">Alecensa</option>
+          <option value="Aubagio 14mg" data-country="DE">Aubagio 14mg</option>
+          <option value="Filspari 400mg" data-country="CH">Filspari 400mg</option>
+          <option value="Jinarc" data-country="NL">Jinarc</option>
+          <option value="Hemlibra" data-country="DE">Hemlibra</option>
+          <option value="Orencia" data-country="IE">Orencia</option>
+          <option value="Crysvita" data-country="NL">Crysvita</option>
+          <option value="Takhzyro 300mg" data-country="IE">Takhzyro 300mg</option>
+          <option value="Enbrel 50mg" data-country="BE">Enbrel 50mg</option>
+          <option value="Humira 80mg" data-country="GB">Humira 80mg</option>
+          <option value="Prolia" data-country="PR">Prolia</option>
+          <option value="Synvisc Hylan" data-country="NL">Synvisc Hylan</option>
+          <option value="Gardasil" data-country="NL">Gardasil</option>
+          <option value="Emla" data-country="IE">Emla</option>
+          <option value="Clexane" data-country="FR">Clexane</option>
+          <option value="Radicut 50ml" data-country="JP">Radicut 50ml</option>
           <option value="__custom__">＋ Custom name…</option>
         </select>
-        <input type="text" id="si-name-custom" placeholder="Type custom name…" style="min-width:180px;display:none">
+        <input type="text" id="si-name-custom" placeholder="Type custom name…" style="min-width:200px;font-size:12px;display:none">
         <input type="hidden" id="si-name">
       </div>
       <input type="text" id="si-section" placeholder="Section">
@@ -2597,7 +2654,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 14:13 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 14:15 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -8340,17 +8397,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   const siCustom=document.getElementById('si-name-custom');
   const siHidden=document.getElementById('si-name');
   const siCountryEl=document.getElementById('si-country');
-  if(siSelect&&window.ModMid&&ModMid.PRODUCTS){
-    // Group products by category comment — insert them after the fixed options
-    const customOpt=siSelect.querySelector('option[value="__custom__"]');
-    ModMid.PRODUCTS.forEach(p=>{
-      const opt=document.createElement('option');
-      opt.value=p.label;
-      opt.dataset.country=p.country||'';
-      opt.textContent=p.label;
-      siSelect.insertBefore(opt,customOpt);
-    });
-  }
   function _siSync(){
     if(!siSelect)return;
     const val=siSelect.value;
