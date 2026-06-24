@@ -1318,6 +1318,17 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         renderStock();
       });
     }
+    // Keep stock filter in sync when user picks a merchant in the add-item form
+    if (siMerchantSel) {
+      siMerchantSel.addEventListener('change', () => {
+        if (siMerchantSel.value) {
+          stockMerchant = siMerchantSel.value;
+          if (stockMerchantSel) stockMerchantSel.value = stockMerchant;
+          renderStockPending();
+          renderStockItems();
+        }
+      });
+    }
     renderStock();
   }
 
@@ -1339,11 +1350,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     return merchantsList.map((m) => m.name).filter(Boolean);
   }
 
-  function fillMerchantSelect(sel, value) {
+  function fillMerchantSelect(sel, value, placeholder) {
     sel.innerHTML = '';
     const blank = document.createElement('option');
     blank.value = '';
-    blank.textContent = '— all merchants —';
+    blank.textContent = placeholder || '— all merchants —';
     sel.appendChild(blank);
     for (const name of merchantNames()) {
       const opt = document.createElement('option');
@@ -1553,8 +1564,13 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       const siNameCustomEl = document.getElementById('si-name-custom');
       if (siNameSelectEl) siNameSelectEl.value = '';
       if (siNameCustomEl) { siNameCustomEl.value = ''; siNameCustomEl.style.display = 'none'; }
+      // Switch the filter to the new item's merchant so user can immediately see it
+      if (merchant) {
+        stockMerchant = merchant;
+        if (stockMerchantSel) stockMerchantSel.value = stockMerchant;
+      }
       if (siMerchantSel) siMerchantSel.value = '';
-      setStatusInto(stockStatus, `Added "${name}"${merchant ? ` for ${merchant}` : ''}.`, 'ok');
+      setStatusInto(stockStatus, `✓ Added "${name}"${merchant ? ` for ${merchant}` : ''}.`, 'ok');
       renderStock();
     } catch (err) {
       setStatusInto(stockStatus, `Add item failed: ${err.message}`, 'err');
@@ -1632,8 +1648,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   }
 
   function renderStock() {
-    if (stockMerchantSel) fillMerchantSelect(stockMerchantSel, stockMerchant);
-    if (siMerchantSel) fillMerchantSelect(siMerchantSel, siMerchantSel.value || '');
+    if (stockMerchantSel) fillMerchantSelect(stockMerchantSel, stockMerchant, '— all merchants —');
+    if (siMerchantSel) fillMerchantSelect(siMerchantSel, siMerchantSel.value || stockMerchant || '', '— Merchant —');
     renderStockPending();
     renderStockItems();
   }
