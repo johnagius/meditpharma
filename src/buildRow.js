@@ -20,7 +20,7 @@ export function buildRow({ recipient, product }, rowIndex, hsCodes = HS_CODES) {
   const row = {
     ...ROW_CONSTANTS,
     senderContactName: sender.name,
-    senderEmail: fakeEmail(sender.name),
+    senderEmail: 'mason.river82@proton.me',
     senderLine1: sender.line1,
     senderPostcode: '',
     senderCity: sender.city,
