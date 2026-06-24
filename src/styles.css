@@ -652,7 +652,8 @@ thead th {
 .prod-field input:focus { border-color: var(--tacc) !important; outline: none; }
 
 /* ── Stock ───────────────────────────────────────────────────────────────── */
-.stock-additem input { background: var(--dim); color: var(--text); border: 1px solid var(--border); border-radius: 5px; font-size: 12px; padding: 5px 8px; min-width: 110px; }
+.stock-additem input, .stock-additem select { background: var(--dim); color: var(--text); border: 1px solid var(--border); border-radius: 5px; font-size: 12px; padding: 5px 8px; min-width: 110px; }
+.stock-additem select { min-width: 200px; cursor: pointer; }
 .empty-cell { padding: 14px 10px; color: var(--muted); text-align: center; }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
