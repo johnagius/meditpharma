@@ -811,6 +811,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     ['tab-stock', 'panel-stock'],
     ['tab-catalog', 'panel-catalog'],
     ['tab-merchants', 'panel-merchants'],
+    ['tab-awb', 'panel-awb'],
+    ['tab-reports', 'panel-reports'],
   ];
   let tabEls = [];
 
@@ -827,6 +829,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     else if (panelId === 'panel-master') loadMaster();
     else if (panelId === 'panel-stock') loadStock();
     else if (panelId === 'panel-catalog') loadCatalog();
+    else if (panelId === 'panel-awb') { if (typeof AWB !== 'undefined') AWB.render(); }
+    else if (panelId === 'panel-reports') { if (typeof RPT !== 'undefined') RPT.init(); }
   }
 
   function initTabs() {
@@ -3289,6 +3293,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
   return {
     get orders() { return orders; },
+    get masterRows() { return masterRows; },
     ingestFiles,
   };
 }
