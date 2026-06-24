@@ -347,6 +347,7 @@ ${css}
       <button id="btn-track-copy-sel" type="button" disabled>Copy selected</button>
       <button id="btn-track-delete-sel" class="danger" type="button" disabled>Delete selected</button>
       <span id="track-sel-count" class="sel-count">0 selected</span>
+      <button id="btn-trk-sheet-dl" type="button" style="background:var(--grn);color:#fff;border:none;padding:6px 13px;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px">⬇ Excel</button>
     </div>
   </div>
   <div id="tracking-dashboard" class="status-dash" style="padding:6px 14px;border-bottom:1px solid var(--border);flex-shrink:0"></div>
@@ -1218,7 +1219,44 @@ const SENDERS_UI=(function(){
 
   return{init,edit,del};
 })();
-document.addEventListener('DOMContentLoaded',()=>SENDERS_UI.init());
+document.addEventListener('DOMContentLoaded',()=>{
+  SENDERS_UI.init();
+
+  // ── Tracking Sheet — Download Excel ─────────────────────────────────────
+  const dlBtn=document.getElementById('btn-trk-sheet-dl');
+  if(dlBtn){
+    dlBtn.addEventListener('click',()=>{
+      if(!window.XLSX){_toast('XLSX library not loaded','err');return;}
+      // Read directly from the rendered table — captures exactly what the user sees
+      const tbody=document.getElementById('tracking-body');
+      const hdrRow=document.querySelector('#tracking-head tr');
+      const hdr=hdrRow?Array.from(hdrRow.querySelectorAll('th')).map(th=>th.textContent.trim()).filter(Boolean):[];
+      const data=[];
+      if(tbody){
+        tbody.querySelectorAll('tr[data-id]').forEach(tr=>{
+          const cells=Array.from(tr.querySelectorAll('td'));
+          const row=cells.map(td=>{
+            const inp=td.querySelector('input[type="text"],input[type="date"]');
+            const sel=td.querySelector('select');
+            if(inp)return inp.value;
+            if(sel)return sel.value;
+            return td.textContent.trim();
+          });
+          if(row.length)data.push(row);
+        });
+      }
+      if(!data.length){_toast('No tracking rows to export','warn');return;}
+      const ws=window.XLSX.utils.aoa_to_sheet([hdr,...data]);
+      ws['!cols']=hdr.map(()=>({wch:16}));
+      const wb=window.XLSX.utils.book_new();
+      window.XLSX.utils.book_append_sheet(wb,ws,'Tracking');
+      const d=new Date();
+      const fname='Tracking_Sheet_'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'.xlsx';
+      window.XLSX.writeFile(wb,fname);
+      _toast('✓ Downloaded '+fname,'ok');
+    });
+  }
+});
 </script>
 </body>
 </html>
