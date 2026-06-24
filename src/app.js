@@ -1352,8 +1352,18 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   }
 
   async function addStockItem() {
-    const name = (siName && siName.value || '').trim();
-    if (!name) { setStatusInto(stockStatus, 'Item needs a name.', 'warn'); return; }
+    // Read from visible select or custom text input; hidden si-name is a fallback
+    const siNameSelect = document.getElementById('si-name-select');
+    const siNameCustom = document.getElementById('si-name-custom');
+    let name = '';
+    if (siNameSelect && siNameSelect.value && siNameSelect.value !== '__custom__') {
+      name = siNameSelect.value.trim();
+    } else if (siNameCustom && siNameCustom.style.display !== 'none') {
+      name = siNameCustom.value.trim();
+    } else if (siName) {
+      name = siName.value.trim();
+    }
+    if (!name) { setStatusInto(stockStatus, 'Please select a product from the dropdown.', 'warn'); return; }
     const merchant = (siMerchantSel && siMerchantSel.value) || stockMerchant || (merchantNames()[0] || '');
     const item = {
       merchant,
@@ -1369,6 +1379,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       const saved = await makeStore('stockitems').save(item);
       stockItems.push(saved);
       [siName, siBatch, siExpiry, siOpening].forEach((el) => { if (el) el.value = ''; });
+      const siNameSelectEl = document.getElementById('si-name-select');
+      const siNameCustomEl = document.getElementById('si-name-custom');
+      if (siNameSelectEl) siNameSelectEl.value = '';
+      if (siNameCustomEl) { siNameCustomEl.value = ''; siNameCustomEl.style.display = 'none'; }
       if (siMerchantSel) siMerchantSel.value = '';
       setStatusInto(stockStatus, `Added "${name}"${merchant ? ` for ${merchant}` : ''}.`, 'ok');
       renderStock();
