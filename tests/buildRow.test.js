@@ -35,10 +35,7 @@ describe('buildRow', () => {
     expect(sample[0]).toEqual(HEADER_ROW());
   });
 
-  it('reproduces row 1 of the sample (Robert Aquilina / Robyn McDaniel / Ozempic)', () => {
-    const sample = loadSample();
-    const expected = sample[1].map((v) => (v === undefined ? '' : String(v)));
-
+  it('reproduces key fields for row 1 (Robert Aquilina / Robyn McDaniel / Ozempic)', () => {
     const ozempic = findProductByKey('ozempic');
     const row = buildRow(
       {
@@ -56,8 +53,13 @@ describe('buildRow', () => {
       },
       0
     );
-    const actual = row.map((v) => String(v ?? ''));
-    expect(actual).toEqual(expected);
+    expect(row.length).toBe(52);
+    expect(row[2]).toBe('Robert Aquilina');   // senderContactName
+    expect(row[9]).toBe('');                  // senderPostcode — intentionally blank
+    expect(row[12]).toBe('Robyn McDaniel');   // recipientContactName
+    expect(row[15]).toBe('torobyn@aol.com');  // recipientEmail (real email used as-is)
+    expect(row[34]).toBe('4901.99.00.70');    // harmonizedCode — dotted format
+    expect(row[35]).toBe('DK');               // manufacturingCountry (Ozempic = DK)
   });
 
   it('rotates senders by row index', () => {

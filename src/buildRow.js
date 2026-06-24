@@ -3,20 +3,29 @@ import { SENDERS } from './data/senders.js';
 import { HS_CODES } from './data/hsCodes.js';
 import { ciCommentForProduct } from './data/midCodes.js';
 
+// Generate firstname.lastname@openboxmail.net from a full name
+function fakeEmail(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0] + '.' + parts[parts.length - 1] + '@openboxmail.net').toLowerCase();
+  return ((parts[0] || 'patient') + '@openboxmail.net').toLowerCase();
+}
+
 export function buildRow({ recipient, product }, rowIndex, hsCodes = HS_CODES) {
   const sender = SENDERS[rowIndex % SENDERS.length];
   const list = (hsCodes && hsCodes.length) ? hsCodes : HS_CODES;
   const hs = list[rowIndex % list.length];
 
+  const recipientEmail = recipient?.email || fakeEmail(recipient?.name);
+
   const row = {
     ...ROW_CONSTANTS,
     senderContactName: sender.name,
     senderLine1: sender.line1,
-    senderPostcode: sender.postcode,
+    senderPostcode: '',
     senderCity: sender.city,
     recipientContactName: recipient?.name || '',
     recipientContactNumber: recipient?.phone || '',
-    recipientEmail: recipient?.email || '',
+    recipientEmail,
     recipientLine1: recipient?.line1 || '',
     recipientPostcode: recipient?.postcode || '',
     recipientState: recipient?.state || '',

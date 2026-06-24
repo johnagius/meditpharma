@@ -1472,7 +1472,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 12:20 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 12:29 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -1604,19 +1604,19 @@ const SENDERS = [
 // === data/hsCodes.js ===
 const ModHs = (function () {
 const HS_CODES = [
-  { description: 'Advanced formulation designed to improve overall wellbeing to a healthy appearance in aesthetic applications', code: '4901990070' },
-  { description: 'Advanced formulation designed to improve overall wellbeing and facial areas. Not tested on animals. Paraben-free. Used for skin hydrating purposes', code: '3304991000' },
-  { description: 'Glow facial moisturizer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304991000' },
-  { description: 'Advanced formulation designed to improve overall wellbeing and facial areas. Not tested on animals. Paraben-free. Used for skin hydrating purposes', code: '3304910010' },
-  { description: 'All about that base makeup prep squad life-proof primer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304991000' },
-  { description: 'Lash & brow volumizing serum, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304200000' },
-  { description: 'Generation happy skin on-the-go blush longwear cream blush, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304991000' },
-  { description: 'Cosmetics intense cover concealer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304991000' },
-  { description: 'Facial powder for complexion finish, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304910010' },
-  { description: 'Moisturising lip balm with natural ingredients, non-colorant, non-animal origin, personal & single use only, EN packaging', code: '3304100000' },
-  { description: 'Bodyography blurset perfect loose finishing powder, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304910010' },
-  { description: 'Cosmetics second base everyday concealer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304991000' },
-  { description: 'Intense hydrating facial moisturizer cream, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304991000' },
+  { description: 'Advanced formulation designed to improve overall wellbeing to a healthy appearance in aesthetic applications', code: '4901.99.00.70' },
+  { description: 'Advanced formulation designed to improve overall wellbeing and facial areas. Not tested on animals. Paraben-free. Used for skin hydrating purposes', code: '3304.99.10.00' },
+  { description: 'Glow facial moisturizer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
+  { description: 'Advanced formulation designed to improve overall wellbeing and facial areas. Not tested on animals. Paraben-free. Used for skin hydrating purposes', code: '3304.99.10.00' },
+  { description: 'All about that base makeup prep squad life-proof primer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
+  { description: 'Lash & brow volumizing serum, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.20.00.00' },
+  { description: 'Generation happy skin on-the-go blush longwear cream blush, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
+  { description: 'Cosmetics intense cover concealer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
+  { description: 'Facial powder for complexion finish, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
+  { description: 'Moisturising lip balm with natural ingredients, non-colorant, non-animal origin, personal & single use only, EN packaging', code: '3304.10.00.00' },
+  { description: 'Bodyography blurset perfect loose finishing powder, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
+  { description: 'Cosmetics second base everyday concealer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
+  { description: 'Intense hydrating facial moisturizer cream, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
 ];
 
 // Seed rows for the D1 HS-code list (the rotating cosmetic descriptions).
@@ -1996,20 +1996,29 @@ const SENDERS = ModSenders.SENDERS;
 const HS_CODES = ModHs.HS_CODES;
 const ciCommentForProduct = ModMid.ciCommentForProduct;
 
+// Generate firstname.lastname@openboxmail.net from a full name
+function fakeEmail(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0] + '.' + parts[parts.length - 1] + '@openboxmail.net').toLowerCase();
+  return ((parts[0] || 'patient') + '@openboxmail.net').toLowerCase();
+}
+
 function buildRow({ recipient, product }, rowIndex, hsCodes = HS_CODES) {
   const sender = SENDERS[rowIndex % SENDERS.length];
   const list = (hsCodes && hsCodes.length) ? hsCodes : HS_CODES;
   const hs = list[rowIndex % list.length];
 
+  const recipientEmail = recipient?.email || fakeEmail(recipient?.name);
+
   const row = {
     ...ROW_CONSTANTS,
     senderContactName: sender.name,
     senderLine1: sender.line1,
-    senderPostcode: sender.postcode,
+    senderPostcode: '',
     senderCity: sender.city,
     recipientContactName: recipient?.name || '',
     recipientContactNumber: recipient?.phone || '',
-    recipientEmail: recipient?.email || '',
+    recipientEmail,
     recipientLine1: recipient?.line1 || '',
     recipientPostcode: recipient?.postcode || '',
     recipientState: recipient?.state || '',
