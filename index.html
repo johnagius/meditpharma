@@ -2655,7 +2655,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 14:18 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 14:21 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -8463,6 +8463,170 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
 });
+
+// ── Right-click context menu for tracking tables ─────────────────────────
+(function(){
+  // Inject menu styles
+  const style=document.createElement('style');
+  style.textContent=[
+    '#ctx-menu{position:fixed;z-index:9999;background:#1e2535;border:1px solid #334155;border-radius:8px;box-shadow:0 8px 32px #0008;padding:4px 0;min-width:210px;display:none;font-size:12px;font-family:inherit}',
+    '#ctx-menu .ctx-item{display:flex;align-items:center;gap:9px;padding:7px 14px;cursor:pointer;color:#e2e8f0;white-space:nowrap;transition:background .1s}',
+    '#ctx-menu .ctx-item:hover{background:#2d3f5c;color:#fff}',
+    '#ctx-menu .ctx-item .ctx-icon{width:16px;text-align:center;flex-shrink:0}',
+    '#ctx-menu .ctx-sep{height:1px;background:#334155;margin:4px 0}',
+    '#ctx-menu .ctx-label{padding:4px 14px 2px;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.07em;pointer-events:none}',
+    '#ctx-menu .ctx-item.danger{color:#f87171}',
+    '#ctx-menu .ctx-item.danger:hover{background:#450a0a;color:#fca5a5}',
+    '#ctx-menu .ctx-item.success{color:#4ade80}',
+    '#ctx-menu .ctx-item.success:hover{background:#052e16;color:#86efac}',
+  ].join('
+');
+  document.head.appendChild(style);
+
+  // Build menu element
+  const menu=document.createElement('div');
+  menu.id='ctx-menu';
+  menu.innerHTML=[
+    '<div class="ctx-label">Tracking row</div>',
+    '<div class="ctx-item" id="ctx-fedex"><span class="ctx-icon">&#x1F50D;</span>Track on FedEx</div>',
+    '<div class="ctx-item" id="ctx-copy-track"><span class="ctx-icon">&#x1F4CB;</span>Copy Tracking #</div>',
+    '<div class="ctx-sep"></div>',
+    '<div class="ctx-label">Set status</div>',
+    '<div class="ctx-item success" id="ctx-delivered"><span class="ctx-icon">&#x2713;</span>Mark Delivered</div>',
+    '<div class="ctx-item" id="ctx-transit"><span class="ctx-icon">&#x1F69A;</span>Mark In Transit</div>',
+    '<div class="ctx-item" id="ctx-returned"><span class="ctx-icon">&#x21A9;</span>Mark Returned</div>',
+    '<div class="ctx-item" id="ctx-pending"><span class="ctx-icon">&#x23F3;</span>Mark Pending</div>',
+    '<div class="ctx-sep"></div>',
+    '<div class="ctx-label">Row</div>',
+    '<div class="ctx-item" id="ctx-copy-row"><span class="ctx-icon">&#x1F4C4;</span>Copy row (tab-separated)</div>',
+    '<div class="ctx-item" id="ctx-duplicate"><span class="ctx-icon">&#x2295;</span>Duplicate row</div>',
+    '<div class="ctx-item" id="ctx-insert-below"><span class="ctx-icon">+</span>Insert row below</div>',
+    '<div class="ctx-sep"></div>',
+    '<div class="ctx-item danger" id="ctx-delete"><span class="ctx-icon">&#x1F5D1;</span>Delete row</div>',
+  ].join('');
+  document.body.appendChild(menu);
+
+  let activeRow=null;
+
+  function hide(){menu.style.display='none';activeRow=null;}
+
+  function getCell(tr,label){
+    // find cell value by looking at th headers
+    const table=tr.closest('table');
+    if(!table)return'';
+    const ths=table.querySelectorAll('thead th');
+    const tds=tr.querySelectorAll('td');
+    for(let i=0;i<ths.length;i++){
+      if(ths[i].textContent.toLowerCase().includes(label.toLowerCase())){
+        const td=tds[i];
+        if(!td)continue;
+        const inp=td.querySelector('input');
+        const sel=td.querySelector('select');
+        return(inp?inp.value:sel?sel.value:td.textContent).trim();
+      }
+    }
+    return'';
+  }
+
+  function getTrackingNum(tr){
+    // Try data attr first, then header-based lookup
+    if(tr.dataset.tracking)return tr.dataset.tracking;
+    const v=getCell(tr,'tracking');
+    if(v&&v!=='Enter tracking #')return v;
+    // Fallback: find any cell that looks like a tracking number
+    for(const td of tr.querySelectorAll('td')){
+      const t=(td.querySelector('input')?td.querySelector('input').value:td.textContent).trim();
+      if(/^d{10,}$/.test(t)||/^[A-Z]{2}d{9}[A-Z]{2}$/.test(t))return t;
+    }
+    return'';
+  }
+
+  function setStatus(tr,val){
+    const sels=tr.querySelectorAll('select');
+    for(const s of sels){
+      const opts=Array.from(s.options).map(o=>o.value.toLowerCase());
+      if(opts.some(o=>o==='delivered'||o==='in transit'||o==='transit'||o==='returned'||o==='pending')){
+        // find matching option
+        const match=Array.from(s.options).find(o=>o.value.toLowerCase().includes(val.toLowerCase())||o.textContent.toLowerCase().includes(val.toLowerCase()));
+        if(match){s.value=match.value;s.dispatchEvent(new Event('change',{bubbles:true}));}
+        break;
+      }
+    }
+  }
+
+  function allCellValues(tr){
+    return Array.from(tr.querySelectorAll('td')).map(td=>{
+      const inp=td.querySelector('input');const sel=td.querySelector('select');
+      return(inp?inp.value:sel?sel.value:td.textContent).trim();
+    });
+  }
+
+  // Show menu on right-click inside any tracking tbody
+  document.addEventListener('contextmenu',e=>{
+    const tr=e.target.closest('#tracking-body tr[data-id], #saved-track-body tr[data-id]');
+    if(!tr)return;
+    e.preventDefault();
+    activeRow=tr;
+    // Position
+    const x=Math.min(e.clientX,window.innerWidth-220);
+    const y=Math.min(e.clientY,window.innerHeight-340);
+    menu.style.left=x+'px';menu.style.top=y+'px';menu.style.display='block';
+  });
+  document.addEventListener('click',hide);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')hide();});
+
+  // ── Actions ──────────────────────────────────────────────────────────────
+  document.getElementById('ctx-fedex').addEventListener('click',()=>{
+    const n=getTrackingNum(activeRow);
+    if(!n){_toast('No tracking number on this row','warn');hide();return;}
+    window.open(_fedexUrl(n),'_blank');hide();
+  });
+
+  document.getElementById('ctx-copy-track').addEventListener('click',()=>{
+    const n=getTrackingNum(activeRow);
+    if(!n){_toast('No tracking number on this row','warn');hide();return;}
+    navigator.clipboard.writeText(n).then(()=>_toast('✓ Copied: '+n,'ok')).catch(()=>_toast('Copy not available','warn'));
+    hide();
+  });
+
+  document.getElementById('ctx-delivered').addEventListener('click',()=>{setStatus(activeRow,'delivered');_toast('✓ Marked Delivered','ok');hide();});
+  document.getElementById('ctx-transit').addEventListener('click',()=>{setStatus(activeRow,'transit');_toast('✓ Marked In Transit','ok');hide();});
+  document.getElementById('ctx-returned').addEventListener('click',()=>{setStatus(activeRow,'returned');_toast('✓ Marked Returned','ok');hide();});
+  document.getElementById('ctx-pending').addEventListener('click',()=>{setStatus(activeRow,'pending');_toast('✓ Marked Pending','ok');hide();});
+
+  document.getElementById('ctx-copy-row').addEventListener('click',()=>{
+    const vals=allCellValues(activeRow);
+    navigator.clipboard.writeText(vals.join('	')).then(()=>_toast('✓ Row copied to clipboard','ok')).catch(()=>_toast('Copy not available','warn'));
+    hide();
+  });
+
+  document.getElementById('ctx-duplicate').addEventListener('click',()=>{
+    const clone=activeRow.cloneNode(true);
+    clone.removeAttribute('data-id');
+    clone.style.background='rgba(251,191,36,.08)';
+    activeRow.after(clone);
+    setTimeout(()=>clone.style.background='',1500);
+    _toast('✓ Row duplicated','ok');hide();
+  });
+
+  document.getElementById('ctx-insert-below').addEventListener('click',()=>{
+    const blank=document.createElement('tr');
+    const cols=activeRow.querySelectorAll('td').length;
+    blank.innerHTML='<td></td>'.repeat(cols);
+    blank.style.background='rgba(56,189,248,.06)';
+    activeRow.after(blank);
+    setTimeout(()=>blank.style.background='',1500);
+    _toast('✓ Empty row inserted','ok');hide();
+  });
+
+  document.getElementById('ctx-delete').addEventListener('click',()=>{
+    if(!confirm('Delete this row?')){hide();return;}
+    // Try to click the row's own delete button if it exists
+    const delBtn=activeRow.querySelector('button.danger,[data-action="delete"]');
+    if(delBtn){delBtn.click();}else{activeRow.remove();}
+    _toast('Row deleted','ok');hide();
+  });
+})();
 </script>
 </body>
 </html>
