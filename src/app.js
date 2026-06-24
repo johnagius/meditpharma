@@ -647,6 +647,21 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
             : ''
         }.`
       : 'Drop PDFs above to begin.';
+
+    // Sync sidebar stats + header batch count
+    const ready = orders.length - unresolved;
+    const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setEl('sb-total', orders.length);
+    setEl('sb-ready', ready);
+    setEl('sb-need', unresolved);
+    setEl('badge-batch', orders.length);
+    setEl('hs-orders', orders.length);
+    // Sender indicator: next sender index after this batch
+    const senders = (typeof ModSenders !== 'undefined' && ModSenders.SENDERS) ? ModSenders.SENDERS : [];
+    if (senders.length) {
+      const nextIdx = orders.length % senders.length;
+      setEl('sb-sender', (nextIdx + 1) + '/' + senders.length);
+    }
   }
 
   // Small stable string hash (djb2) for content-based de-dup keys.

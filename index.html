@@ -1472,7 +1472,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 11:45 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 12:15 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -3784,6 +3784,21 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
             : ''
         }.`
       : 'Drop PDFs above to begin.';
+
+    // Sync sidebar stats + header batch count
+    const ready = orders.length - unresolved;
+    const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setEl('sb-total', orders.length);
+    setEl('sb-ready', ready);
+    setEl('sb-need', unresolved);
+    setEl('badge-batch', orders.length);
+    setEl('hs-orders', orders.length);
+    // Sender indicator: next sender index after this batch
+    const senders = (typeof ModSenders !== 'undefined' && ModSenders.SENDERS) ? ModSenders.SENDERS : [];
+    if (senders.length) {
+      const nextIdx = orders.length % senders.length;
+      setEl('sb-sender', (nextIdx + 1) + '/' + senders.length);
+    }
   }
 
   // Small stable string hash (djb2) for content-based de-dup keys.
