@@ -58,7 +58,6 @@ export const ROW_CONSTANTS = {
   shipmentType: 'OUTBOUND',
   senderCompany: '',
   senderContactNumber: '99355659',
-  senderEmail: 'rel_warehouse@proton.me',
   senderLine2: '',
   senderState: '',
   senderCountry: 'MT',

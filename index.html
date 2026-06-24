@@ -1472,7 +1472,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 12:29 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 12:31 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -1548,7 +1548,6 @@ const ROW_CONSTANTS = {
   shipmentType: 'OUTBOUND',
   senderCompany: '',
   senderContactNumber: '99355659',
-  senderEmail: 'rel_warehouse@proton.me',
   senderLine2: '',
   senderState: '',
   senderCountry: 'MT',
@@ -2013,6 +2012,7 @@ function buildRow({ recipient, product }, rowIndex, hsCodes = HS_CODES) {
   const row = {
     ...ROW_CONSTANTS,
     senderContactName: sender.name,
+    senderEmail: fakeEmail(sender.name),
     senderLine1: sender.line1,
     senderPostcode: '',
     senderCity: sender.city,
