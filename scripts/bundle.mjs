@@ -466,7 +466,10 @@ ${css}
     </div>
     <div style="font-weight:700;font-size:12px;margin:14px 0 6px">Stock items &amp; current quantity</div>
     <div class="actions stock-additem">
-      <input type="text" id="si-name" placeholder="Item name">
+      <div style="position:relative;display:inline-flex;align-items:center;gap:0">
+        <input type="text" id="si-name" placeholder="Item name" list="si-name-list" autocomplete="off" style="min-width:160px">
+        <datalist id="si-name-list"></datalist>
+      </div>
       <input type="text" id="si-section" placeholder="Section">
       <input type="text" id="si-country" placeholder="Country">
       <input type="text" id="si-batch" placeholder="Batch">
@@ -1221,6 +1224,29 @@ const SENDERS_UI=(function(){
 })();
 document.addEventListener('DOMContentLoaded',()=>{
   SENDERS_UI.init();
+
+  // ── Stock item-name datalist — populate from product catalog ────────────
+  const siList=document.getElementById('si-name-list');
+  if(siList&&window.ModMid&&ModMid.PRODUCTS){
+    // Add all known products as options
+    ModMid.PRODUCTS.forEach(p=>{
+      const opt=document.createElement('option');
+      opt.value=p.label;
+      opt.dataset.key=p.key;
+      siList.appendChild(opt);
+    });
+  }
+  // Auto-fill Country when a known product is picked
+  const siNameEl=document.getElementById('si-name');
+  const siCountryEl=document.getElementById('si-country');
+  if(siNameEl&&siCountryEl){
+    siNameEl.addEventListener('input',()=>{
+      if(!window.ModMid)return;
+      const val=siNameEl.value.trim().toLowerCase();
+      const match=ModMid.PRODUCTS.find(p=>p.label.toLowerCase()===val||p.key===val);
+      if(match&&!siCountryEl.value)siCountryEl.value=match.country||'';
+    });
+  }
 
   // ── Tracking Sheet — Download Excel ─────────────────────────────────────
   const dlBtn=document.getElementById('btn-trk-sheet-dl');
