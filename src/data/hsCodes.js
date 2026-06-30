@@ -4,12 +4,8 @@ export const HS_CODES = [
   { description: 'Glow facial moisturizer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
   { description: 'Advanced formulation designed to improve overall wellbeing and facial areas. Not tested on animals. Paraben-free. Used for skin hydrating purposes', code: '3304.99.10.00' },
   { description: 'All about that base makeup prep squad life-proof primer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
-  { description: 'Lash & brow volumizing serum, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.20.00.00' },
   { description: 'Generation happy skin on-the-go blush longwear cream blush, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
   { description: 'Cosmetics intense cover concealer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
-  { description: 'Facial powder for complexion finish, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
-  { description: 'Moisturising lip balm with natural ingredients, non-colorant, non-animal origin, personal & single use only, EN packaging', code: '3304.10.00.00' },
-  { description: 'Bodyography blurset perfect loose finishing powder, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
   { description: 'Cosmetics second base everyday concealer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
   { description: 'Intense hydrating facial moisturizer cream, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
 ];

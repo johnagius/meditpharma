@@ -10,7 +10,7 @@ function fakeEmail(name) {
   return ((parts[0] || 'patient') + '@openboxmail.net').toLowerCase();
 }
 
-export function buildRow({ recipient, product }, rowIndex, hsCodes = HS_CODES) {
+export function buildRow({ recipient, product, qty }, rowIndex, hsCodes = HS_CODES) {
   const sender = SENDERS[rowIndex % SENDERS.length];
   const list = (hsCodes && hsCodes.length) ? hsCodes : HS_CODES;
   const hs = list[rowIndex % list.length];
@@ -33,6 +33,7 @@ export function buildRow({ recipient, product }, rowIndex, hsCodes = HS_CODES) {
     recipientCity: recipient?.city || '',
     itemDescription: hs.description,
     harmonizedCode: hs.code,
+    commodityQuantity: qty ? String(qty) : ROW_CONSTANTS.commodityQuantity,
     manufacturingCountry: product?.country || '',
     ciCommentLine: ciCommentForProduct(product),
   };

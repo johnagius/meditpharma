@@ -27,8 +27,8 @@ import { HS_CODES } from '../src/data/hsCodes.js';
 const MONDAY = new Date(2026, 5, 1);
 
 describe('date / day helpers', () => {
-  it('formats date as dd.mm.yy and compact ddmmyy', () => {
-    expect(formatDateDDMMYY(MONDAY)).toBe('01.06.26');
+  it('formats date as dd.mm.yyyy and compact ddmmyy', () => {
+    expect(formatDateDDMMYY(MONDAY)).toBe('01.06.2026');
     expect(dateCompact(MONDAY)).toBe('010626');
   });
 
@@ -40,13 +40,13 @@ describe('date / day helpers', () => {
 
   it('round-trips ISO dates', () => {
     expect(toISODate(MONDAY)).toBe('2026-06-01');
-    expect(formatDateDDMMYY(fromISODate('2026-06-01'))).toBe('01.06.26');
+    expect(formatDateDDMMYY(fromISODate('2026-06-01'))).toBe('01.06.2026');
   });
 
   it('moves to a chosen weekday within the same Mon–Sun week', () => {
     const friday = setWeekdayWithinWeek(MONDAY, WEEKDAY_INDEX('Friday'));
     expect(weekdayName(friday)).toBe('Friday');
-    expect(formatDateDDMMYY(friday)).toBe('05.06.26');
+    expect(formatDateDDMMYY(friday)).toBe('05.06.2026');
   });
 });
 
@@ -70,9 +70,9 @@ describe('parseProductLines', () => {
 
 describe('parseFlexibleDate', () => {
   it('parses the formats we emit/accept (day-first)', () => {
-    expect(formatDateDDMMYY(parseFlexibleDate('2026-06-17'))).toBe('17.06.26');
-    expect(formatDateDDMMYY(parseFlexibleDate('17.06.26'))).toBe('17.06.26');
-    expect(formatDateDDMMYY(parseFlexibleDate('17/06/2026'))).toBe('17.06.26');
+    expect(formatDateDDMMYY(parseFlexibleDate('2026-06-17'))).toBe('17.06.2026');
+    expect(formatDateDDMMYY(parseFlexibleDate('17.06.26'))).toBe('17.06.2026');
+    expect(formatDateDDMMYY(parseFlexibleDate('17/06/2026'))).toBe('17.06.2026');
     expect(parseFlexibleDate('')).toBe(null);
     expect(parseFlexibleDate('not a date')).toBe(null);
   });
@@ -168,7 +168,7 @@ describe('buildTrackingRow', () => {
   it('fills day/date from the date', () => {
     const row = buildTrackingRow(order, 0, MONDAY);
     expect(row.day).toBe('Monday');
-    expect(row.date).toBe('01.06.26');
+    expect(row.date).toBe('01.06.2026');
   });
 
   it('builds the order number per merchant strategy', () => {
@@ -185,10 +185,10 @@ describe('buildTrackingRow', () => {
     expect(buildTrackingRow(order, 0, MONDAY).orderNumber).toBe('');
   });
 
-  it('takes city + full state name + client from the order', () => {
+  it('takes city + state code + client from the order', () => {
     const row = buildTrackingRow(order, 0, MONDAY);
     expect(row.destCity).toBe('Cedar Knolls');
-    expect(row.destState).toBe('New Jersey');
+    expect(row.destState).toBe('NJ');
     expect(row.client).toBe('Carmine Galdieri');
   });
 

@@ -31,6 +31,7 @@ import {
 } from './trackingRow.js';
 import { createStore, TRACKING_FIELDS } from './trackingStore.js';
 import { DEFAULT_MERCHANTS, SOURCE_TO_MERCHANT, detectMerchant, learnExample } from './data/merchants.js';
+import { expandState } from './data/states.js';
 import { currentStock, suggestItemId, movementDedupKey, movementsToRows, toNum } from './data/stock.js';
 
 export function createApp({ document, window, pdfjsLib, XLSX }) {
@@ -668,7 +669,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     orders.forEach((o, idx) => {
       // Keep an editable copy of the row so inline edits persist into both the
       // export and what gets saved to D1. Recomputed when the product changes.
-      if (!o.cells) o.cells = buildRow({ recipient: o.recipient, product: o.product }, idx, activeHs);
+      if (!o.cells) o.cells = buildRow({ recipient: o.recipient, product: o.product, qty: resolveProducts(o)[0]?.qty }, idx, activeHs);
       const cells = o.cells;
       const hasResolvedProduct = !!o.product && !!o.product.mid;
 
@@ -736,7 +737,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       }
       sel.addEventListener('change', () => {
         orders[idx].product = catalogProductByKey(sel.value) || null;
-        orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product }, idx, activeHs);
+        orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product, qty: resolveProducts(orders[idx])[0]?.qty }, idx, activeHs);
         renderRows();
         if (autosaveOn('fedex') && orders[idx].product && orders[idx].product.mid) {
           scheduleAutosave(orders[idx], () => saveFedexOrder(orders[idx], idx, { silent: true }));
@@ -754,7 +755,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         { name: (o.productText || '').trim().slice(0, 80) },
         (saved) => {
           orders[idx].product = catalogProductByKey(saved.key) || saved;
-          orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product }, idx, activeHs);
+          orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product, qty: resolveProducts(orders[idx])[0]?.qty }, idx, activeHs);
           renderRows();
           if (autosaveOn('fedex') && orders[idx].product && orders[idx].product.mid) {
             scheduleAutosave(orders[idx], () => saveFedexOrder(orders[idx], idx, { silent: true }));
@@ -776,9 +777,9 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       const saveBtn = document.createElement('button');
       saveBtn.type = 'button';
       saveBtn.className = 'primary';
-      saveBtn.textContent = o.fedexId ? 'Overwrite' : 'Save';
-      saveBtn.disabled = !hasResolvedProduct;
-      saveBtn.title = hasResolvedProduct ? '' : 'Pick a product first';
+      saveBtn.textContent = o.fedexId ? 'Finalize on update' : 'Save';
+      saveBtn.disabled = false;
+      saveBtn.title = hasResolvedProduct ? '' : 'Saving without MID — assign a product to complete';
       saveBtn.addEventListener('click', () => saveFedexOrder(o, idx));
       actions.appendChild(saveBtn);
 
@@ -825,6 +826,19 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     setEl('sb-total', orders.length);
     setEl('sb-ready', ready);
     setEl('sb-need', unresolved);
+    // "Need info" click → scroll to the first invalid card
+    const sbNeed = document.getElementById('sb-need');
+    if (sbNeed) {
+      sbNeed.style.cursor = unresolved ? 'pointer' : '';
+      sbNeed.onclick = unresolved ? () => {
+        const first = cards.querySelector('.card.invalid');
+        if (first) {
+          first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const sel = first.querySelector('select');
+          if (sel) sel.focus();
+        }
+      } : null;
+    }
     setEl('badge-batch', orders.length);
     setEl('hs-orders', orders.length);
     // Sender indicator: next sender index after this batch
@@ -900,8 +914,9 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
   async function saveFedexOrder(o, idx, { silent = false } = {}) {
     if (!o.product || !o.product.mid) {
-      if (!silent) setFedexStatus('Pick a product before saving this shipment.', 'warn');
-      return;
+      if (silent) return;
+      // Allow saving without MID — user can assign product later.
+      if (!silent) setFedexStatus('Saving without MID — assign a product to complete the shipment.', 'warn');
     }
     const store = makeStore('fedex');
     try {
@@ -2674,7 +2689,12 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       cell('quantity', input(row.quantity, 'w-sm', (v) => { row.quantity = v; }));
       cell('productDescription', input(row.productDescription, 'w-xl', (v) => { row.productDescription = v; }));
       cell('destCity', input(row.destCity, 'w-md', (v) => { row.destCity = v; }));
-      cell('destState', input(row.destState, 'w-md', (v) => { row.destState = v; }));
+      {
+        const stateInput = input(row.destState, 'w-md', (v) => { row.destState = v; });
+        const fullName = expandState(row.destState);
+        if (fullName && fullName !== row.destState) stateInput.title = fullName;
+        cell('destState', stateInput);
+      }
 
       // Account dropdown
       const accSel = document.createElement('select');

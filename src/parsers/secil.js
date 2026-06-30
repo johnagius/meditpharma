@@ -80,6 +80,20 @@ export function parse(text) {
     .map((l) => l.replace(/^[•\-\*]\s*/, '').trim())
     .find((l) => !!l) || '';
 
+  // Extract quantity from patterns like "Product 75 IU x 22 vials" or "Product x 5"
+  let productLines = [];
+  if (productLine) {
+    // "Name ... x N vials/boxes/pcs" → qty=N, text=Name
+    const xQtyMatch = productLine.match(/^(.+?)\s+x\s+(\d+)\s*(?:vials?|boxes?|pcs?|units?|ampoules?|tabs?|cartridges?)?\s*(?:\(.*\))?\s*$/i);
+    if (xQtyMatch) {
+      productLines = [`${xQtyMatch[2]} x ${xQtyMatch[1].trim()}`];
+    } else {
+      // Fallback: "N x Name" already in that format
+      const fwdMatch = productLine.match(/^(\d+)\s*x\s+(.+)$/i);
+      if (fwdMatch) productLines = [productLine];
+    }
+  }
+
   return {
     source: 'secil',
     orderId,
@@ -95,6 +109,7 @@ export function parse(text) {
       email,
     },
     productText: productLine,
+    productLines,
     rawText: text,
   };
 }

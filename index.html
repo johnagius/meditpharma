@@ -2728,7 +2728,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-24 14:52 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-06-30 14:16 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -2955,12 +2955,8 @@ const HS_CODES = [
   { description: 'Glow facial moisturizer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
   { description: 'Advanced formulation designed to improve overall wellbeing and facial areas. Not tested on animals. Paraben-free. Used for skin hydrating purposes', code: '3304.99.10.00' },
   { description: 'All about that base makeup prep squad life-proof primer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
-  { description: 'Lash & brow volumizing serum, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.20.00.00' },
   { description: 'Generation happy skin on-the-go blush longwear cream blush, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
   { description: 'Cosmetics intense cover concealer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
-  { description: 'Facial powder for complexion finish, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
-  { description: 'Moisturising lip balm with natural ingredients, non-colorant, non-animal origin, personal & single use only, EN packaging', code: '3304.10.00.00' },
-  { description: 'Bodyography blurset perfect loose finishing powder, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
   { description: 'Cosmetics second base everyday concealer, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
   { description: 'Intense hydrating facial moisturizer cream, non-animal origin, non-colorant, personal & single use only, EN packaging', code: '3304.99.10.00' },
 ];
@@ -3349,7 +3345,7 @@ function fakeEmail(name) {
   return ((parts[0] || 'patient') + '@openboxmail.net').toLowerCase();
 }
 
-function buildRow({ recipient, product }, rowIndex, hsCodes = HS_CODES) {
+function buildRow({ recipient, product, qty }, rowIndex, hsCodes = HS_CODES) {
   const sender = SENDERS[rowIndex % SENDERS.length];
   const list = (hsCodes && hsCodes.length) ? hsCodes : HS_CODES;
   const hs = list[rowIndex % list.length];
@@ -3372,6 +3368,7 @@ function buildRow({ recipient, product }, rowIndex, hsCodes = HS_CODES) {
     recipientCity: recipient?.city || '',
     itemDescription: hs.description,
     harmonizedCode: hs.code,
+    commodityQuantity: qty ? String(qty) : ROW_CONSTANTS.commodityQuantity,
     manufacturingCountry: product?.country || '',
     ciCommentLine: ciCommentForProduct(product),
   };
@@ -3471,9 +3468,9 @@ function pad2(n) {
   return String(n).padStart(2, '0');
 }
 
-// "01.06.26"
+// "01.06.2026"
 function formatDateDDMMYY(date) {
-  return `${pad2(date.getDate())}.${pad2(date.getMonth() + 1)}.${String(date.getFullYear()).slice(-2)}`;
+  return `${pad2(date.getDate())}.${pad2(date.getMonth() + 1)}.${date.getFullYear()}`;
 }
 
 // "010626"
@@ -3717,7 +3714,7 @@ function buildTrackingRow(order, rowIndex, date = new Date(), hsCodes = HS_CODES
     quantity: products.map((p) => p.qty).join(','),
     productDescription: hs.description,
     destCity: recipient.city || '',
-    destState: expandState(recipient.state),
+    destState: recipient.state || '',
     account: ACCOUNTS[0],
     client: recipient.name || '',
     deliveredOn: '',
@@ -4177,7 +4174,18 @@ function parse(text) {
   const productLine = lines
     .slice(lines.findIndex((l) => /^Products?\b/i.test(l)) + 1)
     .find((l) => l && !/^Product Name/i.test(l) && !/^Generated:/i.test(l));
-  const productText = productLine ? productLine.replace(/\s{2,}\d+\s*$/, '').trim() : '';
+
+  let productText = '';
+  let productLines = [];
+  if (productLine) {
+    const qtyMatch = productLine.match(/^(.+?)\s{2,}(\d+)\s*$/);
+    if (qtyMatch) {
+      productText = qtyMatch[1].trim();
+      productLines = [`${qtyMatch[2]} x ${productText}`];
+    } else {
+      productText = productLine.trim();
+    }
+  }
 
   return {
     source: 'dh',
@@ -4193,6 +4201,7 @@ function parse(text) {
       email,
     },
     productText,
+    productLines,
     rawText: t,
   };
 }
@@ -4465,6 +4474,20 @@ function parse(text) {
     .map((l) => l.replace(/^[•\-\*]\s*/, '').trim())
     .find((l) => !!l) || '';
 
+  // Extract quantity from patterns like "Product 75 IU x 22 vials" or "Product x 5"
+  let productLines = [];
+  if (productLine) {
+    // "Name ... x N vials/boxes/pcs" → qty=N, text=Name
+    const xQtyMatch = productLine.match(/^(.+?)\s+x\s+(\d+)\s*(?:vials?|boxes?|pcs?|units?|ampoules?|tabs?|cartridges?)?\s*(?:\(.*\))?\s*$/i);
+    if (xQtyMatch) {
+      productLines = [`${xQtyMatch[2]} x ${xQtyMatch[1].trim()}`];
+    } else {
+      // Fallback: "N x Name" already in that format
+      const fwdMatch = productLine.match(/^(\d+)\s*x\s+(.+)$/i);
+      if (fwdMatch) productLines = [productLine];
+    }
+  }
+
   return {
     source: 'secil',
     orderId,
@@ -4480,6 +4503,7 @@ function parse(text) {
       email,
     },
     productText: productLine,
+    productLines,
     rawText: text,
   };
 }
@@ -4565,6 +4589,7 @@ const DEFAULT_MERCHANTS = ModMerchants.DEFAULT_MERCHANTS;
 const SOURCE_TO_MERCHANT = ModMerchants.SOURCE_TO_MERCHANT;
 const detectMerchant = ModMerchants.detectMerchant;
 const learnExample = ModMerchants.learnExample;
+const expandState = ModStates.expandState;
 const currentStock = ModStock.currentStock;
 const suggestItemId = ModStock.suggestItemId;
 const movementDedupKey = ModStock.movementDedupKey;
@@ -5206,7 +5231,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     orders.forEach((o, idx) => {
       // Keep an editable copy of the row so inline edits persist into both the
       // export and what gets saved to D1. Recomputed when the product changes.
-      if (!o.cells) o.cells = buildRow({ recipient: o.recipient, product: o.product }, idx, activeHs);
+      if (!o.cells) o.cells = buildRow({ recipient: o.recipient, product: o.product, qty: resolveProducts(o)[0]?.qty }, idx, activeHs);
       const cells = o.cells;
       const hasResolvedProduct = !!o.product && !!o.product.mid;
 
@@ -5274,7 +5299,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       }
       sel.addEventListener('change', () => {
         orders[idx].product = catalogProductByKey(sel.value) || null;
-        orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product }, idx, activeHs);
+        orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product, qty: resolveProducts(orders[idx])[0]?.qty }, idx, activeHs);
         renderRows();
         if (autosaveOn('fedex') && orders[idx].product && orders[idx].product.mid) {
           scheduleAutosave(orders[idx], () => saveFedexOrder(orders[idx], idx, { silent: true }));
@@ -5292,7 +5317,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         { name: (o.productText || '').trim().slice(0, 80) },
         (saved) => {
           orders[idx].product = catalogProductByKey(saved.key) || saved;
-          orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product }, idx, activeHs);
+          orders[idx].cells = buildRow({ recipient: orders[idx].recipient, product: orders[idx].product, qty: resolveProducts(orders[idx])[0]?.qty }, idx, activeHs);
           renderRows();
           if (autosaveOn('fedex') && orders[idx].product && orders[idx].product.mid) {
             scheduleAutosave(orders[idx], () => saveFedexOrder(orders[idx], idx, { silent: true }));
@@ -5314,9 +5339,9 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       const saveBtn = document.createElement('button');
       saveBtn.type = 'button';
       saveBtn.className = 'primary';
-      saveBtn.textContent = o.fedexId ? 'Overwrite' : 'Save';
-      saveBtn.disabled = !hasResolvedProduct;
-      saveBtn.title = hasResolvedProduct ? '' : 'Pick a product first';
+      saveBtn.textContent = o.fedexId ? 'Finalize on update' : 'Save';
+      saveBtn.disabled = false;
+      saveBtn.title = hasResolvedProduct ? '' : 'Saving without MID — assign a product to complete';
       saveBtn.addEventListener('click', () => saveFedexOrder(o, idx));
       actions.appendChild(saveBtn);
 
@@ -5363,6 +5388,19 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     setEl('sb-total', orders.length);
     setEl('sb-ready', ready);
     setEl('sb-need', unresolved);
+    // "Need info" click → scroll to the first invalid card
+    const sbNeed = document.getElementById('sb-need');
+    if (sbNeed) {
+      sbNeed.style.cursor = unresolved ? 'pointer' : '';
+      sbNeed.onclick = unresolved ? () => {
+        const first = cards.querySelector('.card.invalid');
+        if (first) {
+          first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const sel = first.querySelector('select');
+          if (sel) sel.focus();
+        }
+      } : null;
+    }
     setEl('badge-batch', orders.length);
     setEl('hs-orders', orders.length);
     // Sender indicator: next sender index after this batch
@@ -5438,8 +5476,9 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
 
   async function saveFedexOrder(o, idx, { silent = false } = {}) {
     if (!o.product || !o.product.mid) {
-      if (!silent) setFedexStatus('Pick a product before saving this shipment.', 'warn');
-      return;
+      if (silent) return;
+      // Allow saving without MID — user can assign product later.
+      if (!silent) setFedexStatus('Saving without MID — assign a product to complete the shipment.', 'warn');
     }
     const store = makeStore('fedex');
     try {
@@ -7212,7 +7251,12 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       cell('quantity', input(row.quantity, 'w-sm', (v) => { row.quantity = v; }));
       cell('productDescription', input(row.productDescription, 'w-xl', (v) => { row.productDescription = v; }));
       cell('destCity', input(row.destCity, 'w-md', (v) => { row.destCity = v; }));
-      cell('destState', input(row.destState, 'w-md', (v) => { row.destState = v; }));
+      {
+        const stateInput = input(row.destState, 'w-md', (v) => { row.destState = v; });
+        const fullName = expandState(row.destState);
+        if (fullName && fullName !== row.destState) stateInput.title = fullName;
+        cell('destState', stateInput);
+      }
 
       // Account dropdown
       const accSel = document.createElement('select');

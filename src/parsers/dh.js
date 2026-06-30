@@ -64,7 +64,18 @@ export function parse(text) {
   const productLine = lines
     .slice(lines.findIndex((l) => /^Products?\b/i.test(l)) + 1)
     .find((l) => l && !/^Product Name/i.test(l) && !/^Generated:/i.test(l));
-  const productText = productLine ? productLine.replace(/\s{2,}\d+\s*$/, '').trim() : '';
+
+  let productText = '';
+  let productLines = [];
+  if (productLine) {
+    const qtyMatch = productLine.match(/^(.+?)\s{2,}(\d+)\s*$/);
+    if (qtyMatch) {
+      productText = qtyMatch[1].trim();
+      productLines = [`${qtyMatch[2]} x ${productText}`];
+    } else {
+      productText = productLine.trim();
+    }
+  }
 
   return {
     source: 'dh',
@@ -80,6 +91,7 @@ export function parse(text) {
       email,
     },
     productText,
+    productLines,
     rawText: t,
   };
 }

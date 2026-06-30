@@ -78,9 +78,9 @@ function pad2(n) {
   return String(n).padStart(2, '0');
 }
 
-// "01.06.26"
+// "01.06.2026"
 export function formatDateDDMMYY(date) {
-  return `${pad2(date.getDate())}.${pad2(date.getMonth() + 1)}.${String(date.getFullYear()).slice(-2)}`;
+  return `${pad2(date.getDate())}.${pad2(date.getMonth() + 1)}.${date.getFullYear()}`;
 }
 
 // "010626"
@@ -324,7 +324,7 @@ export function buildTrackingRow(order, rowIndex, date = new Date(), hsCodes = H
     quantity: products.map((p) => p.qty).join(','),
     productDescription: hs.description,
     destCity: recipient.city || '',
-    destState: expandState(recipient.state),
+    destState: recipient.state || '',
     account: ACCOUNTS[0],
     client: recipient.name || '',
     deliveredOn: '',
