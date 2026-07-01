@@ -26,6 +26,18 @@ describe('PDF parsers', () => {
     expect(detectProduct(o.productText).key).toBe('ozempic');
   });
 
+  it('captures line2 (unit/apt) for a D.H. order with a 3-line address', () => {
+    const orders = dispatch(fixture('dh-unit.txt'));
+    expect(orders).toHaveLength(1);
+    const o = orders[0];
+    expect(o.recipient.name).toBe('Edward Pike');
+    expect(o.recipient.line1).toBe('1045 GULF OF MEXICO DRIVE');
+    expect(o.recipient.line2).toBe('UNIT 405');
+    expect(o.recipient.city).toBe('LONGBOAT KEY');
+    expect(o.recipient.state).toBe('FL');
+    expect(o.recipient.postcode).toBe('34228');
+  });
+
   it('parses an Activa order PDF text', () => {
     const orders = dispatch(fixture('activa.txt'));
     expect(orders).toHaveLength(1);
