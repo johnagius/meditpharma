@@ -30,6 +30,7 @@ export function parse(text) {
 
   let name = '';
   let line1 = '';
+  let line2 = '';
   let city = '';
   let state = '';
   let zip = '';
@@ -58,6 +59,8 @@ export function parse(text) {
       name = raw;
     } else if (!line1) {
       line1 = raw;
+    } else if (!line2) {
+      line2 = raw;
     }
   }
 
@@ -83,6 +86,7 @@ export function parse(text) {
     recipient: {
       name,
       line1,
+      line2,
       city,
       state,
       postcode: zip,

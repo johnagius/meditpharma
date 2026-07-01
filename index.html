@@ -2728,7 +2728,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-07-01 06:01 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-07-01 09:53 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -3400,6 +3400,7 @@ function buildRow({ recipient, product, qty }, rowIndex, hsCodes = HS_CODES) {
     recipientContactNumber: recipient?.phone || '',
     recipientEmail,
     recipientLine1: recipient?.line1 || '',
+    recipientLine2: recipient?.line2 || '',
     recipientPostcode: recipient?.postcode || '',
     recipientState: recipient?.state || '',
     recipientCity: recipient?.city || '',
@@ -4177,6 +4178,7 @@ function parse(text) {
 
   let name = '';
   let line1 = '';
+  let line2 = '';
   let city = '';
   let state = '';
   let zip = '';
@@ -4205,6 +4207,8 @@ function parse(text) {
       name = raw;
     } else if (!line1) {
       line1 = raw;
+    } else if (!line2) {
+      line2 = raw;
     }
   }
 
@@ -4230,6 +4234,7 @@ function parse(text) {
     recipient: {
       name,
       line1,
+      line2,
       city,
       state,
       postcode: zip,

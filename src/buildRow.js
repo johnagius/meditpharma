@@ -28,6 +28,7 @@ export function buildRow({ recipient, product, qty }, rowIndex, hsCodes = HS_COD
     recipientContactNumber: recipient?.phone || '',
     recipientEmail,
     recipientLine1: recipient?.line1 || '',
+    recipientLine2: recipient?.line2 || '',
     recipientPostcode: recipient?.postcode || '',
     recipientState: recipient?.state || '',
     recipientCity: recipient?.city || '',
