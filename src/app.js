@@ -1019,6 +1019,9 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
   // Switch to a panel and always refresh its data from the store.
   function activateTab(panelId) {
+    // Deactivate ALL panels first (some panels like panel-trk-sheet are only
+    // reachable via sec-tabs and are not in tabEls, so we must clear them here).
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     tabEls.forEach(({ btn, panel }) => {
       if (btn) btn.classList.toggle('active', btn.dataset.panel === panelId);
       if (panel) panel.classList.toggle('active', panel.id === panelId);

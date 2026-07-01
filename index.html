@@ -2728,7 +2728,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-07-01 05:56 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-07-01 06:01 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -5618,6 +5618,9 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
 
   // Switch to a panel and always refresh its data from the store.
   function activateTab(panelId) {
+    // Deactivate ALL panels first (some panels like panel-trk-sheet are only
+    // reachable via sec-tabs and are not in tabEls, so we must clear them here).
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     tabEls.forEach(({ btn, panel }) => {
       if (btn) btn.classList.toggle('active', btn.dataset.panel === panelId);
       if (panel) panel.classList.toggle('active', panel.id === panelId);
