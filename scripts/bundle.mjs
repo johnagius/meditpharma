@@ -166,10 +166,16 @@ window.ParserIndex = ParserIndex;
 
   const BUILD_STAMP = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
   const PDFJS_VERSION = '3.11.174';
-  const XLSX_VERSION = '0.18.5';
-  const PDFJS_CDN = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.min.js`;
   const PDFJS_WORKER_CDN = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
-  const XLSX_CDN = `https://cdn.jsdelivr.net/npm/xlsx@${XLSX_VERSION}/dist/xlsx.full.min.js`;
+
+  // Inline XLSX from node_modules so the app works without a CDN connection.
+  const xlsxLocalPath = path.join(root, 'node_modules/xlsx/dist/xlsx.full.min.js');
+  const xlsxInline = await fs.readFile(xlsxLocalPath, 'utf8').catch(() => null);
+
+  // Inline pdfjs from node_modules when available; fallback to CDN.
+  const pdfjsLocalPath = path.join(root, 'node_modules/pdfjs-dist/build/pdf.min.js');
+  const pdfjsInline = await fs.readFile(pdfjsLocalPath, 'utf8').catch(() => null);
+  const PDFJS_CDN = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.min.js`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -839,15 +845,10 @@ ${css}
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
-<script src="${PDFJS_CDN}" crossorigin="anonymous"></script>
-<script src="${XLSX_CDN}" crossorigin="anonymous"></script>
-<script>
-(function () {
-  if (window.pdfjsLib) {
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc = '${PDFJS_WORKER_CDN}';
-  }
-})();
-</script>
+${pdfjsInline
+  ? `<script>${pdfjsInline}\n(function(){if(window.pdfjsLib){window.pdfjsLib.GlobalWorkerOptions.workerSrc='${PDFJS_WORKER_CDN}';}})();</script>`
+  : `<script src="${PDFJS_CDN}" crossorigin="anonymous"></script><script>(function(){if(window.pdfjsLib){window.pdfjsLib.GlobalWorkerOptions.workerSrc='${PDFJS_WORKER_CDN}';}})();</script>`}
+${xlsxInline ? `<script>${xlsxInline}</script>` : `<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>`}
 <script>
 ${bundleJs}
 
