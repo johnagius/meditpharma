@@ -2728,7 +2728,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-07-01 05:51 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-07-01 05:56 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -8806,11 +8806,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Read directly from the rendered table — captures exactly what the user sees
       const tbody=document.getElementById('tracking-body');
       const hdrRow=document.querySelector('#tracking-head tr');
-      const hdr=hdrRow?Array.from(hdrRow.querySelectorAll('th')).map(th=>th.textContent.trim()).filter(Boolean):[];
+      // Skip first th (checkbox column) and collect header labels
+      const allThs=hdrRow?Array.from(hdrRow.querySelectorAll('th')):[];
+      const hdr=allThs.slice(1).map(th=>th.textContent.trim());
       const data=[];
       if(tbody){
-        tbody.querySelectorAll('tr[data-id]').forEach(tr=>{
-          const cells=Array.from(tr.querySelectorAll('td'));
+        tbody.querySelectorAll('tr').forEach(tr=>{
+          // Skip first td (checkbox column)
+          const cells=Array.from(tr.querySelectorAll('td')).slice(1);
           const row=cells.map(td=>{
             const inp=td.querySelector('input[type="text"],input[type="date"]');
             const sel=td.querySelector('select');
