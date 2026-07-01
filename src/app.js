@@ -811,11 +811,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     });
 
     const unresolved = orders.filter((o) => !o.product || !o.product.mid).length;
-    downloadBtn.disabled = !orders.length || unresolved > 0;
+    downloadBtn.disabled = !orders.length;
     summary.innerHTML = orders.length
       ? `<strong>${orders.length}</strong> shipment${orders.length > 1 ? 's' : ''} loaded${
           unresolved
-            ? `, <span style="color:var(--err)"><strong>${unresolved}</strong> need a product assigned</span>`
+            ? `, <span style="color:var(--amb)"><strong>${unresolved}</strong> need a product assigned (rows will export without MID)</span>`
             : ''
         }.`
       : 'Drop PDFs above to begin.';
