@@ -252,78 +252,92 @@ async function deleteRow(env, cfg, id) {
 }
 
 // ── FedEx Tracking proxy ────────────────────────────────────────────────────
-// Requires env vars FEDEX_CLIENT_ID and FEDEX_CLIENT_SECRET (set via
-// `wrangler secret put FEDEX_CLIENT_ID` etc.).
-// Returns: { status, deliveredAt, deliveredAtIso, latestActivity, events[] }
+// Uses FedEx's own internal web endpoint — no API credentials required.
+// Returns: { status, deliveredAt, deliveredAtIso, description, events[] }
 
-async function fedexOAuthToken(env) {
-  const r = await fetch('https://apis.fedex.com/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `grant_type=client_credentials&client_id=${encodeURIComponent(env.FEDEX_CLIENT_ID)}&client_secret=${encodeURIComponent(env.FEDEX_CLIENT_SECRET)}`,
-  });
-  if (!r.ok) throw new Error(`FedEx OAuth failed: ${r.status}`);
-  const d = await r.json();
-  return d.access_token;
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function parseDateStr(s) {
+  // "2026-01-07T10:47:00" or "2026-01-07"
+  if (!s) return null;
+  const dt = new Date(s);
+  return isNaN(dt) ? null : dt;
 }
 
-function parseFedexResponse(data) {
-  const pkg = data?.output?.completeTrackResults?.[0]?.trackResults?.[0];
-  if (!pkg) return { status: 'unknown', error: 'No tracking data returned' };
+function normStatus(code, desc) {
+  const c = (code || '').toUpperCase();
+  const d = (desc || '').toLowerCase();
+  if (c === 'DL' || d.includes('delivered')) return 'Delivered';
+  if (['OD', 'IT', 'AR', 'DP', 'PU', 'AF', 'OC', 'IP'].includes(c) || d.includes('transit') || d.includes('out for delivery') || d.includes('on fedex vehicle')) return 'In Transit';
+  if (['RS', 'HL', 'DE', 'CA'].includes(c) || d.includes('return') || d.includes('cancelled')) return 'Returned';
+  return 'Pending';
+}
 
-  const statusDetail = pkg.latestStatusDetail || {};
-  const rawStatus = (statusDetail.code || '').toUpperCase();
-  const description = statusDetail.description || '';
+function parseFedexWeb(data) {
+  // FedEx web endpoint returns TrackPackagesResponse
+  const pkg = data?.TrackPackagesResponse?.packageList?.[0];
+  if (!pkg) return { status: 'unknown', error: 'No tracking data' };
 
-  // Normalise to our status values
-  let status = 'Pending';
-  if (rawStatus === 'DL') status = 'Delivered';
-  else if (['OD', 'IT', 'AR', 'DP', 'PU', 'AF'].includes(rawStatus)) status = 'In Transit';
-  else if (['RS', 'HL', 'DE', 'CA'].includes(rawStatus)) status = 'Returned';
+  const keyStatus = pkg.keyStatus || '';
+  const keyStatusCD = pkg.keyStatusCD || '';
+  const status = normStatus(keyStatusCD, keyStatus);
 
-  // Delivered timestamp
   let deliveredAt = '';
   let deliveredAtIso = '';
-  const dateEvents = pkg.dateAndTimes || [];
-  const deliveredEvent = dateEvents.find((e) => e.type === 'ACTUAL_DELIVERY');
-  if (deliveredEvent && deliveredEvent.dateTime) {
-    const dt = new Date(deliveredEvent.dateTime);
-    if (!isNaN(dt)) {
-      const d2 = (n) => String(n).padStart(2, '0');
-      deliveredAt = `${d2(dt.getDate())}.${d2(dt.getMonth() + 1)}.${dt.getFullYear()}`;
+
+  if (status === 'Delivered') {
+    // actualDeliveryDt: "2026-01-07T10:47:00"
+    const dt = parseDateStr(pkg.actualDeliveryDt || pkg.estDeliveryDt || '');
+    if (dt) {
+      deliveredAt = `${pad2(dt.getDate())}.${pad2(dt.getMonth() + 1)}.${dt.getFullYear()}`;
       deliveredAtIso = dt.toISOString().slice(0, 10);
     }
   }
 
-  // Scan events (most recent first)
-  const scanEvents = (pkg.scanEvents || []).map((e) => ({
-    date: e.date || '',
-    description: e.eventDescription || '',
-    location: [e.scanLocation?.city, e.scanLocation?.stateOrProvinceCode].filter(Boolean).join(', '),
+  const events = (pkg.scanEventList || []).slice(0, 5).map((e) => ({
+    date: e.date || e.scanDate || '',
+    description: e.status || e.scanDescription || '',
+    location: [e.scanLocation, e.city, e.state].filter(Boolean).join(', '),
   }));
 
-  return { status, description, deliveredAt, deliveredAtIso, latestActivity: scanEvents[0] || null, events: scanEvents.slice(0, 5) };
+  return { status, description: keyStatus, deliveredAt, deliveredAtIso, events };
 }
 
-async function handleTrack(trackingNumber, env) {
-  if (!env.FEDEX_CLIENT_ID || !env.FEDEX_CLIENT_SECRET) {
-    return json({ error: 'FedEx credentials not configured (set FEDEX_CLIENT_ID and FEDEX_CLIENT_SECRET secrets)' }, 503);
-  }
+async function handleTrack(trackingNumber) {
   const num = String(trackingNumber || '').trim().replace(/\s+/g, '');
   if (!num) return json({ error: 'Missing tracking number' }, 400);
 
-  const token = await fedexOAuthToken(env);
-  const r = await fetch('https://apis.fedex.com/track/v1/trackingnumbers', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({
-      includeDetailedScans: true,
-      trackingInfo: [{ trackingNumberInfo: { trackingNumber: num } }],
+  const body = new URLSearchParams({
+    data: JSON.stringify({
+      TrackPackagesRequest: {
+        appType: 'WTRK',
+        appDeviceType: 'DESKTOP',
+        uniqueKey: '',
+        processingParameters: {},
+        trackingInfoList: [{ trackNumberInfo: { trackingNumber: num, trackingQualifier: '', trackingCarrier: '' } }],
+      },
     }),
+    action: 'trackpackages',
+    locale: 'en_US',
+    version: '1',
+    format: 'json',
   });
-  if (!r.ok) return json({ error: `FedEx API error: ${r.status}` }, 502);
+
+  const r = await fetch('https://www.fedex.com/trackingCal/track', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/javascript, */*; q=0.01',
+      'Origin': 'https://www.fedex.com',
+      'Referer': 'https://www.fedex.com/en-us/tracking.html',
+    },
+    body,
+  });
+
+  if (!r.ok) return json({ error: `FedEx returned ${r.status}` }, 502);
   const data = await r.json();
-  return json(parseFedexResponse(data));
+  return json(parseFedexWeb(data));
 }
 
 export default {
@@ -337,7 +351,7 @@ export default {
       // /api/track/:trackingNumber
       if (parts[0] === 'api' && parts[1] === 'track' && parts[2]) {
         if (request.method !== 'GET') return json({ error: 'Method not allowed' }, 405);
-        return await handleTrack(parts[2], env);
+        return await handleTrack(parts[2]);
       }
 
       const cfg = parts[0] === 'api' ? RESOURCES[parts[1]] : null;
