@@ -397,9 +397,9 @@ ${css}
     <button id="btn-track-copy-sel" type="button" style="background:#16a34a;color:#fff;border:none;border-radius:5px;font-size:11px;padding:5px 11px;font-weight:700;cursor:pointer">✓ Mark Delivered</button>
     <button id="btn-track-add-row" type="button" style="font-size:11px;padding:5px 11px">＋ Add Row</button>
     <button id="btn-track-delete-sel" class="danger" type="button" disabled style="font-size:11px;padding:5px 11px">✕ Delete</button>
+    <button id="btn-trk-sync-all" type="button" style="background:#0e7490;color:#fff;border:none;padding:5px 13px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer" title="Fetch latest FedEx status for all rows with a tracking number">↺ Sync Statuses</button>
     <span id="track-sel-count" class="sel-count" style="font-size:11px"></span>
     <div style="margin-left:auto;display:flex;gap:6px">
-      <button id="btn-trk-sync-all" type="button" style="background:#0e7490;color:#fff;border:none;padding:5px 13px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer" title="Fetch latest FedEx status for all rows with a tracking number">↺ Sync Statuses</button>
       <label class="file-btn" style="background:#16a34a;color:#fff;border:none;border-radius:5px;font-size:11px;padding:5px 13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px">📂 Import Excel<input type="file" id="trk-sheet-file" accept=".csv,.tsv,.txt,.xlsx,.xls" hidden></label>
       <button id="btn-trk-sheet-dl" type="button" style="background:#f97316;color:#fff;border:none;padding:5px 13px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">↑ Export to Master</button>
       <button id="btn-trk-dl-excel" type="button" style="background:#2563eb;color:#fff;border:none;padding:5px 13px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">⬇ Excel</button>
