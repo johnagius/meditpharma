@@ -700,6 +700,7 @@ ${css}
     <button id="btn-saved-track-save-sel" class="primary" type="button" disabled style="font-size:11px;padding:5px 11px">💾 Save selected</button>
     <button id="btn-saved-track-copy-sel" type="button" disabled style="font-size:11px;padding:5px 11px">📋 Copy</button>
     <button id="btn-saved-track-delete-sel" class="danger" type="button" disabled style="font-size:11px;padding:5px 11px">✕ Delete</button>
+    <button id="btn-saved-trk-sync-all" type="button" style="background:#0e7490;color:#fff;border:none;padding:5px 13px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer" title="Fetch latest FedEx status for all rows with a tracking number">↺ Sync Statuses</button>
     <span id="saved-track-sel-count" class="sel-count" style="font-size:11px"></span>
     <div style="margin-left:auto;display:flex;gap:6px">
       <button id="btn-saved-track-paste" type="button" style="font-size:11px;padding:5px 11px">📥 Paste from Excel</button>

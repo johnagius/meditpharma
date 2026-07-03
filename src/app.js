@@ -2115,6 +2115,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (trkSheetFile) trkSheetFile.addEventListener('change', () => uploadTrackingFile(trkSheetFile, TRACK_VIEWS.builder));
     const syncAllBtn = document.getElementById('btn-trk-sync-all');
     if (syncAllBtn) syncAllBtn.addEventListener('click', () => syncAllStatuses(TRACK_VIEWS.builder));
+    const savedSyncAllBtn = document.getElementById('btn-saved-trk-sync-all');
+    if (savedSyncAllBtn) savedSyncAllBtn.addEventListener('click', () => syncAllStatuses(TRACK_VIEWS.saved));
     if (savedTrackPaste) savedTrackPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.saved));
     if (savedTrackFile) savedTrackFile.addEventListener('change', () => uploadTrackingFile(savedTrackFile, TRACK_VIEWS.saved));
     if (savedTrackTemplate) savedTrackTemplate.addEventListener('click', () => downloadTrackingTemplate(savedTrackStatus));
