@@ -2113,6 +2113,8 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       });
     }
     if (trkSheetFile) trkSheetFile.addEventListener('change', () => uploadTrackingFile(trkSheetFile, TRACK_VIEWS.builder));
+    const syncAllBtn = document.getElementById('btn-trk-sync-all');
+    if (syncAllBtn) syncAllBtn.addEventListener('click', () => syncAllStatuses(TRACK_VIEWS.builder));
     if (savedTrackPaste) savedTrackPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.saved));
     if (savedTrackFile) savedTrackFile.addEventListener('change', () => uploadTrackingFile(savedTrackFile, TRACK_VIEWS.saved));
     if (savedTrackTemplate) savedTrackTemplate.addEventListener('click', () => downloadTrackingTemplate(savedTrackStatus));
@@ -2319,77 +2321,95 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     setTimeout(() => document.addEventListener('mousedown', away), 0);
   }
 
+  // Fetch FedEx status for a single tracking number via the Worker API.
+  // Returns { status, deliveredAtIso, deliveredAt } or null on failure.
+  async function fetchFedexStatus(trackingNumber) {
+    const base = getApiBase();
+    if (!base) return null;
+    try {
+      const res = await fetch(`${base}/api/track/${encodeURIComponent(trackingNumber)}`);
+      const data = await res.json();
+      if (data.error) return null;
+      return data;
+    } catch { return null; }
+  }
+
+  // Bulk-sync: fetch FedEx status for every row that has a tracking number
+  // and is not already Delivered/Returned. Saves each update to the store.
+  async function syncAllStatuses(view) {
+    const base = getApiBase();
+    if (!base) {
+      if (typeof _toast === 'function') _toast('Set a Sync API URL in Settings to auto-fetch from FedEx.', 'warn');
+      return;
+    }
+    const rows = view.getRows().filter((r) => {
+      const n = (r.trackingNumber || '').trim();
+      if (!n) return false;
+      const s = (r.deliveryStatus || '').toLowerCase();
+      return s !== 'delivered' && s !== 'returned'; // skip already-final rows
+    });
+    if (!rows.length) {
+      if (typeof _toast === 'function') _toast('No pending rows with tracking numbers to sync.', 'ok');
+      return;
+    }
+    const syncBtn = document.getElementById('btn-trk-sync-all');
+    if (syncBtn) { syncBtn.textContent = '↺ Syncing…'; syncBtn.disabled = true; }
+    const statusEl = view.status;
+    setStatusInto(statusEl, `Syncing ${rows.length} rows…`, 'ok');
+
+    const store = makeStore(view.resource || 'rows');
+    let updated = 0;
+    let failed = 0;
+    for (const row of rows) {
+      const n = (row.trackingNumber || '').trim();
+      const data = await fetchFedexStatus(n); // eslint-disable-line no-await-in-loop
+      if (!data) { failed += 1; continue; }
+      const prevStatus = row.deliveryStatus;
+      row.deliveryStatus = data.status;
+      if (data.status === 'Delivered' && data.deliveredAtIso) {
+        row.deliveredOnIso = data.deliveredAtIso;
+        row.deliveredOn = data.deliveredAt || '';
+      }
+      if (row.deliveryStatus !== prevStatus || data.status === 'Delivered') {
+        try { if (row.id) await store.update(row.id, row); } catch { /* non-fatal */ } // eslint-disable-line no-await-in-loop
+        updated += 1;
+      }
+    }
+
+    if (syncBtn) { syncBtn.textContent = '↺ Sync Statuses'; syncBtn.disabled = false; }
+    setStatusInto(
+      statusEl,
+      `Sync complete — ${updated} updated${failed ? `, ${failed} failed` : ''}.`,
+      failed && !updated ? 'warn' : 'ok'
+    );
+    if (updated) renderAllTracking();
+  }
+
   function trackingNumberCell(row, view) {
     const wrap = document.createElement('div');
     wrap.className = 'tracknum';
 
-    const hasNum = () => !!(row.trackingNumber || '').trim();
-
-    // ↗ open FedEx site
-    const go = document.createElement('button');
-    go.type = 'button';
-    go.className = 'tracknum-go';
-    go.textContent = '↗';
-    go.tabIndex = -1;
-    go.title = 'Open on fedex.com';
-    go.style.display = hasNum() ? '' : 'none';
-
-    // ⟳ auto-fetch OR open FedEx + show quick-pick
-    const autoBtn = document.createElement('button');
-    autoBtn.type = 'button';
-    autoBtn.className = 'tracknum-auto';
-    autoBtn.textContent = '⟳';
-    autoBtn.tabIndex = -1;
-    autoBtn.title = 'Update status from FedEx';
-    autoBtn.style.display = hasNum() ? '' : 'none';
-    autoBtn.style.cssText += ';font-size:13px;padding:0 5px;border:none;background:transparent;cursor:pointer;color:#38bdf8;font-weight:700';
-
+    // Editable input
     const el = input(row.trackingNumber, 'w-md', (v) => {
       row.trackingNumber = v;
-      go.style.display = v.trim() ? '' : 'none';
-      autoBtn.style.display = v.trim() ? '' : 'none';
+      link.style.display = v.trim() ? '' : 'none';
     });
 
-    go.addEventListener('mousedown', (e) => e.preventDefault());
-    go.addEventListener('click', () => {
-      const n = (row.trackingNumber || '').trim();
-      if (!n) return;
-      try { window.open(fedexTrackUrl(n), '_blank', 'noopener'); } catch {}
-    });
-
-    autoBtn.addEventListener('mousedown', (e) => e.preventDefault());
-    autoBtn.addEventListener('click', async () => {
-      const n = (row.trackingNumber || '').trim();
-      if (!n) return;
-      const base = getApiBase();
-
-      // Try Worker FedEx API first
-      if (base) {
-        autoBtn.textContent = '…';
-        autoBtn.disabled = true;
-        try {
-          const res = await fetch(`${base}/api/track/${encodeURIComponent(n)}`);
-          const data = await res.json();
-          if (!data.error) {
-            await applyTrackStatus(row, view, data.status, data.deliveredAtIso || '');
-            if (typeof _toast === 'function') _toast(`${n}: ${data.status}${data.deliveredAt ? ' — ' + data.deliveredAt : ''}`, 'ok');
-            autoBtn.textContent = '⟳';
-            autoBtn.disabled = false;
-            return;
-          }
-        } catch { /* fall through */ }
-        autoBtn.textContent = '⟳';
-        autoBtn.disabled = false;
-      }
-
-      // No API or API failed: open FedEx + show quick status picker
-      try { window.open(fedexTrackUrl(n), '_blank', 'noopener'); } catch {}
-      showTrackQuickPick(autoBtn, row, view, n);
-    });
+    // Tracking number → clickable link to FedEx (opens in new tab)
+    const link = document.createElement('a');
+    link.className = 'tracknum-link';
+    link.tabIndex = -1;
+    link.title = 'View on FedEx';
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = '↗';
+    link.style.display = (row.trackingNumber || '').trim() ? '' : 'none';
+    link.style.cssText += ';font-size:11px;padding:0 4px;color:#38bdf8;text-decoration:none;cursor:pointer';
+    link.href = fedexTrackUrl(row.trackingNumber || '');
+    el.addEventListener('change', () => { link.href = fedexTrackUrl(row.trackingNumber || ''); });
 
     wrap.appendChild(el);
-    wrap.appendChild(go);
-    wrap.appendChild(autoBtn);
+    wrap.appendChild(link);
     return wrap;
   }
 
