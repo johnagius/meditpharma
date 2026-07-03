@@ -2732,7 +2732,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-07-03 13:45 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-07-03 13:59 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -6935,13 +6935,12 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   // Returns { status, deliveredAtIso, deliveredAt } or null on failure.
   async function fetchFedexStatus(trackingNumber) {
     const base = getApiBase();
-    if (!base) return null;
+    if (!base) return { error: 'No Sync API URL set' };
     try {
       const res = await fetch(`${base}/api/track/${encodeURIComponent(trackingNumber)}`);
       const data = await res.json();
-      if (data.error) return null;
-      return data;
-    } catch { return null; }
+      return data; // always return — let caller check data.error
+    } catch (e) { return { error: String(e.message || e) }; }
   }
 
   // Bulk-sync: fetch FedEx status for every row that has a tracking number
@@ -6952,47 +6951,56 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
       if (typeof _toast === 'function') _toast('Set a Sync API URL in Settings to auto-fetch from FedEx.', 'warn');
       return;
     }
-    const rows = view.getRows().filter((r) => {
-      const n = (r.trackingNumber || '').trim();
-      if (!n) return false;
-      const s = (r.deliveryStatus || '').toLowerCase();
-      return s !== 'delivered' && s !== 'returned'; // skip already-final rows
-    });
+
+    // All rows with a tracking number (including already-delivered, to refresh date)
+    const rows = view.getRows().filter((r) => !!(r.trackingNumber || '').trim());
     if (!rows.length) {
-      if (typeof _toast === 'function') _toast('No pending rows with tracking numbers to sync.', 'ok');
+      if (typeof _toast === 'function') _toast('No rows with tracking numbers to sync.', 'warn');
       return;
     }
-    const syncBtn = document.getElementById('btn-trk-sync-all');
+
+    // Find the active sync button (could be either tab)
+    const syncBtn = document.getElementById('btn-trk-sync-all') || document.getElementById('btn-saved-trk-sync-all');
+    const origLabel = syncBtn ? syncBtn.textContent : '';
     if (syncBtn) { syncBtn.textContent = '↺ Syncing…'; syncBtn.disabled = true; }
     const statusEl = view.status;
-    setStatusInto(statusEl, `Syncing ${rows.length} rows…`, 'ok');
+    setStatusInto(statusEl, `Syncing ${rows.length} rows from FedEx…`, 'ok');
 
     const store = makeStore(view.resource || 'rows');
     let updated = 0;
     let failed = 0;
+    let firstError = '';
+
     for (const row of rows) {
       const n = (row.trackingNumber || '').trim();
       const data = await fetchFedexStatus(n); // eslint-disable-line no-await-in-loop
-      if (!data) { failed += 1; continue; }
+      if (!data || data.error) {
+        failed += 1;
+        if (!firstError) firstError = data ? data.error : 'fetch failed';
+        continue;
+      }
+      if (!data.status || data.status === 'unknown') { failed += 1; continue; }
+
       const prevStatus = row.deliveryStatus;
       row.deliveryStatus = data.status;
-      if (data.status === 'Delivered' && data.deliveredAtIso) {
+      if (data.deliveredAtIso) {
         row.deliveredOnIso = data.deliveredAtIso;
         row.deliveredOn = data.deliveredAt || '';
       }
-      if (row.deliveryStatus !== prevStatus || data.status === 'Delivered') {
-        try { if (row.id) await store.update(row.id, row); } catch { /* non-fatal */ } // eslint-disable-line no-await-in-loop
-        updated += 1;
-      }
+
+      try { // eslint-disable-line no-await-in-loop
+        const saved = row.id ? await store.update(row.id, row) : await store.save(row);
+        if (!row.id && saved && saved.id) row.id = saved.id;
+      } catch { /* non-fatal */ }
+      if (row.deliveryStatus !== prevStatus) updated += 1;
     }
 
-    if (syncBtn) { syncBtn.textContent = '↺ Sync Statuses'; syncBtn.disabled = false; }
-    setStatusInto(
-      statusEl,
-      `Sync complete — ${updated} updated${failed ? `, ${failed} failed` : ''}.`,
-      failed && !updated ? 'warn' : 'ok'
-    );
-    if (updated) renderAllTracking();
+    if (syncBtn) { syncBtn.textContent = origLabel || '↺ Sync Statuses'; syncBtn.disabled = false; }
+
+    const msg = `Sync done — ${updated} updated, ${rows.length - updated - failed} unchanged${failed ? `, ${failed} failed` : ''}${firstError ? ` (${firstError})` : ''}.`;
+    setStatusInto(statusEl, msg, failed === rows.length ? 'warn' : 'ok');
+    if (typeof _toast === 'function') _toast(msg, failed === rows.length ? 'err' : 'ok');
+    renderAllTracking();
   }
 
   function trackingNumberCell(row, view) {
