@@ -2229,6 +2229,96 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // Tracking-number cell: a text input plus a tiny arrow that opens the FedEx
   // tracking page for the entered number. The arrow shows on focus/hover (CSS)
   // and only when a number is present.
+  // Apply a tracking status + optional date to a row and persist it.
+  async function applyTrackStatus(row, view, status, deliveredIso) {
+    row.deliveryStatus = status;
+    if (status === 'Delivered') {
+      const iso = deliveredIso || toISODate(new Date());
+      row.deliveredOnIso = iso;
+      row.deliveredOn = formatDateDDMMYY(fromISODate(iso));
+    }
+    const store = makeStore((view && view.resource) || 'rows');
+    if (row.id) await store.update(row.id, row);
+    renderAllTracking();
+  }
+
+  // Show a small floating quick-pick panel anchored below `anchor` element.
+  function showTrackQuickPick(anchor, row, view, trackNum) {
+    // Remove any existing quick-pick
+    const existing = document.getElementById('_trk-qp');
+    if (existing) existing.remove();
+
+    const panel = document.createElement('div');
+    panel.id = '_trk-qp';
+    panel.style.cssText = 'position:fixed;z-index:9998;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 12px;box-shadow:0 8px 32px #0009;min-width:260px;font-size:12px';
+
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:700;color:#94a3b8;margin-bottom:8px;font-size:11px;letter-spacing:.04em';
+    title.textContent = `Update status — ${trackNum}`;
+    panel.appendChild(title);
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px';
+
+    const mkBtn = (label, color, status) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      b.style.cssText = `background:${color};color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer`;
+      b.addEventListener('click', async () => {
+        panel.remove();
+        let iso = '';
+        if (status === 'Delivered') {
+          iso = dateInput.value || toISODate(new Date());
+        }
+        await applyTrackStatus(row, view, status, iso);
+        if (typeof _toast === 'function') _toast(`Status updated: ${status}`, 'ok');
+      });
+      return b;
+    };
+
+    btnRow.appendChild(mkBtn('✓ Delivered', '#16a34a', 'Delivered'));
+    btnRow.appendChild(mkBtn('🚚 In Transit', '#0284c7', 'In Transit'));
+    btnRow.appendChild(mkBtn('⏳ Pending', '#b45309', 'Pending'));
+    btnRow.appendChild(mkBtn('↩ Returned', '#dc2626', 'Returned'));
+    panel.appendChild(btnRow);
+
+    const dateRow = document.createElement('div');
+    dateRow.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8';
+    const dateLabel = document.createElement('span');
+    dateLabel.textContent = 'Delivered date:';
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.value = row.deliveredOnIso || toISODate(new Date());
+    dateInput.style.cssText = 'height:24px;font-size:11px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:4px;padding:0 4px';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = 'margin-left:auto;background:none;border:none;color:#64748b;cursor:pointer;font-size:13px;padding:0 2px';
+    closeBtn.addEventListener('click', () => panel.remove());
+    dateRow.appendChild(dateLabel);
+    dateRow.appendChild(dateInput);
+    dateRow.appendChild(closeBtn);
+    panel.appendChild(dateRow);
+
+    document.body.appendChild(panel);
+
+    // Position below anchor
+    const rect = anchor.getBoundingClientRect();
+    const ph = panel.offsetHeight || 100;
+    const pw = panel.offsetWidth || 270;
+    let top = rect.bottom + 4;
+    let left = rect.left;
+    if (top + ph > window.innerHeight) top = rect.top - ph - 4;
+    if (left + pw > window.innerWidth) left = window.innerWidth - pw - 8;
+    panel.style.top = `${top}px`;
+    panel.style.left = `${left}px`;
+
+    // Close when clicking outside
+    const away = (e) => { if (!panel.contains(e.target) && e.target !== anchor) { panel.remove(); document.removeEventListener('mousedown', away); } };
+    setTimeout(() => document.addEventListener('mousedown', away), 0);
+  }
+
   function trackingNumberCell(row, view) {
     const wrap = document.createElement('div');
     wrap.className = 'tracknum';
@@ -2241,18 +2331,18 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     go.className = 'tracknum-go';
     go.textContent = '↗';
     go.tabIndex = -1;
-    go.title = 'Track on fedex.com';
+    go.title = 'Open on fedex.com';
     go.style.display = hasNum() ? '' : 'none';
 
-    // 🔄 auto-fetch status from Worker
+    // ⟳ auto-fetch OR open FedEx + show quick-pick
     const autoBtn = document.createElement('button');
     autoBtn.type = 'button';
     autoBtn.className = 'tracknum-auto';
     autoBtn.textContent = '⟳';
     autoBtn.tabIndex = -1;
-    autoBtn.title = 'Auto-fetch status from FedEx (requires Sync API URL)';
+    autoBtn.title = 'Update status from FedEx';
     autoBtn.style.display = hasNum() ? '' : 'none';
-    autoBtn.style.cssText += ';font-size:13px;padding:0 4px;border:none;background:transparent;cursor:pointer;color:#38bdf8';
+    autoBtn.style.cssText += ';font-size:13px;padding:0 5px;border:none;background:transparent;cursor:pointer;color:#38bdf8;font-weight:700';
 
     const el = input(row.trackingNumber, 'w-md', (v) => {
       row.trackingNumber = v;
@@ -2272,44 +2362,29 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       const n = (row.trackingNumber || '').trim();
       if (!n) return;
       const base = getApiBase();
-      if (!base) {
-        // No Worker URL — fall back to opening FedEx site
-        try { window.open(fedexTrackUrl(n), '_blank', 'noopener'); } catch {}
-        return;
-      }
-      autoBtn.textContent = '…';
-      autoBtn.disabled = true;
-      try {
-        const res = await (window.__appInstance__?.fetchImpl || fetch)(`${base}/api/track/${encodeURIComponent(n)}`);
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
 
-        let changed = false;
-        if (data.status && data.status !== 'unknown') {
-          row.deliveryStatus = data.status;
-          changed = true;
-        }
-        if (data.deliveredAt && data.status === 'Delivered') {
-          row.deliveredOn = data.deliveredAt;
-          row.deliveredOnIso = data.deliveredAtIso || '';
-          changed = true;
-        }
-        if (changed) {
-          const store = makeStore((view && view.resource) || 'rows');
-          if (row.id) await store.update(row.id, row);
-          renderAllTracking();
-          if (typeof _toast === 'function') _toast(`${n}: ${data.status}${data.deliveredAt ? ' — ' + data.deliveredAt : ''}`, 'ok');
-        } else {
-          if (typeof _toast === 'function') _toast(`${n}: ${data.description || data.status || 'No update'}`, 'ok');
-        }
-      } catch (err) {
-        if (typeof _toast === 'function') _toast(`Track failed: ${err.message}`, 'err');
-        // Fall back to FedEx site
-        try { window.open(fedexTrackUrl(n), '_blank', 'noopener'); } catch {}
-      } finally {
+      // Try Worker FedEx API first
+      if (base) {
+        autoBtn.textContent = '…';
+        autoBtn.disabled = true;
+        try {
+          const res = await fetch(`${base}/api/track/${encodeURIComponent(n)}`);
+          const data = await res.json();
+          if (!data.error) {
+            await applyTrackStatus(row, view, data.status, data.deliveredAtIso || '');
+            if (typeof _toast === 'function') _toast(`${n}: ${data.status}${data.deliveredAt ? ' — ' + data.deliveredAt : ''}`, 'ok');
+            autoBtn.textContent = '⟳';
+            autoBtn.disabled = false;
+            return;
+          }
+        } catch { /* fall through */ }
         autoBtn.textContent = '⟳';
         autoBtn.disabled = false;
       }
+
+      // No API or API failed: open FedEx + show quick status picker
+      try { window.open(fedexTrackUrl(n), '_blank', 'noopener'); } catch {}
+      showTrackQuickPick(autoBtn, row, view, n);
     });
 
     wrap.appendChild(el);
@@ -2379,7 +2454,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     addOpt.value = '__add__'; addOpt.textContent = '+ Add status…';
     sel.appendChild(addOpt);
     sel.dataset.prev = cur;
-    sel.addEventListener('change', () => {
+    sel.addEventListener('change', async () => {
       if (sel.value === '__add__') {
         const name = (typeof window.prompt === 'function' ? window.prompt('New delivery status:') : '') || '';
         const t = name.trim();
@@ -2392,6 +2467,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       sel.dataset.prev = sel.value;
       sel.className = `status-select ${statusClass(sel.value)}`;
       renderStatusDashboard(view);
+      // Auto-save immediately on status change
+      try {
+        const store = makeStore((view && view.resource) || 'rows');
+        if (row.id) await store.update(row.id, row);
+      } catch { /* non-fatal */ }
     });
     return sel;
   }
