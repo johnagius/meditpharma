@@ -2229,29 +2229,92 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // Tracking-number cell: a text input plus a tiny arrow that opens the FedEx
   // tracking page for the entered number. The arrow shows on focus/hover (CSS)
   // and only when a number is present.
-  function trackingNumberCell(row) {
+  function trackingNumberCell(row, view) {
     const wrap = document.createElement('div');
     wrap.className = 'tracknum';
+
+    const hasNum = () => !!(row.trackingNumber || '').trim();
+
+    // ↗ open FedEx site
     const go = document.createElement('button');
     go.type = 'button';
     go.className = 'tracknum-go';
     go.textContent = '↗';
     go.tabIndex = -1;
     go.title = 'Track on fedex.com';
-    go.style.display = (row.trackingNumber || '').trim() ? '' : 'none';
+    go.style.display = hasNum() ? '' : 'none';
+
+    // 🔄 auto-fetch status from Worker
+    const autoBtn = document.createElement('button');
+    autoBtn.type = 'button';
+    autoBtn.className = 'tracknum-auto';
+    autoBtn.textContent = '⟳';
+    autoBtn.tabIndex = -1;
+    autoBtn.title = 'Auto-fetch status from FedEx (requires Sync API URL)';
+    autoBtn.style.display = hasNum() ? '' : 'none';
+    autoBtn.style.cssText += ';font-size:13px;padding:0 4px;border:none;background:transparent;cursor:pointer;color:#38bdf8';
+
     const el = input(row.trackingNumber, 'w-md', (v) => {
       row.trackingNumber = v;
       go.style.display = v.trim() ? '' : 'none';
+      autoBtn.style.display = v.trim() ? '' : 'none';
     });
-    // Don't steal focus from the input before the click registers.
+
     go.addEventListener('mousedown', (e) => e.preventDefault());
     go.addEventListener('click', () => {
       const n = (row.trackingNumber || '').trim();
       if (!n) return;
       try { window.open(fedexTrackUrl(n), '_blank', 'noopener'); } catch {}
     });
+
+    autoBtn.addEventListener('mousedown', (e) => e.preventDefault());
+    autoBtn.addEventListener('click', async () => {
+      const n = (row.trackingNumber || '').trim();
+      if (!n) return;
+      const base = getApiBase();
+      if (!base) {
+        // No Worker URL — fall back to opening FedEx site
+        try { window.open(fedexTrackUrl(n), '_blank', 'noopener'); } catch {}
+        return;
+      }
+      autoBtn.textContent = '…';
+      autoBtn.disabled = true;
+      try {
+        const res = await (window.__appInstance__?.fetchImpl || fetch)(`${base}/api/track/${encodeURIComponent(n)}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        let changed = false;
+        if (data.status && data.status !== 'unknown') {
+          row.deliveryStatus = data.status;
+          changed = true;
+        }
+        if (data.deliveredAt && data.status === 'Delivered') {
+          row.deliveredOn = data.deliveredAt;
+          row.deliveredOnIso = data.deliveredAtIso || '';
+          changed = true;
+        }
+        if (changed) {
+          const store = makeStore((view && view.resource) || 'rows');
+          if (row.id) await store.update(row.id, row);
+          renderAllTracking();
+          if (typeof _toast === 'function') _toast(`${n}: ${data.status}${data.deliveredAt ? ' — ' + data.deliveredAt : ''}`, 'ok');
+        } else {
+          if (typeof _toast === 'function') _toast(`${n}: ${data.description || data.status || 'No update'}`, 'ok');
+        }
+      } catch (err) {
+        if (typeof _toast === 'function') _toast(`Track failed: ${err.message}`, 'err');
+        // Fall back to FedEx site
+        try { window.open(fedexTrackUrl(n), '_blank', 'noopener'); } catch {}
+      } finally {
+        autoBtn.textContent = '⟳';
+        autoBtn.disabled = false;
+      }
+    });
+
     wrap.appendChild(el);
     wrap.appendChild(go);
+    wrap.appendChild(autoBtn);
     return wrap;
   }
 
@@ -2689,7 +2752,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       }));
 
       cell('orderNumber', input(row.orderNumber, 'w-md', (v) => { row.orderNumber = v; }));
-      cell('trackingNumber', trackingNumberCell(row));
+      cell('trackingNumber', trackingNumberCell(row, view));
       cell('product', input(row.product, 'w-xl', (v) => { row.product = v; }));
       cell('quantity', input(row.quantity, 'w-sm', (v) => { row.quantity = v; }));
       cell('productDescription', input(row.productDescription, 'w-xl', (v) => { row.productDescription = v; }));
