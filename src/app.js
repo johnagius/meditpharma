@@ -69,6 +69,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   const savedTrackPaste = document.getElementById('btn-saved-track-paste');
   const savedTrackFile = document.getElementById('saved-track-file');
   const savedTrackTemplate = document.getElementById('btn-saved-track-template');
+  const trkSheetFile = document.getElementById('trk-sheet-file');
 
   // By Merchant tab
   const bmHead = document.getElementById('bymerchant-head');
@@ -2111,6 +2112,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         );
       });
     }
+    if (trkSheetFile) trkSheetFile.addEventListener('change', () => uploadTrackingFile(trkSheetFile, TRACK_VIEWS.builder));
     if (savedTrackPaste) savedTrackPaste.addEventListener('click', () => openPasteModal(TRACK_VIEWS.saved));
     if (savedTrackFile) savedTrackFile.addEventListener('change', () => uploadTrackingFile(savedTrackFile, TRACK_VIEWS.saved));
     if (savedTrackTemplate) savedTrackTemplate.addEventListener('click', () => downloadTrackingTemplate(savedTrackStatus));
