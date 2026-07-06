@@ -422,7 +422,7 @@ ${css}
     <span class="p-title">🏷 Catalog — Products &amp; HS Codes</span>
     <span class="p-hint">Used for auto-detection and FedEx/tracking output. Use status instead of deleting.</span>
   </div>
-  <div style="flex:1;overflow-y:auto;padding:14px">
+  <div style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column">
     <div style="font-weight:700;font-size:13px;margin-bottom:10px">Products (MID Codes)</div>
     <div class="actions">
       <button id="btn-product-add" class="primary" type="button">+ Add product</button>
@@ -441,7 +441,7 @@ ${css}
       <button id="btn-product-refresh" type="button">Refresh</button>
     </div>
     <div id="product-status" aria-live="polite"></div>
-    <div class="scroll-box" style="max-height:40vh">
+    <div class="scroll-box" style="min-height:120px;max-height:55vh;flex-shrink:0">
       <table class="track-table" aria-label="Products">
         <thead id="products-head"></thead>
         <tbody id="products-body"></tbody>
