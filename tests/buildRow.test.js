@@ -91,4 +91,18 @@ describe('buildRow', () => {
     expect(row[35]).toBe('');
     expect(row[46]).toBe('');
   });
+
+  it('splits ZIP+4 postcode: 5-digit zip in postcode cell, full ZIP+4 in line2', () => {
+    const idx = COLUMN_KEYS.indexOf('recipientPostcode');
+    const idx2 = COLUMN_KEYS.indexOf('recipientLine2');
+    const row = buildRow({ recipient: { name: 'Test', postcode: '10014-4925', line2: '' }, product: null }, 0);
+    expect(row[idx]).toBe('10014');
+    expect(row[idx2]).toBe('10014-4925');
+  });
+
+  it('keeps existing line2 when postcode is ZIP+4', () => {
+    const idx = COLUMN_KEYS.indexOf('recipientLine2');
+    const row = buildRow({ recipient: { name: 'Test', postcode: '10014-4925', line2: 'Apt 5' }, product: null }, 0);
+    expect(row[idx]).toBe('Apt 5');
+  });
 });

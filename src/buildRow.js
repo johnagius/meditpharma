@@ -28,8 +28,18 @@ export function buildRow({ recipient, product, qty }, rowIndex, hsCodes = HS_COD
     recipientContactNumber: recipient?.phone || '',
     recipientEmail,
     recipientLine1: recipient?.line1 || '',
-    recipientLine2: recipient?.line2 || '',
-    recipientPostcode: recipient?.postcode || '',
+    recipientLine2: (() => {
+      // If line2 is already set (e.g. suite/unit), use it.
+      if (recipient?.line2) return recipient.line2;
+      // If postcode is ZIP+4 (e.g. "10014-4925"), put the full value in line2.
+      const pc = recipient?.postcode || '';
+      return /^\d{5}-\d{4}$/.test(pc) ? pc : '';
+    })(),
+    recipientPostcode: (() => {
+      const pc = recipient?.postcode || '';
+      // FedEx only accepts 5-digit ZIP; strip the +4 extension.
+      return /^\d{5}-\d{4}$/.test(pc) ? pc.slice(0, 5) : pc;
+    })(),
     recipientState: recipient?.state || '',
     recipientCity: recipient?.city || '',
     itemDescription: hs.description,
