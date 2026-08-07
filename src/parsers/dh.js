@@ -7,12 +7,80 @@ function normalize(text) {
   });
 }
 
+// Old format: "OrderID: 123456" + "Shipping Address"
+// New format: "Packing Slip: CKRCXV" + "Ship To"
 export function detect(text) {
-  return /OrderID:\s*\d+/i.test(text) && /Shipping Address/i.test(text);
+  if (/OrderID:\s*\d+/i.test(text) && /Shipping Address/i.test(text)) return true;
+  if (/^Packing Slip:\s*\S+/im.test(text) && /^Ship To/im.test(text)) return true;
+  return false;
+}
+
+function parsePackingSlip(t) {
+  // Order ID from "Packing Slip: CKRCXV"
+  const idMatch = t.match(/^Packing Slip:\s*(\S+)/im);
+  const orderId = idMatch ? idMatch[1].trim() : '';
+
+  const lines = t.split(/\r?\n/).map((l) => l.trim());
+  const start = lines.findIndex((l) => /^Ship To$/i.test(l));
+  if (start === -1) return null;
+
+  // Collect address block until "Items"
+  const block = [];
+  for (let i = start + 1; i < lines.length; i++) {
+    if (!lines[i]) continue;
+    if (/^Items$/i.test(lines[i])) break;
+    block.push(lines[i]);
+  }
+
+  let name = '', line1 = '', line2 = '', city = '', state = '', zip = '', phone = '', email = '';
+  const country = 'US';
+
+  for (const raw of block) {
+    if (/^USA$|^United States$/i.test(raw)) continue;
+    if (/^Phone:/i.test(raw)) { phone = raw.replace(/^Phone:\s*/i, '').replace(/[^0-9+]/g, ''); continue; }
+    if (/^Email:/i.test(raw)) { email = raw.replace(/^Email:\s*/i, '').trim(); continue; }
+    const m = raw.match(CITY_STATE_ZIP);
+    if (m) { city = m[1].trim(); state = m[2]; zip = m[3]; continue; }
+    if (!name) { name = raw; }
+    else if (!line1) { line1 = raw; }
+    else if (!line2 && !city) { line2 = raw; }
+  }
+
+  // Product: after "Items" + header row ("Product Qty Total"), first data line
+  const itemsIdx = lines.findIndex((l) => /^Items$/i.test(l));
+  let productText = '';
+  let productLines = [];
+  if (itemsIdx !== -1) {
+    const dataLines = lines.slice(itemsIdx + 1).filter(
+      (l) => l && !/^Product\s+Qty/i.test(l) && !/^Generated:/i.test(l)
+    );
+    if (dataLines.length) {
+      // Strip trailing qty + total columns (numbers / "N tabs total" etc.)
+      productText = dataLines[0].replace(/\s+\d+\s+.*$/, '').trim();
+      productLines = dataLines.map((l) => {
+        const stripped = l.replace(/\s+\d+\s+.*$/, '').trim();
+        return stripped ? `1 x ${stripped}` : null;
+      }).filter(Boolean);
+    }
+  }
+
+  return {
+    source: 'dh',
+    orderId,
+    recipient: { name, line1, line2, city, state, postcode: zip, country, phone, email },
+    productText,
+    productLines,
+    rawText: t,
+  };
 }
 
 export function parse(text) {
   const t = normalize(text);
+
+  // New packing-slip format
+  if (/^Packing Slip:\s*\S+/im.test(t)) return parsePackingSlip(t);
+
+  // Legacy format
   const idMatch = t.match(/OrderID:\s*(\d+)/i);
   const orderId = idMatch ? idMatch[1] : '';
 
@@ -28,40 +96,18 @@ export function parse(text) {
     block.push(line);
   }
 
-  let name = '';
-  let line1 = '';
-  let line2 = '';
-  let city = '';
-  let state = '';
-  let zip = '';
-  let phone = '';
-  let email = '';
+  let name = '', line1 = '', line2 = '', city = '', state = '', zip = '', phone = '', email = '';
   const country = 'US';
 
   for (const raw of block) {
     if (/^USA$|^United States$/i.test(raw)) continue;
-    if (/^Phone:/i.test(raw)) {
-      phone = raw.replace(/^Phone:\s*/i, '').replace(/[^0-9+]/g, '');
-      continue;
-    }
-    if (/^Email:/i.test(raw)) {
-      email = raw.replace(/^Email:\s*/i, '').trim();
-      continue;
-    }
+    if (/^Phone:/i.test(raw)) { phone = raw.replace(/^Phone:\s*/i, '').replace(/[^0-9+]/g, ''); continue; }
+    if (/^Email:/i.test(raw)) { email = raw.replace(/^Email:\s*/i, '').trim(); continue; }
     const m = raw.match(CITY_STATE_ZIP);
-    if (m) {
-      city = m[1].trim();
-      state = m[2];
-      zip = m[3];
-      continue;
-    }
-    if (!name) {
-      name = raw;
-    } else if (!line1) {
-      line1 = raw;
-    } else if (!line2) {
-      line2 = raw;
-    }
+    if (m) { city = m[1].trim(); state = m[2]; zip = m[3]; continue; }
+    if (!name) { name = raw; }
+    else if (!line1) { line1 = raw; }
+    else if (!line2) { line2 = raw; }
   }
 
   const productLine = lines
@@ -83,17 +129,7 @@ export function parse(text) {
   return {
     source: 'dh',
     orderId,
-    recipient: {
-      name,
-      line1,
-      line2,
-      city,
-      state,
-      postcode: zip,
-      country,
-      phone,
-      email,
-    },
+    recipient: { name, line1, line2, city, state, postcode: zip, country, phone, email },
     productText,
     productLines,
     rawText: t,

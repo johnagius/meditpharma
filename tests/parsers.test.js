@@ -158,6 +158,22 @@ describe('PDF parsers', () => {
     expect(detectProduct(o.productText).key).toBe('orencia');
   });
 
+  it('parses a D.H. packing-slip format (new layout with alphanumeric order ID)', () => {
+    const orders = dispatch(fixture('dh-packing.txt'));
+    expect(orders).toHaveLength(1);
+    const o = orders[0];
+    expect(o.source).toBe('dh');
+    expect(o.orderId).toBe('CKRCXV');
+    expect(o.recipient.name).toBe('Robert Clausen');
+    expect(o.recipient.line1).toBe('4416 Norrisville rd');
+    expect(o.recipient.city).toBe('White hall');
+    expect(o.recipient.state).toBe('MD');
+    expect(o.recipient.postcode).toBe('21161-9607');
+    expect(o.recipient.phone).toBe('4102361545');
+    expect(o.recipient.email).toBe('boblala1@gmail.com');
+    expect(o.productText).toMatch(/Jardiance/i);
+  });
+
   it('parses a Secil short-order PDF text', () => {
     const orders = dispatch(fixture('secil.txt'));
     expect(orders).toHaveLength(1);
