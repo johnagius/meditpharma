@@ -158,6 +158,25 @@ describe('PDF parsers', () => {
     expect(detectProduct(o.productText).key).toBe('orencia');
   });
 
+  it('parses a multi-slip D.H. PDF (5 orders, one per page)', () => {
+    const orders = dispatch(fixture('dh-packing-multi.txt'));
+    expect(orders).toHaveLength(5);
+    const keith = orders.find((o) => o.orderId === 'EODGCW');
+    expect(keith.recipient.name).toBe('Keith Williams');
+    expect(keith.recipient.city).toBe('GILLETTE');
+    expect(keith.recipient.state).toBe('WY');
+    const kaleigh = orders.find((o) => o.orderId === 'NYKRJJ');
+    expect(kaleigh.recipient.name).toBe('Kaleigh N Sullivan');
+    expect(kaleigh.recipient.line1).toBe('1050 WATER ST');
+    expect(kaleigh.recipient.line2).toBe('UNIT 1903');
+    expect(kaleigh.recipient.city).toBe('TAMPA');
+    expect(detectProduct(kaleigh.productText).key).toBe('ozempic');
+    const alva = orders.find((o) => o.orderId === 'VJTSJL');
+    expect(alva.recipient.line1).toBe('RR 1 BOX 74');
+    expect(alva.recipient.line2).toBe('4270 R ROAD');
+    expect(alva.recipient.city).toBe('HOOKER');
+  });
+
   it('parses a D.H. packing-slip format (new layout with alphanumeric order ID)', () => {
     const orders = dispatch(fixture('dh-packing.txt'));
     expect(orders).toHaveLength(1);

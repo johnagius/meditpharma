@@ -15,27 +15,26 @@ export function detect(text) {
   return false;
 }
 
-function parsePackingSlip(t) {
-  // Order ID from "Packing Slip: CKRCXV"
-  const idMatch = t.match(/^Packing Slip:\s*(\S+)/im);
+function parseOnePackingSlip(block) {
+  const idMatch = block.match(/^Packing Slip:\s*(\S+)/im);
   const orderId = idMatch ? idMatch[1].trim() : '';
 
-  const lines = t.split(/\r?\n/).map((l) => l.trim());
+  const lines = block.split(/\r?\n/).map((l) => l.trim());
   const start = lines.findIndex((l) => /^Ship To$/i.test(l));
   if (start === -1) return null;
 
   // Collect address block until "Items"
-  const block = [];
+  const addrBlock = [];
   for (let i = start + 1; i < lines.length; i++) {
     if (!lines[i]) continue;
     if (/^Items$/i.test(lines[i])) break;
-    block.push(lines[i]);
+    addrBlock.push(lines[i]);
   }
 
   let name = '', line1 = '', line2 = '', city = '', state = '', zip = '', phone = '', email = '';
   const country = 'US';
 
-  for (const raw of block) {
+  for (const raw of addrBlock) {
     if (/^USA$|^United States$/i.test(raw)) continue;
     if (/^Phone:/i.test(raw)) { phone = raw.replace(/^Phone:\s*/i, '').replace(/[^0-9+]/g, ''); continue; }
     if (/^Email:/i.test(raw)) { email = raw.replace(/^Email:\s*/i, '').trim(); continue; }
@@ -46,7 +45,7 @@ function parsePackingSlip(t) {
     else if (!line2 && !city) { line2 = raw; }
   }
 
-  // Product: after "Items" + header row ("Product Qty Total"), first data line
+  // Product: after "Items" + header row, first data line(s)
   const itemsIdx = lines.findIndex((l) => /^Items$/i.test(l));
   let productText = '';
   let productLines = [];
@@ -55,7 +54,6 @@ function parsePackingSlip(t) {
       (l) => l && !/^Product\s+Qty/i.test(l) && !/^Generated:/i.test(l)
     );
     if (dataLines.length) {
-      // Strip trailing qty + total columns (numbers / "N tabs total" etc.)
       productText = dataLines[0].replace(/\s+\d+\s+.*$/, '').trim();
       productLines = dataLines.map((l) => {
         const stripped = l.replace(/\s+\d+\s+.*$/, '').trim();
@@ -70,8 +68,17 @@ function parsePackingSlip(t) {
     recipient: { name, line1, line2, city, state, postcode: zip, country, phone, email },
     productText,
     productLines,
-    rawText: t,
+    rawText: block,
   };
+}
+
+function parsePackingSlip(t) {
+  // Split on each "Packing Slip:" header to handle multi-slip PDFs
+  const blocks = t.split(/(?=^Packing Slip:\s*\S+)/im).filter((b) => /^Packing Slip:/im.test(b));
+  if (!blocks.length) return null;
+  const orders = blocks.map(parseOnePackingSlip).filter(Boolean);
+  if (orders.length === 1) return orders[0];
+  return { multi: true, orders };
 }
 
 export function parse(text) {
