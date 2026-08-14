@@ -29,11 +29,16 @@ export function buildRow({ recipient, product, qty }, rowIndex, hsCodes = HS_COD
     recipientEmail,
     recipientLine1: recipient?.line1 || '',
     recipientLine2: (() => {
-      // If line2 is already set (e.g. suite/unit), use it.
-      if (recipient?.line2) return recipient.line2;
-      // If postcode is ZIP+4 (e.g. "10014-4925"), put the full value in line2.
+      // ZIP+4 always goes in line2; existing line2 (unit/suite/extra street) shifts to line3.
       const pc = recipient?.postcode || '';
-      return /^\d{5}-\d{4}$/.test(pc) ? pc : '';
+      if (/^\d{5}-\d{4}$/.test(pc)) return pc;
+      return recipient?.line2 || '';
+    })(),
+    recipientLine3: (() => {
+      // If ZIP+4 claimed line2, promote the original line2 to line3.
+      const pc = recipient?.postcode || '';
+      if (/^\d{5}-\d{4}$/.test(pc)) return recipient?.line2 || '';
+      return '';
     })(),
     recipientPostcode: (() => {
       const pc = recipient?.postcode || '';
