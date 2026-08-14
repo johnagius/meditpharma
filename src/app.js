@@ -3148,6 +3148,14 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         `${silent ? 'Autosaved' : 'Saved'} order ${row.orderNumber} (id ${saved.id}) to ${store.backend === 'd1' ? 'D1' : 'this browser'}.`,
         'ok'
       );
+      // Sync the saved row into savedTrackingRows immediately so Today's Dispatch
+      // and Track & Update reflect the change without a full reload.
+      if (resource === 'rows') {
+        const merged = { ...row, _origin: 'db' };
+        const idx = savedTrackingRows.findIndex((r) => r.id === row.id);
+        if (idx >= 0) savedTrackingRows[idx] = merged;
+        else savedTrackingRows.push(merged);
+      }
       // Don't re-render on a silent autosave — it would steal focus mid-typing.
       // row.id is already set in memory, so the next save correctly updates.
       if (!silent) renderAllTracking();
