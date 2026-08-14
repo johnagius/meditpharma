@@ -54,9 +54,9 @@ function parseOnePackingSlip(block) {
       (l) => l && !/^Product\s+Qty/i.test(l) && !/^Generated:/i.test(l)
     );
     if (dataLines.length) {
-      productText = dataLines[0].replace(/\s+\d+\s+.*$/, '').trim();
+      productText = dataLines[0].replace(/\s+\d+\s+\d+\s+\S+.*$/, '').trim();
       productLines = dataLines.map((l) => {
-        const stripped = l.replace(/\s+\d+\s+.*$/, '').trim();
+        const stripped = l.replace(/\s+\d+\s+\d+\s+\S+.*$/, '').trim();
         return stripped ? `1 x ${stripped}` : null;
       }).filter(Boolean);
     }

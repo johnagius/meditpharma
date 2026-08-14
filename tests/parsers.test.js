@@ -190,7 +190,7 @@ describe('PDF parsers', () => {
     expect(o.recipient.postcode).toBe('21161-9607');
     expect(o.recipient.phone).toBe('4102361545');
     expect(o.recipient.email).toBe('boblala1@gmail.com');
-    expect(o.productText).toMatch(/Jardiance/i);
+    expect(o.productText).toBe('Jardiance 25 mg');
   });
 
   it('parses a Secil short-order PDF text', () => {

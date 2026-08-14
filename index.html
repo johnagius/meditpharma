@@ -2732,7 +2732,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-08-14 12:24 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-08-14 13:53 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -4221,9 +4221,9 @@ function parseOnePackingSlip(block) {
       (l) => l && !/^Product\s+Qty/i.test(l) && !/^Generated:/i.test(l)
     );
     if (dataLines.length) {
-      productText = dataLines[0].replace(/\s+\d+\s+.*$/, '').trim();
+      productText = dataLines[0].replace(/\s+\d+\s+\d+\s+\S+.*$/, '').trim();
       productLines = dataLines.map((l) => {
-        const stripped = l.replace(/\s+\d+\s+.*$/, '').trim();
+        const stripped = l.replace(/\s+\d+\s+\d+\s+\S+.*$/, '').trim();
         return stripped ? `1 x ${stripped}` : null;
       }).filter(Boolean);
     }
