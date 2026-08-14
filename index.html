@@ -1410,7 +1410,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
           <option value="Cylogest" data-country="PL">Cylogest</option>
           <option value="Estrofem" data-country="NL">Estrofem</option>
           <option value="Lucrin Depot" data-country="NL">Lucrin Depot</option>
-          <option value="Verzenios 150mg" data-country="CH">Verzenios 150mg</option>
+          <option value="Verzenios" data-country="CH">Verzenios</option>
           <option value="Verzenio (ES)" data-country="ES">Verzenio (ES)</option>
           <option value="Tagrisso" data-country="SE">Tagrisso</option>
           <option value="Osimertinib 80mg" data-country="SE">Osimertinib 80mg</option>
@@ -2732,7 +2732,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-08-14 13:53 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-08-14 14:16 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -3263,7 +3263,7 @@ const PRODUCTS = [
   { key: 'lucrin',     label: 'Lucrin Depot', mid: 'NLABB9HOO',        country: 'NL', patterns: [/lucrin/i, /leuprorelin/i] },
 
   // ── Oncology ─────────────────────────────────────────────────────────────
-  { key: 'verzenios',      label: 'Verzenios 150mg', mid: 'CHELILIL16GEN',  country: 'CH', patterns: [/verzenios/i, /abemaciclib/i] },
+  { key: 'verzenios',      label: 'Verzenios',       mid: 'CHELILIL16GEN',  country: 'CH', patterns: [/verzenios/i, /abemaciclib/i] },
   { key: 'verzenio-es',    label: 'Verzenio (ES)',    mid: 'ESLILLY30MAD',   country: 'ES', patterns: [/\bverzenio\b/i] },
   { key: 'tagrisso',       label: 'Tagrisso',         mid: 'SEAST15185SOD',  country: 'SE', patterns: [/tagrisso/i] },
   { key: 'osimertinib',    label: 'Osimertinib 80mg', mid: 'SEASTAB18SOD',   country: 'SE', patterns: [/osimertinib/i] },
@@ -3557,7 +3557,7 @@ function isPdmsMerchant(merchant) {
 //  - Activa: suffix is the PDF order number.
 //  - PDMS:   suffix is a generated per-date sequence (computed in app.js).
 function isDatePrefixedMerchant(merchant) {
-  return isActivaMerchant(merchant) || isPdmsMerchant(merchant);
+  return isActivaMerchant(merchant);
 }
 
 // Order-number strategy by merchant:
@@ -3626,7 +3626,9 @@ function extractDose(text) {
   let unit = m[2].toLowerCase();
   if (unit === 'iu' || unit === 'ius') unit = 'IU';
   else if (unit === 'unit' || unit === 'units') unit = 'u';
-  return `${m[1]}${unit}`;
+  // mg / ml / mcg get a space for readability ("50 mg"); u / IU stay compact ("100u").
+  const sep = (unit === 'mg' || unit === 'ml' || unit === 'mcg') ? ' ' : '';
+  return `${m[1]}${sep}${unit}`;
 }
 
 // Pull a parenthesised language/country marker like "(ENG)", "(NON-ENG)",
@@ -6622,14 +6624,17 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     });
   }
 
-  // Highest N among "prefix-N" order numbers of saved PDMS rows for a date.
+  // Highest N among "Order N" (or legacy "prefix-N") order numbers of saved PDMS rows.
   function maxPdmsSeq(prefix, rows) {
-    const re = new RegExp(`^${prefix}-(\\d+)$`);
+    const reNew = /^Order\s+(\d+)$/i;
+    const reLeg = new RegExp(`^${prefix}-(\\d+)$`);
     let max = 0;
     for (const r of rows || []) {
       if (!isPdmsMerchant(r.merchant)) continue;
-      const m = String(r.orderNumber || '').match(re);
-      if (m) max = Math.max(max, Number(m[1]));
+      const mNew = String(r.orderNumber || '').match(reNew);
+      const mLeg = String(r.orderNumber || '').match(reLeg);
+      const n = mNew ? Number(mNew[1]) : (mLeg ? Number(mLeg[1]) : 0);
+      if (n) max = Math.max(max, n);
     }
     return max;
   }
@@ -6656,9 +6661,11 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         // Reuse the saved row's number if this PDF was saved before; else assign
         // the next sequence for this date.
         const existing = o.dedupKey && savedByDedup.get(String(o.dedupKey));
-        const exMatch = existing && String(existing.orderNumber || '').match(new RegExp(`^${prefix}-(\\d+)$`));
-        if (exMatch) orderId = exMatch[1];
-        else { pdmsSeq += 1; orderId = String(pdmsSeq); }
+        const exMatchNew = existing && String(existing.orderNumber || '').match(/^Order\s+(\d+)$/i);
+        const exMatchLeg = existing && String(existing.orderNumber || '').match(new RegExp(`^${prefix}-(\\d+)$`));
+        if (exMatchNew) orderId = `Order ${exMatchNew[1]}`;
+        else if (exMatchLeg) orderId = `Order ${exMatchLeg[1]}`;
+        else { pdmsSeq += 1; orderId = `Order ${pdmsSeq}`; }
       }
       const row = buildTrackingRow(
         { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant, orderId },

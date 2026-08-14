@@ -1956,14 +1956,17 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     });
   }
 
-  // Highest N among "prefix-N" order numbers of saved PDMS rows for a date.
+  // Highest N among "Order N" (or legacy "prefix-N") order numbers of saved PDMS rows.
   function maxPdmsSeq(prefix, rows) {
-    const re = new RegExp(`^${prefix}-(\\d+)$`);
+    const reNew = /^Order\s+(\d+)$/i;
+    const reLeg = new RegExp(`^${prefix}-(\\d+)$`);
     let max = 0;
     for (const r of rows || []) {
       if (!isPdmsMerchant(r.merchant)) continue;
-      const m = String(r.orderNumber || '').match(re);
-      if (m) max = Math.max(max, Number(m[1]));
+      const mNew = String(r.orderNumber || '').match(reNew);
+      const mLeg = String(r.orderNumber || '').match(reLeg);
+      const n = mNew ? Number(mNew[1]) : (mLeg ? Number(mLeg[1]) : 0);
+      if (n) max = Math.max(max, n);
     }
     return max;
   }
@@ -1990,9 +1993,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         // Reuse the saved row's number if this PDF was saved before; else assign
         // the next sequence for this date.
         const existing = o.dedupKey && savedByDedup.get(String(o.dedupKey));
-        const exMatch = existing && String(existing.orderNumber || '').match(new RegExp(`^${prefix}-(\\d+)$`));
-        if (exMatch) orderId = exMatch[1];
-        else { pdmsSeq += 1; orderId = String(pdmsSeq); }
+        const exMatchNew = existing && String(existing.orderNumber || '').match(/^Order\s+(\d+)$/i);
+        const exMatchLeg = existing && String(existing.orderNumber || '').match(new RegExp(`^${prefix}-(\\d+)$`));
+        if (exMatchNew) orderId = `Order ${exMatchNew[1]}`;
+        else if (exMatchLeg) orderId = `Order ${exMatchLeg[1]}`;
+        else { pdmsSeq += 1; orderId = `Order ${pdmsSeq}`; }
       }
       const row = buildTrackingRow(
         { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant, orderId },
