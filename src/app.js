@@ -3415,7 +3415,17 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     try {
       const saved = p.id ? await store.update(p.id, p) : await store.save(p);
       p.id = saved.id;
-      rebuildCatalog(); renderRows();
+      rebuildCatalog();
+      // Refresh cached cells for any loaded order whose product matches the
+      // updated catalog entry so the new MID/country/description takes effect.
+      const updated = catalogProductByKey(p.key);
+      orders.forEach((o, idx) => {
+        if (o.product && o.product.key === p.key) {
+          o.product = updated || o.product;
+          o.cells = null; // force recompute in renderRows
+        }
+      });
+      renderRows();
       setStatusInto(productStatus, `Saved ${p.name || p.key} (${p.status || 'active'}).`, 'ok');
     } catch (e) { setStatusInto(productStatus, `Save failed: ${e.message}`, 'err'); }
   }
@@ -3455,7 +3465,15 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         target.id = saved.id;
       } catch { failed += 1; }
     }
-    rebuildCatalog(); renderProductsTable(); renderRows();
+    rebuildCatalog(); renderProductsTable();
+    // Invalidate cached cells for any loaded order affected by the import.
+    orders.forEach((o) => {
+      if (o.product) {
+        const fresh = catalogProductByKey(o.product.key);
+        if (fresh) { o.product = fresh; o.cells = null; }
+      }
+    });
+    renderRows();
     setStatusInto(
       productStatus,
       `${mode === 'replace' ? 'Replaced catalogue —' : 'Import:'} added ${added}, updated ${updated}${failed ? `, ${failed} failed` : ''}.`,
