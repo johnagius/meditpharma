@@ -121,7 +121,7 @@ export function isDatePrefixedMerchant(merchant) {
 export function orderNumberForMerchant(merchant, orderId, date) {
   const id = String(orderId || '').trim();
   if (isDatePrefixedMerchant(merchant)) {
-    return id ? `${dateCompact4(date)}-${id}` : dateCompact4(date);
+    return id ? `${dateCompact(date)}-${id}` : dateCompact(date);
   }
   return id;
 }

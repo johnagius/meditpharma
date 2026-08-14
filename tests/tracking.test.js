@@ -172,9 +172,9 @@ describe('buildTrackingRow', () => {
   });
 
   it('builds the order number per merchant strategy', () => {
-    // Activa: ddmmyyyy-<PDF order number>, date-linked.
+    // Activa: ddmmyy-<PDF order number> (6-digit date), date-linked.
     expect(buildTrackingRow({ ...order, merchant: 'Activa', orderId: '7' }, 0, MONDAY).orderNumber)
-      .toBe('01062026-7');
+      .toBe('010626-7');
     // PDMS: "Order N" format (app.js supplies the full orderId "Order 3").
     expect(buildTrackingRow({ ...order, merchant: 'PDMS', orderId: 'Order 3' }, 0, MONDAY).orderNumber)
       .toBe('Order 3');

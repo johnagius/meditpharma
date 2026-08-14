@@ -2732,7 +2732,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-08-14 14:16 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-08-14 14:33 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -3568,7 +3568,7 @@ function isDatePrefixedMerchant(merchant) {
 function orderNumberForMerchant(merchant, orderId, date) {
   const id = String(orderId || '').trim();
   if (isDatePrefixedMerchant(merchant)) {
-    return id ? `${dateCompact4(date)}-${id}` : dateCompact4(date);
+    return id ? `${dateCompact(date)}-${id}` : dateCompact(date);
   }
   return id;
 }
@@ -4682,6 +4682,7 @@ const parseRecords = ModTrackingRow.parseRecords;
 const parseFlexibleDate = ModTrackingRow.parseFlexibleDate;
 const formatDateDDMMYY = ModTrackingRow.formatDateDDMMYY;
 const weekdayName = ModTrackingRow.weekdayName;
+const dateCompact = ModTrackingRow.dateCompact;
 const dateCompact4 = ModTrackingRow.dateCompact4;
 const isDatePrefixedMerchant = ModTrackingRow.isDatePrefixedMerchant;
 const isPdmsMerchant = ModTrackingRow.isPdmsMerchant;
@@ -7804,7 +7805,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
     if (isDatePrefixedMerchant(row.merchant)) {
       const dash = String(row.orderNumber).indexOf('-');
       const suffix = dash >= 0 ? String(row.orderNumber).slice(dash + 1) : '';
-      row.orderNumber = suffix ? `${dateCompact4(date)}-${suffix}` : dateCompact4(date);
+      row.orderNumber = suffix ? `${dateCompact(date)}-${suffix}` : dateCompact(date);
       if (tdMap.orderNumber) tdMap.orderNumber.value = row.orderNumber;
     }
     if (tdMap.day) tdMap.day.value = row.day;

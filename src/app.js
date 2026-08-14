@@ -21,6 +21,7 @@ import {
   parseFlexibleDate,
   formatDateDDMMYY,
   weekdayName,
+  dateCompact,
   dateCompact4,
   isDatePrefixedMerchant,
   isPdmsMerchant,
@@ -3136,7 +3137,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (isDatePrefixedMerchant(row.merchant)) {
       const dash = String(row.orderNumber).indexOf('-');
       const suffix = dash >= 0 ? String(row.orderNumber).slice(dash + 1) : '';
-      row.orderNumber = suffix ? `${dateCompact4(date)}-${suffix}` : dateCompact4(date);
+      row.orderNumber = suffix ? `${dateCompact(date)}-${suffix}` : dateCompact(date);
       if (tdMap.orderNumber) tdMap.orderNumber.value = row.orderNumber;
     }
     if (tdMap.day) tdMap.day.value = row.day;
