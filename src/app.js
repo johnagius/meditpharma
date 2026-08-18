@@ -24,6 +24,7 @@ import {
   dateCompact,
   dateCompact4,
   isDatePrefixedMerchant,
+  isActivaMerchant,
   isPdmsMerchant,
   orderNumberForMerchant,
   setWeekdayWithinWeek,
@@ -1990,7 +1991,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
     trackingRows = orders.map((o, idx) => {
       let { orderId } = o;
-      if (isPdmsMerchant(o.merchant)) {
+      if (isActivaMerchant(o.merchant)) {
+        // Build "ddmmyy-N" using the order date from the PDF (not today's date).
+        const prefixDate = o.orderDate instanceof Date ? o.orderDate : today;
+        orderId = `${dateCompact(prefixDate)}-${o.orderId}`;
+      } else if (isPdmsMerchant(o.merchant)) {
         // Reuse the saved row's number if this PDF was saved before; else assign
         // the next sequence for this date.
         const existing = o.dedupKey && savedByDedup.get(String(o.dedupKey));
@@ -2000,11 +2005,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         else if (exMatchLeg) orderId = `Order ${exMatchLeg[1]}`;
         else { pdmsSeq += 1; orderId = `Order ${pdmsSeq}`; }
       }
-      const rowDate = o.orderDate instanceof Date ? o.orderDate : today;
       const row = buildTrackingRow(
         { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant, orderId },
         idx,
-        rowDate,
+        today,
         activeHs
       );
       row._origin = 'order';
@@ -3132,15 +3136,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     row.isoDate = toISODate(date);
     row.date = formatDateDDMMYY(date);
     row.day = weekdayName(date);
-    // Activa and PDMS order numbers carry a date prefix (ddmmyyyy-<suffix>), so
-    // they re-derive when the Date changes. Other merchants use the PDF order
-    // number verbatim and are left untouched.
-    if (isDatePrefixedMerchant(row.merchant)) {
-      const dash = String(row.orderNumber).indexOf('-');
-      const suffix = dash >= 0 ? String(row.orderNumber).slice(dash + 1) : '';
-      row.orderNumber = suffix ? `${dateCompact(date)}-${suffix}` : dateCompact(date);
-      if (tdMap.orderNumber) tdMap.orderNumber.value = row.orderNumber;
-    }
+    // Activa order numbers are "ddmmyy-N" where the date prefix is the ORDER date
+    // from the PDF — not the dispatch date — so we don't auto-update them when the
+    // user changes the dispatch date. The order number stays as initially set.
+    // (isDatePrefixedMerchant is now always false; kept for future use.)
     if (tdMap.day) tdMap.day.value = row.day;
     if (tdMap.date && !fromCalendar) tdMap.date.value = row.isoDate;
   }

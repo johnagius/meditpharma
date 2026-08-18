@@ -110,7 +110,7 @@ export function isPdmsMerchant(merchant) {
 //  - Activa: suffix is the PDF order number.
 //  - PDMS:   suffix is a generated per-date sequence (computed in app.js).
 export function isDatePrefixedMerchant(merchant) {
-  return isActivaMerchant(merchant);
+  return false; // Activa and PDMS order numbers are now fully built in app.js
 }
 
 // Order-number strategy by merchant:
