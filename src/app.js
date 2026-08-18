@@ -617,7 +617,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       });
     }
     if (autosaveOn('rows')) {
-      trackingRows.forEach((r) => { if (!r.id) saveRow(r, { silent: true }); });
+      const saves = trackingRows
+        .filter((r) => !r.id)
+        .map((r) => saveRow(r, { silent: true }));
+      if (saves.length) Promise.allSettled(saves).then(() => renderAllTracking());
     }
     // Surface a flashing CTA (instead of an interrupting popup) to add the
     // freshly parsed orders to the stock movement sheet.
