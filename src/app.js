@@ -2000,10 +2000,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
         else if (exMatchLeg) orderId = `Order ${exMatchLeg[1]}`;
         else { pdmsSeq += 1; orderId = `Order ${pdmsSeq}`; }
       }
+      const rowDate = o.orderDate instanceof Date ? o.orderDate : today;
       const row = buildTrackingRow(
         { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant, orderId },
         idx,
-        today,
+        rowDate,
         activeHs
       );
       row._origin = 'order';

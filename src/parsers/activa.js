@@ -31,6 +31,12 @@ export function parse(text) {
   const idMatch = text.match(/^ORDER\s*#?\s*(\d+)\b/im);
   const orderId = idMatch ? idMatch[1] : '';
 
+  // Order date printed below the ORDER line, e.g. "13.05.2026" or "17.08.2026".
+  const dateMatch = text.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b/);
+  const orderDate = dateMatch
+    ? new Date(Number(dateMatch[3]), Number(dateMatch[2]) - 1, Number(dateMatch[1]))
+    : null;
+
   const block = [];
   for (let i = start + 1; i < lines.length; i++) {
     const line = lines[i];
@@ -94,6 +100,7 @@ export function parse(text) {
   return {
     source: 'activa',
     orderId,
+    orderDate,
     recipient: {
       name,
       line1,

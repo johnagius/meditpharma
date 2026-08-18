@@ -2732,7 +2732,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-08-14 14:33 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-08-18 09:05 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -4082,6 +4082,12 @@ function parse(text) {
   const idMatch = text.match(/^ORDER\s*#?\s*(\d+)\b/im);
   const orderId = idMatch ? idMatch[1] : '';
 
+  // Order date printed below the ORDER line, e.g. "13.05.2026" or "17.08.2026".
+  const dateMatch = text.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b/);
+  const orderDate = dateMatch
+    ? new Date(Number(dateMatch[3]), Number(dateMatch[2]) - 1, Number(dateMatch[1]))
+    : null;
+
   const block = [];
   for (let i = start + 1; i < lines.length; i++) {
     const line = lines[i];
@@ -4145,6 +4151,7 @@ function parse(text) {
   return {
     source: 'activa',
     orderId,
+    orderDate,
     recipient: {
       name,
       line1,
@@ -6668,10 +6675,11 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         else if (exMatchLeg) orderId = `Order ${exMatchLeg[1]}`;
         else { pdmsSeq += 1; orderId = `Order ${pdmsSeq}`; }
       }
+      const rowDate = o.orderDate instanceof Date ? o.orderDate : today;
       const row = buildTrackingRow(
         { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant, orderId },
         idx,
-        today,
+        rowDate,
         activeHs
       );
       row._origin = 'order';

@@ -44,6 +44,7 @@ describe('PDF parsers', () => {
     const o = orders[0];
     expect(o.source).toBe('activa');
     expect(o.orderId).toBe('1'); // "ORDER 1" in the PDF
+    expect(o.orderDate).toEqual(new Date(2026, 4, 13)); // 13.05.2026
     expect(o.recipient.name).toBe('Desire Layfield');
     expect(o.recipient.line1).toBe('5422 Cumming Hwy NE');
     expect(o.recipient.line2).toBe('Ste 104');
