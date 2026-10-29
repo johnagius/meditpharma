@@ -110,7 +110,7 @@ export function isPdmsMerchant(merchant) {
 //  - Activa: suffix is the PDF order number.
 //  - PDMS:   suffix is a generated per-date sequence (computed in app.js).
 export function isDatePrefixedMerchant(merchant) {
-  return isActivaMerchant(merchant) || isPdmsMerchant(merchant);
+  return false; // Activa and PDMS order numbers are now fully built in app.js
 }
 
 // Order-number strategy by merchant:
@@ -121,7 +121,7 @@ export function isDatePrefixedMerchant(merchant) {
 export function orderNumberForMerchant(merchant, orderId, date) {
   const id = String(orderId || '').trim();
   if (isDatePrefixedMerchant(merchant)) {
-    return id ? `${dateCompact4(date)}-${id}` : dateCompact4(date);
+    return id ? `${dateCompact(date)}-${id}` : dateCompact(date);
   }
   return id;
 }
@@ -179,7 +179,9 @@ export function extractDose(text) {
   let unit = m[2].toLowerCase();
   if (unit === 'iu' || unit === 'ius') unit = 'IU';
   else if (unit === 'unit' || unit === 'units') unit = 'u';
-  return `${m[1]}${unit}`;
+  // mg / ml / mcg get a space for readability ("50 mg"); u / IU stay compact ("100u").
+  const sep = (unit === 'mg' || unit === 'ml' || unit === 'mcg') ? ' ' : '';
+  return `${m[1]}${sep}${unit}`;
 }
 
 // Pull a parenthesised language/country marker like "(ENG)", "(NON-ENG)",

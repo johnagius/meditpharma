@@ -47,7 +47,7 @@ export const PRODUCTS = [
   { key: 'lucrin',     label: 'Lucrin Depot', mid: 'NLABB9HOO',        country: 'NL', patterns: [/lucrin/i, /leuprorelin/i] },
 
   // ── Oncology ─────────────────────────────────────────────────────────────
-  { key: 'verzenios',      label: 'Verzenios 150mg', mid: 'CHELILIL16GEN',  country: 'CH', patterns: [/verzenios/i, /abemaciclib/i] },
+  { key: 'verzenios',      label: 'Verzenios',       mid: 'CHELILIL16GEN',  country: 'CH', patterns: [/verzenios/i, /abemaciclib/i] },
   { key: 'verzenio-es',    label: 'Verzenio (ES)',    mid: 'ESLILLY30MAD',   country: 'ES', patterns: [/\bverzenio\b/i] },
   { key: 'tagrisso',       label: 'Tagrisso',         mid: 'SEAST15185SOD',  country: 'SE', patterns: [/tagrisso/i] },
   { key: 'osimertinib',    label: 'Osimertinib 80mg', mid: 'SEASTAB18SOD',   country: 'SE', patterns: [/osimertinib/i] },

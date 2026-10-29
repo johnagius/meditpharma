@@ -22,6 +22,7 @@ const MODULE_ORDER = [
   'parsers/activa.js',
   'parsers/dh.js',
   'parsers/k2.js',
+  'parsers/occ.js',
   'parsers/pdms.js',
   'parsers/secil.js',
   'parsers/index.js',
@@ -44,6 +45,7 @@ const NAMESPACES = {
   'parsers/activa.js': 'ParserActiva',
   'parsers/dh.js': 'ParserDh',
   'parsers/k2.js': 'ParserK2',
+  'parsers/occ.js': 'ParserOcc',
   'parsers/pdms.js': 'ParserPdms',
   'parsers/secil.js': 'ParserSecil',
   'parsers/index.js': 'ParserIndex',
@@ -77,6 +79,7 @@ const IMPORT_TO_NS = {
   './activa.js': 'ParserActiva',
   './dh.js': 'ParserDh',
   './k2.js': 'ParserK2',
+  './occ.js': 'ParserOcc',
   './pdms.js': 'ParserPdms',
   './secil.js': 'ParserSecil',
 };

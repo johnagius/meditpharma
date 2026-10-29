@@ -8,7 +8,7 @@
 //      system (a new learned example is stored).
 
 export const DEFAULT_MERCHANTS = [
-  'David Hitchen', 'Activa', 'Secil', 'Krypton 2', 'PDMS', 'PHCHIC',
+  'David Hitchen', 'Activa', 'Secil', 'Krypton 2', 'PDMS', 'PHCHIC', 'OCC',
 ];
 
 // Seeded knowledge: parser source -> merchant. The k2 / "ORDER #" format is
@@ -16,6 +16,7 @@ export const DEFAULT_MERCHANTS = [
 export const SOURCE_TO_MERCHANT = {
   activa: 'Activa',
   dh: 'David Hitchen',
+  occ: 'OCC',
   pdms: 'PDMS',
   secil: 'Secil',
   k2: 'Krypton 2',

@@ -21,8 +21,10 @@ import {
   parseFlexibleDate,
   formatDateDDMMYY,
   weekdayName,
+  dateCompact,
   dateCompact4,
   isDatePrefixedMerchant,
+  isActivaMerchant,
   isPdmsMerchant,
   orderNumberForMerchant,
   setWeekdayWithinWeek,
@@ -615,7 +617,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       });
     }
     if (autosaveOn('rows')) {
-      trackingRows.forEach((r) => { if (!r.id) saveRow(r, { silent: true }); });
+      const saves = trackingRows
+        .filter((r) => !r.id)
+        .map((r) => saveRow(r, { silent: true }));
+      if (saves.length) Promise.allSettled(saves).then(() => renderAllTracking());
     }
     // Surface a flashing CTA (instead of an interrupting popup) to add the
     // freshly parsed orders to the stock movement sheet.
@@ -1956,14 +1961,17 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     });
   }
 
-  // Highest N among "prefix-N" order numbers of saved PDMS rows for a date.
+  // Highest N among "Order N" (or legacy "prefix-N") order numbers of saved PDMS rows.
   function maxPdmsSeq(prefix, rows) {
-    const re = new RegExp(`^${prefix}-(\\d+)$`);
+    const reNew = /^Order\s+(\d+)$/i;
+    const reLeg = new RegExp(`^${prefix}-(\\d+)$`);
     let max = 0;
     for (const r of rows || []) {
       if (!isPdmsMerchant(r.merchant)) continue;
-      const m = String(r.orderNumber || '').match(re);
-      if (m) max = Math.max(max, Number(m[1]));
+      const mNew = String(r.orderNumber || '').match(reNew);
+      const mLeg = String(r.orderNumber || '').match(reLeg);
+      const n = mNew ? Number(mNew[1]) : (mLeg ? Number(mLeg[1]) : 0);
+      if (n) max = Math.max(max, n);
     }
     return max;
   }
@@ -1986,13 +1994,19 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
 
     trackingRows = orders.map((o, idx) => {
       let { orderId } = o;
-      if (isPdmsMerchant(o.merchant)) {
+      if (isActivaMerchant(o.merchant)) {
+        // Build "ddmmyy-N" using the order date from the PDF (not today's date).
+        const prefixDate = o.orderDate instanceof Date ? o.orderDate : today;
+        orderId = `${dateCompact(prefixDate)}-${o.orderId}`;
+      } else if (isPdmsMerchant(o.merchant)) {
         // Reuse the saved row's number if this PDF was saved before; else assign
         // the next sequence for this date.
         const existing = o.dedupKey && savedByDedup.get(String(o.dedupKey));
-        const exMatch = existing && String(existing.orderNumber || '').match(new RegExp(`^${prefix}-(\\d+)$`));
-        if (exMatch) orderId = exMatch[1];
-        else { pdmsSeq += 1; orderId = String(pdmsSeq); }
+        const exMatchNew = existing && String(existing.orderNumber || '').match(/^Order\s+(\d+)$/i);
+        const exMatchLeg = existing && String(existing.orderNumber || '').match(new RegExp(`^${prefix}-(\\d+)$`));
+        if (exMatchNew) orderId = `Order ${exMatchNew[1]}`;
+        else if (exMatchLeg) orderId = `Order ${exMatchLeg[1]}`;
+        else { pdmsSeq += 1; orderId = `Order ${pdmsSeq}`; }
       }
       const row = buildTrackingRow(
         { recipient: o.recipient, products: resolveProducts(o), merchant: o.merchant, orderId },
@@ -3125,15 +3139,10 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     row.isoDate = toISODate(date);
     row.date = formatDateDDMMYY(date);
     row.day = weekdayName(date);
-    // Activa and PDMS order numbers carry a date prefix (ddmmyyyy-<suffix>), so
-    // they re-derive when the Date changes. Other merchants use the PDF order
-    // number verbatim and are left untouched.
-    if (isDatePrefixedMerchant(row.merchant)) {
-      const dash = String(row.orderNumber).indexOf('-');
-      const suffix = dash >= 0 ? String(row.orderNumber).slice(dash + 1) : '';
-      row.orderNumber = suffix ? `${dateCompact4(date)}-${suffix}` : dateCompact4(date);
-      if (tdMap.orderNumber) tdMap.orderNumber.value = row.orderNumber;
-    }
+    // Activa order numbers are "ddmmyy-N" where the date prefix is the ORDER date
+    // from the PDF — not the dispatch date — so we don't auto-update them when the
+    // user changes the dispatch date. The order number stays as initially set.
+    // (isDatePrefixedMerchant is now always false; kept for future use.)
     if (tdMap.day) tdMap.day.value = row.day;
     if (tdMap.date && !fromCalendar) tdMap.date.value = row.isoDate;
   }
