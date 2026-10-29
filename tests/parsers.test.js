@@ -194,6 +194,21 @@ describe('PDF parsers', () => {
     expect(o.productText).toBe('Jardiance 25 mg');
   });
 
+  it('parses an OCC packing-slip PDF text', () => {
+    const orders = dispatch(fixture('occ.txt'));
+    expect(orders).toHaveLength(1);
+    const o = orders[0];
+    expect(o.source).toBe('occ');
+    expect(o.orderId).toBe('313310');
+    expect(o.recipient.name).toBe('JACKIE HORST');
+    expect(o.recipient.line1).toBe('260 ROSEGLEN RD');
+    expect(o.recipient.city).toBe('DUNCANNON');
+    expect(o.recipient.state).toBe('PA');
+    expect(o.recipient.postcode).toBe('17020-9737');
+    expect(o.productText).toMatch(/Mounjaro/i);
+    expect(detectProduct(o.productText).key).toBe('mounjaro');
+  });
+
   it('parses a Secil short-order PDF text', () => {
     const orders = dispatch(fixture('secil.txt'));
     expect(orders).toHaveLength(1);
