@@ -19,16 +19,14 @@ export async function readPdfText(file, pdfjsLib, { onProgress } = {}) {
 
 async function ocrPdf(buf, pdf, pdfjsLib, { onProgress } = {}) {
   // Lazy-load Tesseract.js from CDN only when needed.
-  const { createWorker } = await import(
+  if (onProgress) onProgress('OCR: loading engine…');
+  const mod = await import(
     'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js'
   );
-  if (onProgress) onProgress('OCR: loading engine…');
-  const worker = await createWorker('eng', 1, {
-    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core.wasm.js',
-    logger: () => {},
-  });
+  // v5 ESM build: named export or on the default object
+  const createWorker = mod.createWorker ?? mod.default?.createWorker;
+  if (typeof createWorker !== 'function') throw new Error('Tesseract.js failed to load');
+  const worker = await createWorker('eng');
   const pageTexts = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     if (onProgress) onProgress(`OCR: page ${i}/${pdf.numPages}…`);
