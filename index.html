@@ -2734,7 +2734,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-10 07:26 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-10 07:43 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -4478,9 +4478,14 @@ function parse(text) {
 
 // === parsers/k2packing.js ===
 const ParserK2Packing = (function () {
-// Parser for K2 packing-slip PDFs (image-only, OCR'd).
-// Format: "PACKING SLIP: 353767" header, labeled address fields (no colons),
-// product table with columns: Product | Batch Number | Expiry Date | Qty.
+// Parser for K2 packing-slip PDFs — both text-extracted and OCR'd.
+// Header: "PACKING SLIP: N", labeled address fields.
+//
+// Two column-layout variants of the product table:
+//   OCR:          "Product  Batch Number  Expiry Date  Qty" on ONE merged line;
+//                 each data row is also a single merged line.
+//   Text-based:   "Product" alone on its own line; each column value on its own
+//                 line (pdftotext reflow).  Qty may appear after Marketing Notes.
 
 function detect(text) {
   return /PACKING\s+SLIP\s*[:\-]\s*\d+/i.test(text);
@@ -4490,63 +4495,133 @@ function cleanPhone(raw) {
   return String(raw || '').replace(/[^0-9+]/g, '');
 }
 
-// Extract a labeled field that may or may not have a colon after the key.
-// e.g. "Name   Ian M Kahane" or "Name: Ian M Kahane"
-function field(text, key) {
-  const m = text.match(new RegExp(String.raw`^${key}\s*:?\s+(.+)$`, 'im'));
+function fieldVal(block, key) {
+  // Matches "Name   Value" (text-extracted) or "Name: Value" (OCR with colon)
+  const m = block.match(new RegExp(String.raw`^${key}\s*:?\s+(.+)$`, 'im'));
   return m ? m[1].trim() : '';
+}
+
+// Batch token: 0–4 uppercase letters + 4+ digits (e.g. X25118, D1158C4, PV9228, 3049556)
+// Also matches "* 3049556" (asterisk prefix in some PDFs)
+function isBatch(s) {
+  return /^[A-Z]{0,4}\d{4,}[A-Z0-9]*$/i.test(s.replace(/^[\*\s]+/, ''));
+}
+function isExpiry(s) {
+  return /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}$/i.test(s);
+}
+// Standalone quantity: 1–3 pure digits on their own line
+function isQty(s) {
+  return /^\d{1,3}$/.test(s);
+}
+function isNoise(s) {
+  return (
+    s.length <= 1 ||
+    /^(Product|Batch\s+Number|Expiry\s+Date|Qty|Packaging|Courier|Weight|Name|Address|City|State|Country|Zip|Phone|Email|Order|Summary|Total\s+Parcels|Cold\s+Chain|Ambient|Couriers|Products|Warehouser)$/i.test(s) ||
+    /^(Shipping\s+note|Marketing\s+Notes)/i.test(s) ||
+    /^K2\s*[-–]\s*\d/i.test(s) ||
+    /^(Fedex|UPS|DHL|DPD)$/i.test(s)
+  );
+}
+
+// OCR format: "Product Batch Number Expiry Date Qty" on one merged header line;
+// every data row is also a single merged line like:
+//   "NABOTA® 200u * X25118 Dec 21, 2028 2"
+// Strip batch codes and expiry dates; trailing 1–3-digit number = qty.
+function extractProductsOCR(block) {
+  const lines = block.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const headerIdx = lines.findIndex((l) => /Product\s+Batch\s+Number/i.test(l));
+  const dataLines = headerIdx >= 0 ? lines.slice(headerIdx + 1) : [];
+
+  return dataLines
+    .filter((l) => !/^(Shipping\s+note|Marketing\s+Notes)/i.test(l) && l.length > 10)
+    .map((line) => {
+      let text = line
+        .replace(/\b[A-Z]{0,4}\d{4,}[A-Z0-9]*\b/gi, '')
+        .replace(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const qtyMatch = text.match(/\s(\d{1,3})\s*$/);
+      const qty = qtyMatch ? qtyMatch[1] : '1';
+      text = text
+        .replace(/\s*\*\s*$/, '')
+        .replace(/\s+\d{1,3}\s*$/, '')
+        .trim();
+      return { productText: text, qty };
+    })
+    .filter((item) => item.productText.length > 3);
+}
+
+// Text-based format: "Product" alone on one line; each field on its own line.
+// Products appear before the first batch code.
+// Quantities appear as standalone digits — either inline after each batch group
+// (multi-product) or after "Marketing Notes:" (single-product reflow).
+function extractProductsTextBased(block) {
+  const lines = block.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const headerIdx = lines.findIndex((l) => /^Product$/i.test(l));
+  const tableLines = headerIdx >= 0 ? lines.slice(headerIdx + 1) : lines;
+
+  const productNames = [];
+  const quantities = [];
+  let pastFirstBatch = false;
+
+  for (const line of tableLines) {
+    // isQty must come first: a single digit like "6" has length 1 and would
+    // otherwise be swallowed by the length guard inside isNoise.
+    if (isQty(line)) { quantities.push(line); continue; }
+    if (isNoise(line)) continue;
+    if (isBatch(line)) { pastFirstBatch = true; continue; }
+    if (isExpiry(line)) continue;
+    if (!pastFirstBatch) productNames.push(line);
+  }
+
+  // Merge continuation lines: starts with lowercase or digit (wrapped product name)
+  const merged = [];
+  for (const name of productNames) {
+    if (merged.length > 0 && /^[a-z0-9(]/.test(name)) {
+      merged[merged.length - 1] += ' ' + name;
+    } else {
+      merged.push(name);
+    }
+  }
+
+  return merged.map((text, i) => ({
+    productText: text.replace(/\s*\*\s*$/, '').trim(),
+    qty: quantities[i] || '1',
+  }));
+}
+
+function extractProducts(block) {
+  // OCR variant: product table header columns are merged on one line
+  if (/Product\s+Batch\s+Number/i.test(block)) {
+    return extractProductsOCR(block);
+  }
+  // Text-extracted variant: each field on its own line
+  return extractProductsTextBased(block);
 }
 
 function parseSlip(block) {
   const slipMatch = block.match(/PACKING\s+SLIP\s*[:\-]\s*(\d+)/i);
-  const slipId = slipMatch ? slipMatch[1] : '';
+  if (!slipMatch) return null;
+  const slipId = slipMatch[1]; // unique packing-slip number per shipment
 
-  const orderId = field(block, 'Order');
-  const name = field(block, 'Name');
-  const address = field(block, 'Address');
-  const city = field(block, 'City');
-  const state = field(block, 'State');
-  const zip = field(block, 'Zip');
-  const country = /united states/i.test(field(block, 'Country')) ? 'US' : (field(block, 'Country') || 'US');
-  const phone = cleanPhone(field(block, 'Phone'));
-  const email = field(block, 'Email');
+  const name    = fieldVal(block, 'Name');
+  const address = fieldVal(block, 'Address');
+  const city    = fieldVal(block, 'City');
+  const state   = fieldVal(block, 'State');
+  const zip     = fieldVal(block, 'Zip');
+  const country = /united states/i.test(fieldVal(block, 'Country')) ? 'US' : (fieldVal(block, 'Country') || 'US');
+  const phone   = cleanPhone(fieldVal(block, 'Phone'));
+  const email   = fieldVal(block, 'Email');
 
-  // Product table: lines after the header row "Product … Batch Number … Qty"
-  // Each product row: "<product text> <batch> <Mon DD, YYYY> <qty>"
-  // Strip batch (alphanumeric like D1158C4) and expiry (Mon DD, YYYY) from end,
-  // leaving product text + trailing qty.
-  const headerIdx = block.search(/Product\s+Batch\s+Number/i);
-  const productArea = headerIdx >= 0 ? block.slice(headerIdx) : block;
+  if (!name) return null;
 
-  // Skip the header line, then collect non-empty non-noise lines until shipping/marketing note
-  const tableLines = productArea
-    .split(/\r?\n/)
-    .slice(1) // drop header
-    .map((l) => l.trim())
-    .filter((l) => l.length > 2 && !/^(Batch|Product|Expiry|Shipping|Marketing|Packaging|Courier|Weight|Name|Address|City|State|Country|Zip|Phone|Email|Order)\b/i.test(l));
-
-  const items = [];
-  for (const line of tableLines) {
-    // Strip trailing expiry date  "Mon DD, YYYY" or "Mon DD YYYY"
-    const noExpiry = line.replace(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}\b/i, '').trim();
-    // Strip batch number (all-caps/digits token like D1158C4, X25118, PV9228)
-    const noBatch = noExpiry.replace(/\b[A-Z]{1,3}\d{4,}[A-Z0-9]*\b/, '').trim();
-    // The trailing token should be the qty
-    const qtyMatch = noBatch.match(/\s+(\d+)\s*$/);
-    if (!qtyMatch) continue;
-    const qty = qtyMatch[1];
-    const productText = noBatch.slice(0, noBatch.length - qtyMatch[0].length).replace(/\s*\*\s*$/, '').trim();
-    if (productText.length > 3) items.push({ productText, qty });
-  }
-
-  if (!name && !orderId) return null;
-
-  const productText = items.length ? items[0].productText : '';
+  const items = extractProducts(block);
+  const productText  = items.length ? items[0].productText : '';
   const productLines = items.map((it) => `${it.qty} x ${it.productText}`);
 
   return {
     source: 'k2packing',
-    orderId: orderId || slipId,
+    orderId: slipId, // slip number is unique; order number may be shared across slips
     recipient: { name, line1: address, line2: '', city, state, postcode: zip, country, phone, email },
     productText,
     productLines,
@@ -4555,8 +4630,9 @@ function parseSlip(block) {
 }
 
 function parse(text) {
-  // Split into individual slips on each "PACKING SLIP:" header
-  const parts = text.split(/(?=PACKING\s+SLIP\s*[:\-]\s*\d+)/i).filter((p) => /PACKING\s+SLIP/i.test(p));
+  const parts = text
+    .split(/(?=PACKING\s+SLIP\s*[:\-]\s*\d+)/i)
+    .filter((p) => /PACKING\s+SLIP/i.test(p));
   if (!parts.length) return null;
   const orders = parts.map(parseSlip).filter(Boolean);
   if (!orders.length) return null;

@@ -215,7 +215,7 @@ describe('PDF parsers', () => {
     const linette = orders.find((o) => o.recipient.name === 'Linette Nawrocki');
     expect(linette).toBeDefined();
     expect(linette.source).toBe('k2packing');
-    expect(linette.orderId).toBe('10120646');
+    expect(linette.orderId).toBe('353767'); // slip number, unique per shipment
     expect(linette.recipient.city).toBe('Old Bridge');
     expect(linette.recipient.state).toBe('NJ');
     expect(linette.recipient.postcode).toBe('08857');
@@ -232,6 +232,32 @@ describe('PDF parsers', () => {
     expect(ian).toBeDefined();
     expect(ian.productLines[0]).toMatch(/^6 x/);
     expect(detectProduct(ian.productText).key).toBe('jubbonti');
+  });
+
+  it('parses a K2 packing-slip (text-based format) with 6 slips including 3 same-order', () => {
+    const orders = dispatch(fixture('k2packing-text.txt'));
+    expect(orders).toHaveLength(6);
+    // Each slip gets a unique orderId (the slip number), so same-order Ian slips are NOT deduped
+    const ianOrders = orders.filter((o) => o.recipient.name === 'Ian M Kahane');
+    expect(ianOrders).toHaveLength(3);
+    expect(ianOrders.map((o) => o.orderId).sort()).toEqual(['353752', '353755', '353756']);
+    // qty should be distinct: 6, 6, 8
+    const ianQtys = ianOrders.map((o) => o.productLines[0]).sort();
+    expect(ianQtys).toContain('6 x Jubbonti® 60mg 60 / mg/ml 1 / pre-filled syringe(s)');
+    expect(ianOrders.map((o) => o.productLines[0]).filter((l) => /^8 x/.test(l))).toHaveLength(1);
+    // Brandi has two products
+    const brandi = orders.find((o) => o.recipient.name === 'Brandi Faudree');
+    expect(brandi.productLines).toHaveLength(2);
+    expect(brandi.productLines[0]).toMatch(/^1 x.*BOTOX/i);
+    expect(brandi.productLines[1]).toMatch(/^1 x.*NABOTA/i);
+    // Linette: Nabota x2
+    const linette = orders.find((o) => o.recipient.name === 'Linette Nawrocki');
+    expect(linette.orderId).toBe('353767');
+    expect(linette.productLines[0]).toBe('2 x NABOTA® (JEUVEAU®) 200u 200u 1 x 200 Units Vial');
+    // Gardasil: qty 3, no batch number in product text
+    const robert = orders.find((o) => o.recipient.name === 'Robert Bjork');
+    expect(robert.productLines[0]).toMatch(/^3 x/);
+    expect(robert.productLines[0]).toMatch(/GARDASIL/i);
   });
 
   it('parses a Secil short-order PDF text', () => {
