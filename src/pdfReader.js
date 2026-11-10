@@ -18,14 +18,18 @@ export async function readPdfText(file, pdfjsLib, { onProgress } = {}) {
 }
 
 async function ocrPdf(buf, pdf, pdfjsLib, { onProgress } = {}) {
-  // Lazy-load Tesseract.js from CDN only when needed.
+  // Lazy-load Tesseract.js from CDN only when needed (UMD build → window.Tesseract).
   if (onProgress) onProgress('OCR: loading engine…');
-  const mod = await import(
-    'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js'
-  );
-  // v5 ESM build: named export or on the default object
-  const createWorker = mod.createWorker ?? mod.default?.createWorker;
-  if (typeof createWorker !== 'function') throw new Error('Tesseract.js failed to load');
+  if (!window.Tesseract) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('Could not load Tesseract.js from CDN'));
+      document.head.appendChild(s);
+    });
+  }
+  const { createWorker } = window.Tesseract;
   const worker = await createWorker('eng');
   const pageTexts = [];
   for (let i = 1; i <= pdf.numPages; i++) {
