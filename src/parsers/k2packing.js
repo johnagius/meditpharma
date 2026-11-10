@@ -27,7 +27,8 @@ function isBatch(s) {
   return /^[A-Z]{0,4}\d{4,}[A-Z0-9]*$/i.test(s.replace(/^[\*\s]+/, ''));
 }
 function isExpiry(s) {
-  return /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}$/i.test(s);
+  // Match full "Apr 30, 2028" or partial "Apr 30," (year on separate line in text-based PDFs)
+  return /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?(\s+\d{4})?$/i.test(s);
 }
 // Standalone quantity: 1–3 pure digits on their own line
 function isQty(s) {
@@ -36,6 +37,7 @@ function isQty(s) {
 function isNoise(s) {
   return (
     s.length <= 1 ||
+    /^\d{4}$/.test(s) || // standalone year like "2028"
     /^(Product|Batch\s+Number|Expiry\s+Date|Qty|Packaging|Courier|Weight|Name|Address|City|State|Country|Zip|Phone|Email|Order|Summary|Total\s+Parcels|Cold\s+Chain|Ambient|Couriers|Products|Warehouser)$/i.test(s) ||
     /^(Shipping\s+note|Marketing\s+Notes)/i.test(s) ||
     /^K2\s*[-–]\s*\d/i.test(s) ||
@@ -83,8 +85,15 @@ function extractProductsTextBased(block) {
   const productNames = [];
   const quantities = [];
   let pastFirstBatch = false;
+  let inShippingNote = false;
 
   for (const line of tableLines) {
+    if (/^Shipping\s+note/i.test(line)) { inShippingNote = true; continue; }
+    if (inShippingNote) {
+      // Stop skipping once we hit the next section header
+      if (/^Marketing\s+Notes/i.test(line)) { inShippingNote = false; }
+      continue;
+    }
     // isQty must come first: a single digit like "6" has length 1 and would
     // otherwise be swallowed by the length guard inside isNoise.
     if (isQty(line)) { quantities.push(line); continue; }
