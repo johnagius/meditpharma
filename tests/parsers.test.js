@@ -209,6 +209,31 @@ describe('PDF parsers', () => {
     expect(detectProduct(o.productText).key).toBe('mounjaro');
   });
 
+  it('parses a K2 packing-slip (OCR format) with multiple slips', () => {
+    const orders = dispatch(fixture('k2packing.txt'));
+    expect(orders.length).toBeGreaterThanOrEqual(3);
+    const linette = orders.find((o) => o.recipient.name === 'Linette Nawrocki');
+    expect(linette).toBeDefined();
+    expect(linette.source).toBe('k2packing');
+    expect(linette.orderId).toBe('10120646');
+    expect(linette.recipient.city).toBe('Old Bridge');
+    expect(linette.recipient.state).toBe('NJ');
+    expect(linette.recipient.postcode).toBe('08857');
+    expect(linette.recipient.phone).toBe('9082208689');
+    expect(linette.productLines).toHaveLength(1);
+    expect(linette.productLines[0]).toMatch(/^2 x/);
+    expect(detectProduct(linette.productText).key).toBe('nabota');
+    const brandi = orders.find((o) => o.recipient.name === 'Brandi Faudree');
+    expect(brandi).toBeDefined();
+    expect(brandi.productLines).toHaveLength(2);
+    expect(brandi.productLines[0]).toMatch(/^1 x.*BOTOX/i);
+    expect(brandi.productLines[1]).toMatch(/^1 x.*NABOTA/i);
+    const ian = orders.find((o) => o.recipient.name === 'Ian M Kahane');
+    expect(ian).toBeDefined();
+    expect(ian.productLines[0]).toMatch(/^6 x/);
+    expect(detectProduct(ian.productText).key).toBe('jubbonti');
+  });
+
   it('parses a Secil short-order PDF text', () => {
     const orders = dispatch(fixture('secil.txt'));
     expect(orders).toHaveLength(1);

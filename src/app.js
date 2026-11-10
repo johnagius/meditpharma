@@ -575,7 +575,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     const today = new Date();
     for (const file of pdfs) {
       try {
-        const text = await readPdfText(file, pdfjsLib);
+        const text = await readPdfText(file, pdfjsLib, { onProgress: (msg) => setStatus(msg) });
         const parsed = dispatch(text);
         if (!parsed.length) {
           setStatus(`${file.name}: format not recognised.`, 'err');

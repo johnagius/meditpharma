@@ -1,4 +1,4 @@
-export async function readPdfText(file, pdfjsLib) {
+export async function readPdfText(file, pdfjsLib, { onProgress } = {}) {
   const buf = await file.arrayBuffer();
   const loadingTask = pdfjsLib.getDocument({ data: buf });
   const pdf = await loadingTask.promise;
@@ -8,7 +8,41 @@ export async function readPdfText(file, pdfjsLib) {
     const content = await page.getTextContent();
     pages.push(renderPage(content));
   }
-  return pages.join('\n');
+  const text = pages.join('\n');
+
+  // If the PDF yielded no meaningful text it is image-only — try OCR.
+  if (text.replace(/\s/g, '').length < 50) {
+    return ocrPdf(buf, pdf, pdfjsLib, { onProgress });
+  }
+  return text;
+}
+
+async function ocrPdf(buf, pdf, pdfjsLib, { onProgress } = {}) {
+  // Lazy-load Tesseract.js from CDN only when needed.
+  const { createWorker } = await import(
+    'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js'
+  );
+  if (onProgress) onProgress('OCR: loading engine…');
+  const worker = await createWorker('eng', 1, {
+    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core.wasm.js',
+    logger: () => {},
+  });
+  const pageTexts = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    if (onProgress) onProgress(`OCR: page ${i}/${pdf.numPages}…`);
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    const { data: { text } } = await worker.recognize(canvas);
+    pageTexts.push(text);
+  }
+  await worker.terminate();
+  return pageTexts.join('\n');
 }
 
 function renderPage(content) {

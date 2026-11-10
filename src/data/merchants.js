@@ -20,6 +20,7 @@ export const SOURCE_TO_MERCHANT = {
   pdms: 'PDMS',
   secil: 'Secil',
   k2: 'Krypton 2',
+  k2packing: 'Krypton 2',
 };
 
 // Only generic glue words are filtered — the template label words
