@@ -2734,7 +2734,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-10 09:15 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-10 09:20 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -5609,7 +5609,12 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
           continue;
         }
         for (const order of parsed) {
-          const product = detect(order.productText) || detect(text);
+          // For multi-slip parsers (k2packing) the whole-PDF fallback picks up
+          // products from OTHER slips in the same file — don't use it.
+          const isMultiSlip = order.source === 'k2packing';
+          const productTextForDetect = order.productText
+            || (order.productLines && order.productLines[0]) || '';
+          const product = detect(productTextForDetect) || (!isMultiSlip ? detect(text) : null);
           const md = detectMerchant(text, { source: order.source, learned: learnedPatterns, merchants: merchantNames() });
           // Use slipId (packing-slip number) when present — it is unique per
           // shipment even when multiple slips share the same order number.

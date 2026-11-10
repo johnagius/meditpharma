@@ -582,7 +582,12 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
           continue;
         }
         for (const order of parsed) {
-          const product = detect(order.productText) || detect(text);
+          // For multi-slip parsers (k2packing) the whole-PDF fallback picks up
+          // products from OTHER slips in the same file — don't use it.
+          const isMultiSlip = order.source === 'k2packing';
+          const productTextForDetect = order.productText
+            || (order.productLines && order.productLines[0]) || '';
+          const product = detect(productTextForDetect) || (!isMultiSlip ? detect(text) : null);
           const md = detectMerchant(text, { source: order.source, learned: learnedPatterns, merchants: merchantNames() });
           // Use slipId (packing-slip number) when present — it is unique per
           // shipment even when multiple slips share the same order number.
