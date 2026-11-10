@@ -1376,6 +1376,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
         <select id="si-name-select" style="min-width:190px;height:32px;font-size:12px">
           <option value="">— Select product —</option>
           <option value="Botox" data-country="IE">Botox</option>
+          <option value="Nabota" data-country="KR">Nabota</option>
           <option value="Xeomin" data-country="DE">Xeomin</option>
           <option value="Azzalure" data-country="GB">Azzalure</option>
           <option value="Dysport" data-country="GB">Dysport</option>
@@ -1420,6 +1421,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
           <option value="Aubagio 14mg" data-country="DE">Aubagio 14mg</option>
           <option value="Filspari 400mg" data-country="CH">Filspari 400mg</option>
           <option value="Jinarc" data-country="NL">Jinarc</option>
+          <option value="Jubbonti" data-country="KR">Jubbonti</option>
           <option value="Hemlibra" data-country="DE">Hemlibra</option>
           <option value="Orencia" data-country="IE">Orencia</option>
           <option value="Crysvita" data-country="NL">Crysvita</option>
@@ -2732,7 +2734,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-10-29 16:07 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-10 07:07 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -3218,6 +3220,7 @@ const ModMid = (function () {
 const PRODUCTS = [
   // ── Botulinum toxins ─────────────────────────────────────────────────────
   { key: 'botox',      label: 'Botox',        mid: 'IEALLPHAWE',       country: 'IE', patterns: [/botox/i, /\bBOT\s*\d+/i] },
+  { key: 'nabota',     label: 'Nabota',       mid: 'KRHUGINC1CHU',     country: 'KR', patterns: [/nabota/i, /jeuveau/i] },
   { key: 'xeomin',     label: 'Xeomin',       mid: 'DEMERPHA100FRA',   country: 'DE', patterns: [/xeomin/i, /\bXEO\s*\d+/i] },
   { key: 'azzalure',   label: 'Azzalure',     mid: 'GBIPSBIOWRE',      country: 'GB', patterns: [/azzalure/i] },
   { key: 'dysport',    label: 'Dysport',      mid: 'GBIPS37LON',       country: 'GB', patterns: [/dysport/i, /\bDYS/i] },
@@ -3276,6 +3279,7 @@ const PRODUCTS = [
   { key: 'jinarc',         label: 'Jinarc',           mid: 'NLOTSPHA292AMS', country: 'NL', patterns: [/jinarc/i, /tolvaptan/i] },
 
   // ── Biologics / immunology ───────────────────────────────────────────────
+  { key: 'jubbonti',   label: 'Jubbonti',     mid: 'KRCELLTRI1ICH',    country: 'KR', patterns: [/jubbonti/i, /ustekinumab/i] },
   { key: 'hemlibra',   label: 'Hemlibra',     mid: 'DEROC1GRE',        country: 'DE', patterns: [/hemlibra/i, /emicizumab/i] },
   { key: 'orencia',    label: 'Orencia',      mid: 'IEBRIMYESQU254DUB', country: 'IE', patterns: [/orencia/i, /abatacept/i] },
   { key: 'crysvita',   label: 'Crysvita',     mid: 'NLKYOKIR2HOO',     country: 'NL', patterns: [/crysvita/i, /burosumab/i] },

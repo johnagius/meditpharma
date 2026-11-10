@@ -1,6 +1,7 @@
 export const PRODUCTS = [
   // ── Botulinum toxins ─────────────────────────────────────────────────────
   { key: 'botox',      label: 'Botox',        mid: 'IEALLPHAWE',       country: 'IE', patterns: [/botox/i, /\bBOT\s*\d+/i] },
+  { key: 'nabota',     label: 'Nabota',       mid: 'KRHUGINC1CHU',     country: 'KR', patterns: [/nabota/i, /jeuveau/i] },
   { key: 'xeomin',     label: 'Xeomin',       mid: 'DEMERPHA100FRA',   country: 'DE', patterns: [/xeomin/i, /\bXEO\s*\d+/i] },
   { key: 'azzalure',   label: 'Azzalure',     mid: 'GBIPSBIOWRE',      country: 'GB', patterns: [/azzalure/i] },
   { key: 'dysport',    label: 'Dysport',      mid: 'GBIPS37LON',       country: 'GB', patterns: [/dysport/i, /\bDYS/i] },
@@ -59,6 +60,7 @@ export const PRODUCTS = [
   { key: 'jinarc',         label: 'Jinarc',           mid: 'NLOTSPHA292AMS', country: 'NL', patterns: [/jinarc/i, /tolvaptan/i] },
 
   // ── Biologics / immunology ───────────────────────────────────────────────
+  { key: 'jubbonti',   label: 'Jubbonti',     mid: 'KRCELLTRI1ICH',    country: 'KR', patterns: [/jubbonti/i, /ustekinumab/i] },
   { key: 'hemlibra',   label: 'Hemlibra',     mid: 'DEROC1GRE',        country: 'DE', patterns: [/hemlibra/i, /emicizumab/i] },
   { key: 'orencia',    label: 'Orencia',      mid: 'IEBRIMYESQU254DUB', country: 'IE', patterns: [/orencia/i, /abatacept/i] },
   { key: 'crysvita',   label: 'Crysvita',     mid: 'NLKYOKIR2HOO',     country: 'NL', patterns: [/crysvita/i, /burosumab/i] },
