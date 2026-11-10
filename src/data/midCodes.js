@@ -60,7 +60,7 @@ export const PRODUCTS = [
   { key: 'jinarc',         label: 'Jinarc',           mid: 'NLOTSPHA292AMS', country: 'NL', patterns: [/jinarc/i, /tolvaptan/i] },
 
   // ── Biologics / immunology ───────────────────────────────────────────────
-  { key: 'jubbonti',   label: 'Jubbonti',     mid: 'KRCELLTRI1ICH',    country: 'KR', patterns: [/jubbonti/i, /ustekinumab/i] },
+  { key: 'jubbonti',   label: 'Jubbonti 60 mg', mid: 'ATNOVPH10LAN',    country: 'AT', patterns: [/jubbonti/i, /ustekinumab/i] },
   { key: 'hemlibra',   label: 'Hemlibra',     mid: 'DEROC1GRE',        country: 'DE', patterns: [/hemlibra/i, /emicizumab/i] },
   { key: 'orencia',    label: 'Orencia',      mid: 'IEBRIMYESQU254DUB', country: 'IE', patterns: [/orencia/i, /abatacept/i] },
   { key: 'crysvita',   label: 'Crysvita',     mid: 'NLKYOKIR2HOO',     country: 'NL', patterns: [/crysvita/i, /burosumab/i] },
