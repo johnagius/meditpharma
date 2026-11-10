@@ -858,6 +858,26 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   }
 
   // Small stable string hash (djb2) for content-based de-dup keys.
+  // Strip date fragments that leaked into product names from old parser bugs.
+  // Removes "Apr 30,", "Dec 21,", standalone years "2028", and shipping note continuations.
+  function cleanProductField(val) {
+    if (!val) return val;
+    return String(val)
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => {
+        if (!s) return false;
+        // partial or full expiry date fragment: "Apr 30," or "Apr 30, 2028"
+        if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?(\s+\d{4})?$/i.test(s)) return false;
+        // standalone 4-digit year
+        if (/^\d{4}$/.test(s)) return false;
+        // shipping note continuation (doesn't start with a capital product letter pattern)
+        if (/^(only\.|do NOT|ship with|parcel force)/i.test(s)) return false;
+        return true;
+      })
+      .join(', ') || val;
+  }
+
   function hashText(str) {
     let h = 5381;
     const s = String(str || '');
@@ -3184,6 +3204,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       const saved = await store.list();
       savedTrackingRows = saved.map((s) => ({
         ...s,
+        product: cleanProductField(s.product),
         isoDate: s.isoDate || '',
         deliveredOnIso: s.deliveredOnIso || '',
         _origin: 'db',

@@ -59,7 +59,8 @@ function extractProductsOCR(block) {
     .map((line) => {
       let text = line
         .replace(/\b[A-Z]{0,4}\d{4,}[A-Z0-9]*\b/gi, '')
-        .replace(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}\b/gi, '')
+        .replace(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?(\s+\d{4})?\b/gi, '')
+        .replace(/\b\d{4}\b/g, '') // standalone year
         .replace(/\s+/g, ' ')
         .trim();
       const qtyMatch = text.match(/\s(\d{1,3})\s*$/);
