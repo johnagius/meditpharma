@@ -2734,7 +2734,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-10 07:07 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-10 07:12 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -4400,6 +4400,21 @@ function parseSingleOrder(block) {
 
   // Products live above the Shipping Address block.
   const items = extractProducts(lines.slice(0, startIdx));
+
+  // The PDF sometimes reflows the "Wareho use / Product Quantity / N" columns
+  // to after the address block. Collect any quantity numbers from the tail and
+  // assign them to products whose qty was not resolved inline (still "1").
+  const tailText = lines.slice(startIdx).join('\n');
+  const qtySection = tailText.match(/Product\s+Quantity\s*([\s\S]*?)(?:□|\[|�|$)/i);
+  if (qtySection) {
+    const tailNums = qtySection[1].split(/\s+/).map((s) => s.trim()).filter((s) => /^\d+$/.test(s));
+    if (tailNums.length === items.length) {
+      tailNums.forEach((n, i) => { items[i].qty = n; });
+    } else if (tailNums.length > 0 && items.length === 1) {
+      items[0].qty = tailNums[tailNums.length - 1];
+    }
+  }
+
   const productLines = items.map((it) => `${it.qty} x ${it.text}`);
   const productText = items.length ? items[0].text : '';
 
