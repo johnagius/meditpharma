@@ -215,7 +215,8 @@ describe('PDF parsers', () => {
     const linette = orders.find((o) => o.recipient.name === 'Linette Nawrocki');
     expect(linette).toBeDefined();
     expect(linette.source).toBe('k2packing');
-    expect(linette.orderId).toBe('353767'); // slip number, unique per shipment
+    expect(linette.orderId).toBe('10120646'); // order number for display
+    expect(linette.slipId).toBe('353767');   // slip number for dedup
     expect(linette.recipient.city).toBe('Old Bridge');
     expect(linette.recipient.state).toBe('NJ');
     expect(linette.recipient.postcode).toBe('08857');
@@ -240,7 +241,8 @@ describe('PDF parsers', () => {
     // Each slip gets a unique orderId (the slip number), so same-order Ian slips are NOT deduped
     const ianOrders = orders.filter((o) => o.recipient.name === 'Ian M Kahane');
     expect(ianOrders).toHaveLength(3);
-    expect(ianOrders.map((o) => o.orderId).sort()).toEqual(['353752', '353755', '353756']);
+    expect(ianOrders.every((o) => o.orderId === '10120591')).toBe(true); // shared order number
+    expect(ianOrders.map((o) => o.slipId).sort()).toEqual(['353752', '353755', '353756']); // unique slip IDs
     // qty should be distinct: 6, 6, 8
     const ianQtys = ianOrders.map((o) => o.productLines[0]).sort();
     expect(ianQtys).toContain('6 x Jubbonti® 60mg 60 / mg/ml 1 / pre-filled syringe(s)');
@@ -252,7 +254,8 @@ describe('PDF parsers', () => {
     expect(brandi.productLines[1]).toMatch(/^1 x.*NABOTA/i);
     // Linette: Nabota x2
     const linette = orders.find((o) => o.recipient.name === 'Linette Nawrocki');
-    expect(linette.orderId).toBe('353767');
+    expect(linette.orderId).toBe('10120646');  // order number for display
+    expect(linette.slipId).toBe('353767');      // slip number for dedup
     expect(linette.productLines[0]).toBe('2 x NABOTA® (JEUVEAU®) 200u 200u 1 x 200 Units Vial');
     // Gardasil: qty 3, no batch number in product text
     const robert = orders.find((o) => o.recipient.name === 'Robert Bjork');

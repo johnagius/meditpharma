@@ -139,9 +139,12 @@ function parseSlip(block) {
   const productText  = items.length ? items[0].productText : '';
   const productLines = items.map((it) => `${it.qty} x ${it.productText}`);
 
+  const orderNum = fieldVal(block, 'Order');
+
   return {
     source: 'k2packing',
-    orderId: slipId, // slip number is unique; order number may be shared across slips
+    orderId: orderNum || slipId, // order number for display; falls back to slip number
+    slipId,                      // unique per shipment — used by app.js dedup key
     recipient: { name, line1: address, line2: '', city, state, postcode: zip, country, phone, email },
     productText,
     productLines,
