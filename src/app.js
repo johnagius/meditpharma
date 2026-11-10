@@ -867,12 +867,12 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       .map((s) => s.trim())
       .filter((s) => {
         if (!s) return false;
-        // partial or full expiry date fragment: "Apr 30," or "Apr 30, 2028"
-        if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?(\s+\d{4})?$/i.test(s)) return false;
+        // any token starting with a month abbreviation is a date fragment
+        if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i.test(s)) return false;
         // standalone 4-digit year
         if (/^\d{4}$/.test(s)) return false;
-        // shipping note continuation (doesn't start with a capital product letter pattern)
-        if (/^(only\.|do NOT|ship with|parcel force)/i.test(s)) return false;
+        // shipping note continuation
+        if (/^(only\b|do NOT|ship with|parcel force)/i.test(s)) return false;
         return true;
       })
       .join(', ') || val;
