@@ -2734,7 +2734,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-10 08:55 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-10 09:15 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -8673,7 +8673,22 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
         for (const s of builtinSeedProducts()) { await pStore.save({ ...s, dedupKey: `prod:${s.key}` }); } // eslint-disable-line no-await-in-loop
         products = await pStore.list();
       }
-      if (products.length) productsList = products;
+      if (products.length) {
+        // Always apply the latest built-in mid/country/name so code changes
+        // take effect immediately without manual re-seeding.
+        const builtinByKey = {};
+        for (const b of builtinSeedProducts()) builtinByKey[b.key] = b;
+        const updated = [];
+        for (const p of products) {
+          const b = builtinByKey[p.key];
+          if (b && (p.mid !== b.mid || p.country !== b.country || p.name !== b.name)) {
+            const merged = { ...p, mid: b.mid, country: b.country, name: b.name, manufacturingCountry: b.manufacturingCountry };
+            updated.push(merged);
+            if (p.id) pStore.update(p.id, merged).catch(() => {}); // eslint-disable-line no-await-in-loop
+          }
+        }
+        productsList = products.map((p) => updated.find((u) => u.id === p.id) || p);
+      }
     } catch { /* keep built-in seed */ }
     try {
       let hs = await hStore.list();
