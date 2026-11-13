@@ -545,12 +545,55 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  // Returns the user-selected ship date (from date picker or weekday dropdown), or today.
+  function getShipDate() {
+    const dateInput = document.getElementById('ship-date-input');
+    const daySelect = document.getElementById('ship-day-select');
+    if (dateInput && dateInput.value) {
+      const [y, m, d] = dateInput.value.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+    if (daySelect && daySelect.value) {
+      const dayMap = { mon: 1, tue: 2, wed: 3, thu: 4, fri: 5 };
+      const target = dayMap[daySelect.value];
+      if (target != null) {
+        const now = new Date();
+        const cur = now.getDay(); // 0=Sun
+        let diff = target - cur;
+        if (diff <= 0) diff += 7;
+        const ship = new Date(now);
+        ship.setDate(now.getDate() + diff);
+        return ship;
+      }
+    }
+    return new Date();
+  }
+
+  // Sync weekday dropdown → date input and vice-versa.
+  (function wireShipDatePicker() {
+    const dateInput = document.getElementById('ship-date-input');
+    const daySelect = document.getElementById('ship-day-select');
+    if (!dateInput || !daySelect) return;
+    daySelect.addEventListener('change', () => {
+      if (!daySelect.value) { dateInput.value = ''; return; }
+      const d = getShipDate();
+      dateInput.value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    });
+    dateInput.addEventListener('change', () => {
+      if (!dateInput.value) { daySelect.value = ''; return; }
+      const [y, m, day] = dateInput.value.split('-').map(Number);
+      const dow = new Date(y, m - 1, day).getDay();
+      const valMap = { 1:'mon',2:'tue',3:'wed',4:'thu',5:'fri' };
+      daySelect.value = valMap[dow] || '';
+    });
+  })();
+
   downloadBtn.addEventListener('click', () => {
     if (!orders.length) return;
     // Use each row's editable `cells` (kept in sync with inline edits and what
     // is saved to D1); fall back to a fresh buildRow for any row without them.
     const rows = orders.map((o, i) => o.cells || buildRow({ recipient: o.recipient, product: o.product }, i));
-    downloadCells(rows, buildFileName(orders.length), setStatus);
+    downloadCells(rows, buildFileName(orders.length, getShipDate()), setStatus);
   });
 
   function setStatus(msg, level = '') {
@@ -2004,7 +2047,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   }
 
   async function buildTrackingFromOrders() {
-    const today = new Date();
+    const today = getShipDate();
     const prefix = dateCompact4(today);
 
     // PDMS PDFs carry no order number — generate ddmmyyyy-N, continuing from any
