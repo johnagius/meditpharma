@@ -320,6 +320,21 @@ ${css}
       <div class="sidebar-card">
         <div class="sidebar-step-label" style="color:var(--tacc)">📥 Step 3 — Download Excel</div>
         <div class="sidebar-dl-stats" id="sb-dl-info" style="font-size:11px;color:var(--muted);margin-bottom:8px"></div>
+        <!-- Ship date picker -->
+        <div style="margin-bottom:8px">
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px">Ship date</label>
+          <div style="display:flex;gap:5px;align-items:center">
+            <select id="ship-day-select" style="flex:1;font-size:11px;padding:4px 3px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg)">
+              <option value="">Today</option>
+              <option value="mon">Mon</option>
+              <option value="tue">Tue</option>
+              <option value="wed">Wed</option>
+              <option value="thu">Thu</option>
+              <option value="fri">Fri</option>
+            </select>
+            <input id="ship-date-input" type="date" style="flex:1.4;font-size:11px;padding:3px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--fg)">
+          </div>
+        </div>
         <button id="btn-download-sidebar" class="primary" type="button" disabled
           style="width:100%;justify-content:center;background:var(--grn);border:none;padding:8px;font-size:12px;border-radius:5px">
           ⬇ Download FedEx Batch Excel
