@@ -934,6 +934,12 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   }
 
   // Editable label+value grid for the 52 cells. onEdit(colIdx, text) on input.
+  const PACKAGE_TYPE_OPTIONS = [
+    'FEDEX_PAK', 'FEDEX_ENVELOPE', 'FEDEX_SMALL_BOX', 'FEDEX_MEDIUM_BOX',
+    'FEDEX_LARGE_BOX', 'FEDEX_BOX', 'FEDEX_TUBE', 'YOUR_PACKAGING',
+  ];
+  const PKG_TYPE_COL = headers.indexOf('packageType');
+
   function buildFieldGrid(cells, onEdit) {
     const grid = document.createElement('div');
     grid.className = 'fields';
@@ -944,13 +950,36 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       label.className = 'flabel';
       label.textContent = humanizeHeader(headers[colIdx]);
       field.appendChild(label);
-      const val = document.createElement('div');
-      val.className = 'fval';
-      val.setAttribute('contenteditable', 'true');
-      val.dataset.colIdx = colIdx;
-      val.textContent = value;
-      val.addEventListener('input', () => onEdit(colIdx, val.textContent));
-      field.appendChild(val);
+
+      if (colIdx === PKG_TYPE_COL) {
+        const sel = document.createElement('select');
+        sel.className = 'fval';
+        sel.dataset.colIdx = colIdx;
+        sel.style.cssText = 'font-size:11px;padding:2px 3px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--fg);width:100%';
+        PACKAGE_TYPE_OPTIONS.forEach((opt) => {
+          const o = document.createElement('option');
+          o.value = opt; o.textContent = opt;
+          if (opt === (value || 'FEDEX_PAK')) o.selected = true;
+          sel.appendChild(o);
+        });
+        // If current value isn't in list, add it as first option
+        if (value && !PACKAGE_TYPE_OPTIONS.includes(value)) {
+          const o = document.createElement('option');
+          o.value = value; o.textContent = value; o.selected = true;
+          sel.insertBefore(o, sel.firstChild);
+        }
+        sel.addEventListener('change', () => onEdit(colIdx, sel.value));
+        field.appendChild(sel);
+      } else {
+        const val = document.createElement('div');
+        val.className = 'fval';
+        val.setAttribute('contenteditable', 'true');
+        val.dataset.colIdx = colIdx;
+        val.textContent = value;
+        val.addEventListener('input', () => onEdit(colIdx, val.textContent));
+        field.appendChild(val);
+      }
+
       grid.appendChild(field);
     });
     return grid;
