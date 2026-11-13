@@ -51,6 +51,8 @@ export const COLUMN_KEYS = [
   'paymentType',
   'taxPaymentType',
   'serviceType',
+  'shipDate',
+  'signatureOptionType',
 ];
 
 export const ROW_CONSTANTS = {
@@ -89,4 +91,6 @@ export const ROW_CONSTANTS = {
   PickupType: 'DROP_BOX',
   paymentType: 'Sender',
   taxPaymentType: 'Sender',
+  shipDate: '',            // populated at download time from ship date picker
+  signatureOptionType: 'NO_SIGNATURE_REQUIRED',
 };

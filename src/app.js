@@ -592,8 +592,15 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     if (!orders.length) return;
     // Use each row's editable `cells` (kept in sync with inline edits and what
     // is saved to D1); fall back to a fresh buildRow for any row without them.
-    const rows = orders.map((o, i) => o.cells || buildRow({ recipient: o.recipient, product: o.product }, i));
-    downloadCells(rows, buildFileName(orders.length, getShipDate()), setStatus);
+    const shipD = getShipDate();
+    const shipDateStr = `${shipD.getFullYear()}${String(shipD.getMonth()+1).padStart(2,'0')}${String(shipD.getDate()).padStart(2,'0')}`;
+    const shipDateIdx = headers.indexOf('shipDate');
+    const rows = orders.map((o, i) => {
+      const cells = (o.cells || buildRow({ recipient: o.recipient, product: o.product }, i)).slice();
+      if (shipDateIdx >= 0) cells[shipDateIdx] = shipDateStr;
+      return cells;
+    });
+    downloadCells(rows, buildFileName(orders.length, shipD), setStatus);
   });
 
   function setStatus(msg, level = '') {
@@ -933,12 +940,16 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     return (h >>> 0).toString(36);
   }
 
-  // Editable label+value grid for the 52 cells. onEdit(colIdx, text) on input.
+  // Editable label+value grid for order cells. onEdit(colIdx, text) on input.
   const PACKAGE_TYPE_OPTIONS = [
     'FEDEX_PAK', 'FEDEX_ENVELOPE', 'FEDEX_SMALL_BOX', 'FEDEX_MEDIUM_BOX',
     'FEDEX_LARGE_BOX', 'FEDEX_BOX', 'FEDEX_TUBE', 'YOUR_PACKAGING',
   ];
+  const SIGNATURE_OPTIONS = [
+    'NO_SIGNATURE_REQUIRED', 'INDIRECT', 'DIRECT', 'ADULT', 'SERVICE_DEFAULT',
+  ];
   const PKG_TYPE_COL = headers.indexOf('packageType');
+  const SIG_TYPE_COL = headers.indexOf('signatureOptionType');
 
   function buildFieldGrid(cells, onEdit) {
     const grid = document.createElement('div');
@@ -951,19 +962,24 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       label.textContent = humanizeHeader(headers[colIdx]);
       field.appendChild(label);
 
-      if (colIdx === PKG_TYPE_COL) {
+      const selectConfig = colIdx === PKG_TYPE_COL
+        ? { options: PACKAGE_TYPE_OPTIONS, def: 'FEDEX_PAK' }
+        : colIdx === SIG_TYPE_COL
+        ? { options: SIGNATURE_OPTIONS, def: 'NO_SIGNATURE_REQUIRED' }
+        : null;
+
+      if (selectConfig) {
         const sel = document.createElement('select');
         sel.className = 'fval';
         sel.dataset.colIdx = colIdx;
         sel.style.cssText = 'font-size:11px;padding:2px 3px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--fg);width:100%';
-        PACKAGE_TYPE_OPTIONS.forEach((opt) => {
+        selectConfig.options.forEach((opt) => {
           const o = document.createElement('option');
           o.value = opt; o.textContent = opt;
-          if (opt === (value || 'FEDEX_PAK')) o.selected = true;
+          if (opt === (value || selectConfig.def)) o.selected = true;
           sel.appendChild(o);
         });
-        // If current value isn't in list, add it as first option
-        if (value && !PACKAGE_TYPE_OPTIONS.includes(value)) {
+        if (value && !selectConfig.options.includes(value)) {
           const o = document.createElement('option');
           o.value = value; o.textContent = value; o.selected = true;
           sel.insertBefore(o, sel.firstChild);

@@ -26,8 +26,8 @@ describe('excelExporter', () => {
   it('buildAOA produces header + N rows', () => {
     const aoa = buildAOA([sampleOrder('Alice Smith'), sampleOrder('Bob Jones')]);
     expect(aoa).toHaveLength(3);
-    expect(aoa[0].length).toBe(52);
-    expect(aoa[1].length).toBe(52);
+    expect(aoa[0].length).toBe(54);
+    expect(aoa[1].length).toBe(54);
   });
 
   it('round-trips through SheetJS', () => {

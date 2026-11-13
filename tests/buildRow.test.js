@@ -24,10 +24,10 @@ function loadSample() {
 }
 
 describe('buildRow', () => {
-  it('has 52 cells, matching the sample column count (A..AZ)', () => {
-    expect(COLUMN_KEYS.length).toBe(52);
+  it('has 54 cells, matching the sample column count (A..BB)', () => {
+    expect(COLUMN_KEYS.length).toBe(54);
     const row = buildRow({ recipient: {}, product: null }, 0);
-    expect(row.length).toBe(52);
+    expect(row.length).toBe(54);
   });
 
   it('header row matches the sample exactly', () => {
@@ -53,7 +53,7 @@ describe('buildRow', () => {
       },
       0
     );
-    expect(row.length).toBe(52);
+    expect(row.length).toBe(54);
     expect(row[2]).toBe('Robert Aquilina');   // senderContactName
     expect(row[9]).toBe('');                  // senderPostcode — intentionally blank
     expect(row[12]).toBe('Robyn McDaniel');   // recipientContactName
