@@ -1,0 +1,50 @@
+{
+  "name": "meditpharma-pro",
+  "version": "1.0.0",
+  "description": "Meditpharma Pro – FedEx batch upload tool",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.meditpharma.pro",
+    "productName": "Meditpharma Pro",
+    "copyright": "Meditpharma",
+    "directories": {
+      "output": "../release"
+    },
+    "files": [
+      "main.js"
+    ],
+    "extraResources": [
+      {
+        "from": "index.html",
+        "to": "app.asar.unpacked/index.html"
+      }
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "artifactName": "MeditpharmaPro-Setup-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+      "artifactName": "MeditpharmaPro-${version}.dmg",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "artifactName": "MeditpharmaPro-${version}.AppImage"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}
