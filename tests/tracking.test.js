@@ -94,8 +94,8 @@ describe('parsePastedTable', () => {
   });
 
   it('falls back to positional mapping when there is no header row', () => {
-    // day, Date, Order number, tracking number, Product, quantity, ...
-    const text = 'Monday\t01.06.26\t010626-1\t\tBotox 100u\t1';
+    // day, Date, Order number, Client, tracking number, Product, quantity, ...
+    const text = 'Monday\t01.06.26\t010626-1\tJane Doe\t\tBotox 100u\t1';
     const rows = parsePastedTable(text);
     expect(rows).toHaveLength(1);
     expect(rows[0].orderNumber).toBe('010626-1');
@@ -229,7 +229,7 @@ describe('buildTrackingRow', () => {
     expect(cells.length).toBe(TRACKING_HEADERS.length);
     expect(cells.length).toBe(TRACKING_KEYS.length);
     expect(cells[0]).toBe('Monday');
-    expect(cells[4]).toBe('Xeomin, Botox');
+    expect(cells[TRACKING_KEYS.indexOf('product')]).toBe('Xeomin, Botox');
   });
 });
 
