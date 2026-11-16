@@ -7,6 +7,7 @@ import {
 import { HS_CODES, builtinSeedHsCodes, activeHsList } from './data/hsCodes.js';
 import { buildFileName } from './excelExporter.js';
 import { HEADER_ROW, buildRow } from './buildRow.js';
+import { ROW_CONSTANTS } from './data/columns.js';
 import {
   TRACKING_HEADERS,
   TRACKING_KEYS,
@@ -588,6 +589,62 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
     });
   })();
 
+  // ---- Bulk edit controls ----
+  const bulkControls = document.getElementById('bulk-controls');
+  const bulkWeightInput = document.getElementById('bulk-weight-input');
+  const btnBulkWeight = document.getElementById('btn-bulk-weight');
+  const btnRandCustoms = document.getElementById('btn-rand-customs');
+
+  const PKG_WEIGHT_COL = headers.indexOf('packageWeight');
+  const COMM_WEIGHT_COL = headers.indexOf('commodityWeight');
+  const CUSTOMS_VAL_COL = headers.indexOf('customsValue');
+
+  function showBulkControls() {
+    const bc = document.getElementById('bulk-controls');
+    if (bc) bc.style.display = orders.length ? '' : 'none';
+  }
+
+  if (btnBulkWeight) {
+    btnBulkWeight.addEventListener('click', () => {
+      const w = parseFloat(bulkWeightInput && bulkWeightInput.value);
+      if (!w || w <= 0) return;
+      const wStr = String(w);
+      orders.forEach((o) => {
+        if (!o.cells) return;
+        if (PKG_WEIGHT_COL >= 0) o.cells[PKG_WEIGHT_COL] = wStr;
+        if (COMM_WEIGHT_COL >= 0) o.cells[COMM_WEIGHT_COL] = wStr;
+      });
+      // Refresh all fval elements showing these columns
+      document.querySelectorAll('.fval[data-col-idx]').forEach((el) => {
+        const idx = parseInt(el.dataset.colIdx, 10);
+        if (idx === PKG_WEIGHT_COL || idx === COMM_WEIGHT_COL) el.textContent = wStr;
+      });
+      setStatus(`Package weight set to ${wStr} KGS for all ${orders.length} orders.`, 'ok');
+    });
+  }
+
+  if (btnRandCustoms) {
+    btnRandCustoms.addEventListener('click', () => {
+      orders.forEach((o) => {
+        if (!o.cells) return;
+        const qty = parseInt(o.cells[headers.indexOf('commodityQuantity')], 10) || 1;
+        // Total customs value: random 90–105, scaled so per-unit makes sense
+        // but total always stays in 90–105 range
+        const val = Math.floor(Math.random() * 16) + 90; // 90–105
+        const valStr = String(val);
+        if (CUSTOMS_VAL_COL >= 0) o.cells[CUSTOMS_VAL_COL] = valStr;
+      });
+      document.querySelectorAll('.fval[data-col-idx]').forEach((el) => {
+        const idx = parseInt(el.dataset.colIdx, 10);
+        if (idx === CUSTOMS_VAL_COL) {
+          const orderIdx = [...document.querySelectorAll('.card')].indexOf(el.closest('.card'));
+          if (orderIdx >= 0 && orders[orderIdx]) el.textContent = orders[orderIdx].cells[CUSTOMS_VAL_COL];
+        }
+      });
+      setStatus(`Customs values randomized (90–105) for ${orders.length} orders.`, 'ok');
+    });
+  }
+
   downloadBtn.addEventListener('click', () => {
     if (!orders.length) return;
     // Use each row's editable `cells` (kept in sync with inline edits and what
@@ -733,6 +790,11 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       // Keep an editable copy of the row so inline edits persist into both the
       // export and what gets saved to D1. Recomputed when the product changes.
       if (!o.cells) o.cells = buildRow({ recipient: o.recipient, product: o.product, qty: resolveProducts(o)[0]?.qty }, idx, activeHs);
+      // Pad cells saved before new columns were added so selects render correctly.
+      while (o.cells.length < headers.length) {
+        const key = headers[o.cells.length];
+        o.cells.push(ROW_CONSTANTS[key] ?? '');
+      }
       const cells = o.cells;
       const hasResolvedProduct = !!o.product && !!o.product.mid;
 
@@ -873,6 +935,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
       cards.appendChild(card);
     });
 
+    if (typeof showBulkControls === 'function') showBulkControls();
     const unresolved = orders.filter((o) => !o.product || !o.product.mid).length;
     downloadBtn.disabled = !orders.length;
     summary.innerHTML = orders.length
