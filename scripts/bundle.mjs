@@ -314,6 +314,21 @@ ${css}
         <div id="summary" style="font-size:11px;color:var(--muted);margin-top:6px">Drop PDFs above to begin.</div>
         <div id="status" aria-live="polite"></div>
         <div id="fedex-status" aria-live="polite"></div>
+
+        <!-- Bulk setters -->
+        <div id="bulk-controls" style="display:none;border-top:1px solid var(--border);padding-top:8px;margin-top:8px">
+          <div style="font-size:10.5px;color:var(--muted);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Bulk Edit</div>
+          <div style="display:flex;gap:4px;align-items:center;margin-bottom:5px">
+            <label style="font-size:10.5px;color:var(--muted);white-space:nowrap;min-width:50px">Weight</label>
+            <input id="bulk-weight-input" type="number" step="0.1" min="0.1" placeholder="KGS" style="flex:1;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--fg)">
+            <button id="btn-bulk-weight" type="button" style="font-size:10.5px;padding:3px 7px;white-space:nowrap">Apply all</button>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <label style="font-size:10.5px;color:var(--muted);white-space:nowrap;min-width:50px">Customs</label>
+            <span style="font-size:10.5px;color:var(--muted);flex:1">Random 90–105</span>
+            <button id="btn-rand-customs" type="button" style="font-size:10.5px;padding:3px 7px;white-space:nowrap">🎲 Apply</button>
+          </div>
+        </div>
       </div>
 
       <!-- Step 3: Download -->
