@@ -200,7 +200,7 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   // Proportional column widths (%): a leading select checkbox column, then one
   // per TRACKING_HEADERS entry (no per-row Actions column — actions live in the
   // toolbar above each table).
-  const TRACKING_SELECT_WIDTH = 3;
+  const TRACKING_SELECT_WIDTH = 2.5;
   // Widths align with TRACKING_HEADERS. "Delivered on" (index 11) is wider so the
   // date is readable; the columns after it are a touch narrower to make room.
   const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 10, 6, 7, 7, 6, 4, 6, 5, 5, 5, 4, 6];
@@ -316,12 +316,18 @@ export function createApp({ document, window, pdfjsLib, XLSX }) {
   };
 
   // ── Column layout: resize + reorder + persistence ─────────────────────────
+  // Schema fingerprint — if TRACKING_KEYS changes, all saved layouts are stale and discarded.
+  const _COL_SCHEMA = TRACKING_KEYS.join(',');
   const _COL_LS = (k) => '_trk_col_' + k;
   function _loadColLayout(viewKey) {
-    try { return JSON.parse(localStorage.getItem(_COL_LS(viewKey)) || 'null'); } catch { return null; }
+    try {
+      const raw = JSON.parse(localStorage.getItem(_COL_LS(viewKey)) || 'null');
+      if (!raw || raw._schema !== _COL_SCHEMA) return null;
+      return raw;
+    } catch { return null; }
   }
   function _saveColLayout(viewKey, layout) {
-    try { localStorage.setItem(_COL_LS(viewKey), JSON.stringify(layout)); } catch {}
+    try { localStorage.setItem(_COL_LS(viewKey), JSON.stringify({ ...layout, _schema: _COL_SCHEMA })); } catch {}
   }
   function _resetColLayout(viewKey) {
     try { localStorage.removeItem(_COL_LS(viewKey)); } catch {}

@@ -535,6 +535,9 @@ thead th {
 .track-table .row-actions button { padding: 3px 6px; font-size: 11px; }
 .track-table input.row-select,
 .track-table thead th input.row-select { width: auto; min-width: 0; cursor: pointer; height: auto; }
+/* Ensure the select-checkbox column has a minimum visible width */
+.track-table thead th:first-child,
+.track-table tbody td:first-child { min-width: 28px; text-align: center; padding: 0 4px; }
 
 /* Delivered date cell */
 .track-table .delivered { display: flex; gap: 3px; align-items: center; }
@@ -2764,7 +2767,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-17 06:03 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-17 06:12 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -5261,7 +5264,7 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   // Proportional column widths (%): a leading select checkbox column, then one
   // per TRACKING_HEADERS entry (no per-row Actions column — actions live in the
   // toolbar above each table).
-  const TRACKING_SELECT_WIDTH = 3;
+  const TRACKING_SELECT_WIDTH = 2.5;
   // Widths align with TRACKING_HEADERS. "Delivered on" (index 11) is wider so the
   // date is readable; the columns after it are a touch narrower to make room.
   const TRACKING_COL_WIDTHS = [5, 6, 6, 6, 8, 4, 10, 7, 6, 7, 7, 10, 6, 7, 7, 6, 4, 6, 5, 5, 5, 4, 6];
@@ -5377,12 +5380,18 @@ function createApp({ document, window, pdfjsLib, XLSX }) {
   };
 
   // ── Column layout: resize + reorder + persistence ─────────────────────────
+  // Schema fingerprint — if TRACKING_KEYS changes, all saved layouts are stale and discarded.
+  const _COL_SCHEMA = TRACKING_KEYS.join(',');
   const _COL_LS = (k) => '_trk_col_' + k;
   function _loadColLayout(viewKey) {
-    try { return JSON.parse(localStorage.getItem(_COL_LS(viewKey)) || 'null'); } catch { return null; }
+    try {
+      const raw = JSON.parse(localStorage.getItem(_COL_LS(viewKey)) || 'null');
+      if (!raw || raw._schema !== _COL_SCHEMA) return null;
+      return raw;
+    } catch { return null; }
   }
   function _saveColLayout(viewKey, layout) {
-    try { localStorage.setItem(_COL_LS(viewKey), JSON.stringify(layout)); } catch {}
+    try { localStorage.setItem(_COL_LS(viewKey), JSON.stringify({ ...layout, _schema: _COL_SCHEMA })); } catch {}
   }
   function _resetColLayout(viewKey) {
     try { localStorage.removeItem(_COL_LS(viewKey)); } catch {}
