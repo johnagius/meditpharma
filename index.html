@@ -2768,7 +2768,7 @@ table.RT tbody tr:hover { background: rgba(56,189,248,.03); }
 
 </main>
 <footer>
-  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-20 07:24 UTC
+  Meditpharma Pro &middot; runs entirely in your browser &middot; build 2026-11-20 08:00 UTC
 </footer>
 </div>
 <div id="toast" style="display:none"></div>
@@ -3470,6 +3470,7 @@ function buildRow({ recipient, product, qty }, rowIndex, hsCodes = HS_CODES) {
     })(),
     recipientState: recipient?.state || '',
     recipientCity: recipient?.city || '',
+    recipientCountry: recipient?.country || ROW_CONSTANTS.recipientCountry,
     itemDescription: hs.description,
     harmonizedCode: hs.code,
     commodityQuantity: qty ? String(qty) : ROW_CONSTANTS.commodityQuantity,

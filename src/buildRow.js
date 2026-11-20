@@ -47,6 +47,7 @@ export function buildRow({ recipient, product, qty }, rowIndex, hsCodes = HS_COD
     })(),
     recipientState: recipient?.state || '',
     recipientCity: recipient?.city || '',
+    recipientCountry: recipient?.country || ROW_CONSTANTS.recipientCountry,
     itemDescription: hs.description,
     harmonizedCode: hs.code,
     commodityQuantity: qty ? String(qty) : ROW_CONSTANTS.commodityQuantity,
