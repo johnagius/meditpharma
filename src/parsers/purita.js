@@ -15,11 +15,18 @@ function countryCode(name) {
   return COUNTRY_CODES[String(name || '').trim().toLowerCase()] || String(name || '').trim().toUpperCase().slice(0, 2);
 }
 
-export function detect(text) {
-  return /FULFILLMENT PICK LIST/i.test(text) && /PURITA\s+PEPTIDES/i.test(text);
+// The PDF renders the heading with spaced-out letters: "F U L F I L L M E N T P I C K L I S T"
+function _collapse(text) {
+  return text.replace(/\b([A-Z])\s+(?=[A-Z]\b)/g, '$1');
 }
 
-export function parse(text) {
+export function detect(text) {
+  const t = _collapse(text);
+  return /FULFILLMENT\s*PICK\s*LIST/i.test(t) && /PURITA\s+PEPTIDES/i.test(t);
+}
+
+export function parse(rawInput) {
+  const text = _collapse(rawInput);
   const lines = text.split(/\r?\n/).map((l) => l.trim());
 
   // Order ID: "ORDER #A6489-4665"
