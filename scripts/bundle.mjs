@@ -25,6 +25,7 @@ const MODULE_ORDER = [
   'parsers/k2packing.js',
   'parsers/occ.js',
   'parsers/pdms.js',
+  'parsers/purita.js',
   'parsers/secil.js',
   'parsers/index.js',
   'app.js',
@@ -49,6 +50,7 @@ const NAMESPACES = {
   'parsers/k2packing.js': 'ParserK2Packing',
   'parsers/occ.js': 'ParserOcc',
   'parsers/pdms.js': 'ParserPdms',
+  'parsers/purita.js': 'ParserPurita',
   'parsers/secil.js': 'ParserSecil',
   'parsers/index.js': 'ParserIndex',
   'app.js': 'AppModule',
@@ -84,6 +86,7 @@ const IMPORT_TO_NS = {
   './k2packing.js': 'ParserK2Packing',
   './occ.js': 'ParserOcc',
   './pdms.js': 'ParserPdms',
+  './purita.js': 'ParserPurita',
   './secil.js': 'ParserSecil',
 };
 
