@@ -4,6 +4,7 @@ import * as k2 from './k2.js';
 import * as k2packing from './k2packing.js';
 import * as occ from './occ.js';
 import * as pdms from './pdms.js';
+import * as purita from './purita.js';
 import * as secil from './secil.js';
 
 const PARSERS = [
@@ -14,6 +15,7 @@ const PARSERS = [
   { name: 'k2', mod: k2 },
   { name: 'activa', mod: activa },
   { name: 'secil', mod: secil },
+  { name: 'purita', mod: purita },
 ];
 
 export function dispatch(text) {
@@ -30,4 +32,4 @@ export function dispatch(text) {
   return [];
 }
 
-export { activa, dh, k2, k2packing, occ, pdms, secil };
+export { activa, dh, k2, k2packing, occ, pdms, purita, secil };

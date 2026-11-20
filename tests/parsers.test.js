@@ -278,4 +278,24 @@ describe('PDF parsers', () => {
     expect(o.recipient.email).toBe('evploeg26@gmail.com');
     expect(o.productText).toMatch(/Meriofert/i);
   });
+
+  it('parses a Purita Peptides fulfillment pick list', () => {
+    const orders = dispatch(fixture('purita.txt'));
+    expect(orders).toHaveLength(1);
+    const o = orders[0];
+    expect(o.source).toBe('purita');
+    expect(o.orderId).toBe('A6489-4665');
+    expect(o.recipient.name).toBe('Karina Christensen');
+    expect(o.recipient.line1).toBe('Grønnevej 32');
+    expect(o.recipient.city).toBe('Tørring');
+    expect(o.recipient.country).toBe('DK');
+    expect(o.recipient.postcode).toBe('7160');
+    expect(o.recipient.phone).toBe('+4550564694');
+    expect(o.recipient.email).toBe('karinachr@live.dk');
+    expect(o.productLines).toHaveLength(2);
+    expect(o.productLines[0]).toMatch(/^1 x/);
+    expect(o.productLines[0]).toMatch(/Retatrutide/i);
+    expect(o.productLines[1]).toMatch(/^3 x/);
+    expect(o.productLines[1]).toMatch(/Retatrutide/i);
+  });
 });

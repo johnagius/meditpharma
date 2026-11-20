@@ -7,6 +7,9 @@ export const PRODUCTS = [
   { key: 'dysport',    label: 'Dysport',      mid: 'GBIPS37LON',       country: 'GB', patterns: [/dysport/i, /\bDYS/i] },
   { key: 'bocouture',  label: 'Bocouture 50', mid: 'DEMERPHA100FRA',   country: 'DE', patterns: [/bocouture/i] },
 
+  // ── Peptides (research / compounded) ────────────────────────────────────
+  { key: 'retatrutide', label: 'Retatrutide', mid: '', country: '', patterns: [/retatrutide/i, /RETA\s*Peptide/i] },
+
   // ── GLP-1 / Diabetes / Obesity ───────────────────────────────────────────
   { key: 'ozempic',    label: 'Ozempic',      mid: 'DKNOVNORBAG',      country: 'DK', patterns: [/ozempic/i] },
   { key: 'wegovy',     label: 'Wegovy',       mid: 'DKNOVNORBAG',      country: 'DK', patterns: [/wegovy/i] },
